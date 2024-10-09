@@ -99,14 +99,14 @@ const char* get_register_binary(const char* reg) {
 
 // 即値をバイナリに変換
 const char* get_immediate_binary(const char* imm) {
-    static char binary[16]; // 結果を保持するバッファ
+    static char binary[24]; // 結果を保持するバッファ
     int imm_value = atoi(imm); // 即値を整数に変換
-    //printf("imm_value:%d\n",imm_value);
+    printf("imm_value:%d\n",imm_value);
     // バッファをクリア
     memset(binary, 0, sizeof(binary));
     // 即値を2進数に変換
-    for (int i = 11; i >= 0; i--) { // 12ビット分の即値を格納
-        binary[11 - i] = (imm_value & (1 << i)) ? '1' : '0';
+    for (int i = 23; i >= 0; i--) { // 24bit分の値を格納
+        binary[23 - i] = (imm_value & (1 << i)) ? '1' : '0';
     }
     return binary;
 }
@@ -267,13 +267,13 @@ void parse_assembly(const char* assembly_code){
             get_substring(r1_bin,bit19_12,strlen(r1_bin)-19,8);
             snprintf(imm, 21,"%s%s%s%s", bit20, bit10_1, bit11, bit19_12);
 
-            // printf("imm_1: %s, size: %lu\n", bit20, strlen(bit20));
-            // printf("imm_2: %s, size: %lu\n", bit10_1, strlen(bit10_1));
-            // printf("imm_2: %s, size: %lu\n", bit11, strlen(bit11));
-            // printf("imm_2: %s, size: %lu\n", bit19_12, strlen(bit19_12));
-            // printf("r1_bin: %s, size: %lu\n", r1_bin, strlen(r1_bin));
-            // printf("rd_bin: %s, size: %lu\n", rd_bin, strlen(rd_bin));
-            // printf("opcode: %s, size: %lu\n", opcode, strlen(opcode));
+            printf("bit20: %s, size: %lu\n", bit20, strlen(bit20));
+            printf("bit10_1: %s, size: %lu\n", bit10_1, strlen(bit10_1));
+            printf("bit11: %s, size: %lu\n", bit11, strlen(bit11));
+            printf("bit19_12: %s, size: %lu\n", bit19_12, strlen(bit19_12));
+            printf("r1_bin: %s, size: %lu\n", r1_bin, strlen(r1_bin));
+            printf("rd_bin: %s, size: %lu\n", rd_bin, strlen(rd_bin));
+            printf("opcode: %s, size: %lu\n", opcode, strlen(opcode));
             
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s",imm, rd_bin, opcode_bin);
         }
