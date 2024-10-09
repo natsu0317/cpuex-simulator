@@ -119,6 +119,7 @@ void get_substring(const char* source, char* destination, int start, int length)
     destination[length] = '\0';
 }
 
+//これを使用するとB系列の命令の後の命令が実行されないというbugが発生
 // int calculate_offset(const char* assembly_code, const char* label_name, int current_line){
 //     char* code_copy2 = strdup(assembly_code);
 //     //printf("assembly:%s\n",assembly_code);
@@ -151,9 +152,31 @@ void get_substring(const char* source, char* destination, int start, int length)
 //     return 0;
 // }
 
-int calculate_offset(){
+int calculate_offset(const char* assembly_code, const char* label_name, int current_line) {
+    const char* line_start = assembly_code; // 現在の行の開始位置
+    int line_number = 0;
+    size_t label_length = strlen(label_name);
+    while (*line_start != '\0') {
+        const char* line_end = strchr(line_start, '\n'); // 次の行の終わりを探す
+        if (line_end == NULL) {
+            line_end = line_start + strlen(line_start); // 最後の行の場合
+        }
+        size_t line_length = line_end - line_start;
 
+        // 行の先頭にラベルがあり、コロンで終わっているかを確認
+        if (line_length > label_length && 
+            strncmp(line_start, label_name, label_length) == 0 && 
+            line_start[label_length] == ':') {
+            return line_number - current_line; // オフセットを計算
+        }
+        // 次の行へ進む
+        line_start = (*line_end == '\n') ? line_end + 1 : line_end; // 改行がある場合は次の行に移動
+        line_number++;
+    }
+
+    return 0; // ラベルが見つからない場合
 }
+
 
 void parse_assembly(const char* assembly_code){
     const char* delimiter = "\n";
@@ -204,8 +227,7 @@ void parse_assembly(const char* assembly_code){
             //offsetを求める
             int current_line = instruction_count;
             const char* label_name = operand3;
-            //int offset = calculate_offset();
-            int offset = 5;
+            int offset = calculate_offset(assembly_code,label_name,current_line);
             //printf("offset: %d\n",offset);
             char offset_str[12];
             snprintf(offset_str,sizeof(offset_str),"%d",offset);
