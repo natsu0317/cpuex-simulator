@@ -180,19 +180,20 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
 
 void parse_assembly(const char* assembly_code){
     const char* delimiter = "\n";
+    printf("%s\n",assembly_code);
     char* code_copy = strdup(assembly_code);
     printf("code_copy:%s\n",code_copy);
     char* token = strtok(code_copy, delimiter);
     printf("%s\n",token);
-    printf("code_copy:%s\n",code_copy);
 
     while (token != NULL){
+        printf("start_token:%s\n",token);
         if(strchr(token, ':') != NULL){
-            token = strtok(NULL, "\n");
+            //token = strtok(NULL, "\n");
             instruction_count++;
+            token = strtok(NULL,delimiter);
             continue;
         }
-
         //printf("count:%d\n",binary_instruction_count);
         char opcode[16],operand1[32],operand2[32],operand3[32];
         sscanf(token, "%s %s %s %s", opcode, operand1, operand2, operand3); 
@@ -303,8 +304,8 @@ int main(){
         "addi x1 x2 20\n"
         "beq x1 x2 label\n"
         "addi x1 x2 20\n"
-        "label:\n";
-        //"jal x1 20\n";
+        "label:\n"
+        "jal x1 20\n";
 
     parse_assembly(assembly_code);
 
