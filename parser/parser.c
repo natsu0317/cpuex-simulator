@@ -4,6 +4,7 @@
 #include <ctype.h>
 
 #define MAX_LENGTH 100
+#define MAX_ASSEMBLY_SIZE 1024 //アセンブリコードの最大サイズ
 
 int instruction_count = 0;
 
@@ -102,7 +103,10 @@ const char* get_register_binary(const char* reg) {
 
 // 即値をバイナリに変換
 const char* get_immediate_binary(const char* imm) {
-    static char binary[32]; // 結果を保持するバッファ
+    char* binary = (char*)malloc(33*sizeof(char));
+    if(binary == NULL){
+        return NULL;
+    }
     int imm_value = atoi(imm); // 即値を整数に変換
     // バッファをクリア
     memset(binary, 0, sizeof(binary));
@@ -111,6 +115,7 @@ const char* get_immediate_binary(const char* imm) {
         binary[31 - i] = (imm_value & (1 << i)) ? '1' : '0';
     }
     printf("binary:%s\n",binary);
+    binary[32] = '\0';
     return binary;
 }
 
@@ -175,27 +180,32 @@ void parse_assembly(const char* assembly_code){
         const char* opcode_bin = get_opcode_binary(opcode);
         const char* rd_bin = get_register_binary(operand1);
         const char* r1_bin;
-        int need_free_1 = 0;
+        int need_free_reg_1 = 0;
+        int need_free_imm_1 = 0;
         if(operand2[0] == 'x'){
             printf("reg");
             r1_bin = get_register_binary(operand2);
-            need_free_1 = 1;
+            need_free_reg_1 = 1;
         }else{
             printf("imm");
             r1_bin = get_immediate_binary(operand2);
+            need_free_imm_1 = 1;
         }
         const char* r2_bin;
-        int need_free_2 = 0;
+        int need_free_reg_2 = 0;
+        int need_free_imm_2 = 0;
         printf("operand3%s\n",operand3);
         if(operand3[0] == 'x'){
             printf("reg");
-            r2_bin = get_register_binary(operand2);
-            need_free_2 = 1;
+            r2_bin = get_register_binary(operand3);
+            need_free_reg_2 = 1;
         }else{
             printf("imm");
             r2_bin = get_immediate_binary(operand3);
+            need_free_imm_2 = 1;
         }
         printf("r2_bin%s\n",r2_bin);
+        printf("Opcode: %s, rd: %s, r1: %s, r2: %s\n", opcode_bin, rd_bin, r1_bin, r2_bin);
 
         BinaryInstruction inst;
 
@@ -271,7 +281,7 @@ void parse_assembly(const char* assembly_code){
         }
 
         if(is_j_type(opcode)){
-            printf("j_type");
+            printf("j_type\n");
             //r1 -> offsetに対応
             char bit20[2],bit10_1[11],bit11[2],bit19_12[9];
             char imm[21];
@@ -300,10 +310,10 @@ void parse_assembly(const char* assembly_code){
         binary_instructions[binary_instruction_count++] = inst;
         printf("token:%s\n",token);
         free((void*)rd_bin);
-        if(need_free_1 == 1){
+        if(need_free_reg_1 == 1 || need_free_imm_1 == 1){
             free((void*)r1_bin);
         }        
-        if(need_free_2 == 1){
+        if(need_free_reg_2 == 1 || need_free_imm_2 == 1){
             free((void*)r2_bin);
         }
 
@@ -314,31 +324,55 @@ void parse_assembly(const char* assembly_code){
 }
 
 // すべてのバイナリ命令を出力
-void print_binary_instructions() {
+void print_binary_instructions(FILE* output_file) {
     for (int i = 0; i < binary_instruction_count; i++) {
-        printf("Binary: %s\n", binary_instructions[i].binary_code);
+        fprintf(output_file, "%s\n", binary_instructions[i].binary_code);
     }
 }
 
 int main(){
-    printf("hello\n");
-    const char* assembly_code = 
-        "add x1 x2 x3\n"
-        "addi x1 x2 20\n"
-        "beq x1 x2 label\n"
-        "addi x1 x2 20\n"
-        "label:\n"
-        "jal x1 20\n";
+    FILE *file;
+    char assembly_code[MAX_ASSEMBLY_SIZE];
+
+    file = fopen("assembly.txt","r");
+    if(file == NULL){
+        perror("Error opening file");
+        return 1;
+    }
+    // const char* assembly_code = 
+    //     "add x1 x2 x3\n"
+    //     "addi x1 x2 20\n"
+    //     "beq x1 x2 label\n"
+    //     "addi x1 x2 20\n"
+    //     "label:\n"
+    //     "jal x1 20\n";
+
+    size_t read_size = fread(assembly_code, 1, sizeof(assembly_code)-1, file);
+    if(read_size == 0){
+        perror("Error reading file");
+        fclose(file);
+        return 1;
+    }
+    assembly_code[read_size] = '\0';
+    fclose(file);
 
     parse_assembly(assembly_code);
 
-    print_binary_instructions();
+    FILE *output_file = fopen("output.txt","w");    
+    if (output_file == NULL) {
+        perror("Error opening file");
+        return 1;
+    }
+    print_binary_instructions(output_file);
+    fclose(output_file);
+
     return 0;
 }
 
+
 // add x1 x2 x3
 //00000 00 00011 00010 000 00001 01100 11
-//00000 00 00010 00010 000 00001 01100 11
+//00000 00 00011 00010 000 00001 01100 11
 
 //addi x1 x2 20
 //000000010100 00010 000 00001 00100 11
