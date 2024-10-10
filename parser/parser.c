@@ -129,14 +129,10 @@ void get_substring(const char* source, char* destination, int start, int length)
 
 int calculate_offset(const char* assembly_code, const char* label_name, int current_line) {
     const char* line_start = assembly_code; // 現在の行の開始位置(ポインタ)
-    // printf("line_start:%s\n",line_start);
-    // printf("label_name:%s\n",label_name);
     int line_number = 0;
     size_t label_length = strlen(label_name);
     while (*line_start != '\0') {
-        //printf("line_start:%s\n",line_start);
         const char* line_end = strchr(line_start, '\n'); // 次の行の終わりを探す
-        //printf("line_end:%s\n",line_end);
         if (line_end == NULL) {
             line_end = line_start + strlen(line_start); // 最後の行の場合
         }
@@ -163,19 +159,14 @@ void parse_assembly(const char* assembly_code){
     char* token = strtok(code_copy, delimiter);
 
     while (token != NULL){
-        printf("start_token:%s\n",token);
         if(strchr(token, ':') != NULL){
             //token = strtok(NULL, "\n");
             instruction_count++;
-            printf("token:%s\n",token);
             token = strtok(NULL,delimiter);
-            printf("token:%s\n",token);
             continue;
         }
-        //printf("count:%d\n",binary_instruction_count);
         char opcode[16],operand1[32],operand2[32],operand3[32];
         sscanf(token, "%s %s %s %s", opcode, operand1, operand2, operand3); 
-        printf("Opcode: %s, Operand1: %s, Operand2: %s, Operand3: %s\n", opcode, operand1, operand2, operand3);
 
         const char* opcode_bin = get_opcode_binary(opcode);
         const char* rd_bin = get_register_binary(operand1);
@@ -183,34 +174,26 @@ void parse_assembly(const char* assembly_code){
         int need_free_reg_1 = 0;
         int need_free_imm_1 = 0;
         if(operand2[0] == 'x'){
-            printf("reg");
             r1_bin = get_register_binary(operand2);
             need_free_reg_1 = 1;
         }else{
-            printf("imm");
             r1_bin = get_immediate_binary(operand2);
             need_free_imm_1 = 1;
         }
         const char* r2_bin;
         int need_free_reg_2 = 0;
         int need_free_imm_2 = 0;
-        printf("operand3%s\n",operand3);
         if(operand3[0] == 'x'){
-            printf("reg");
             r2_bin = get_register_binary(operand3);
             need_free_reg_2 = 1;
         }else{
-            printf("imm");
             r2_bin = get_immediate_binary(operand3);
             need_free_imm_2 = 1;
         }
-        printf("r2_bin%s\n",r2_bin);
-        printf("Opcode: %s, rd: %s, r1: %s, r2: %s\n", opcode_bin, rd_bin, r1_bin, r2_bin);
 
         BinaryInstruction inst;
 
         if(is_r_type(opcode)){
-            printf("r_type");
             if(strcmp(opcode, "add") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "sub") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0100000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "and") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s111%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
@@ -219,33 +202,20 @@ void parse_assembly(const char* assembly_code){
         }
 
         if(is_i_type(opcode)){
-            printf("i_type");
             //[11:0]
             char r2_bin_sub[13];//12bit + 終端文字
             get_substring(r2_bin,r2_bin_sub,strlen(r2_bin)-12,12);
-            
-            // printf("r2_bin: %s, size: %lu\n", r2_bin, strlen(r2_bin));
-            // printf("r2_bin_sub: %s, size: %lu\n", r2_bin_sub, strlen(r2_bin_sub));
-            // printf("r1_bin: %s, size: %lu\n", r1_bin, strlen(r1_bin));
-            // printf("rd_bin: %s, size: %lu\n", rd_bin, strlen(rd_bin));
-            // printf("opcode: %s, size: %lu\n", opcode, strlen(opcode));
-            
-            //printf("opcode_bin: %s, rd: %s, r1: %s, r2_bin: %s, r2_bin_sub: %s\n", opcode_bin, rd_bin, r1_bin, r2_bin, r2_bin_sub);
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s%s0010011",r2_bin_sub,r1_bin,opcode_bin,rd_bin);
         }
 
         if(is_b_type(opcode)){
-            printf("b_type");
             //offsetを求める
             int current_line = instruction_count;
             const char* label_name = operand3;
-            //printf("label_name:%s\n",label_name);
             int offset = calculate_offset(assembly_code,label_name,current_line);
-            printf("offset: %d\n",offset);
             char offset_str[20];
             snprintf(offset_str,sizeof(offset_str),"%d",offset);
             r2_bin = get_immediate_binary(offset_str);
-            //printf("r2:%s\n",r2_bin);
 
             //opcode -> funct3, rd -> r1, r1 -> r2, r2 -> offsetに対応
             char imm_1[8],imm_2[6];
@@ -254,22 +224,9 @@ void parse_assembly(const char* assembly_code){
             get_substring(r2_bin,bit12,strlen(r2_bin)-13,1);
             get_substring(r2_bin,bit10_5,strlen(r2_bin)-11,6);
             snprintf(imm_1, 8, "%s%s", bit12, bit10_5); // 12ビットと10:5ビットを結合
-            //printf("r2_bin:%s\n",r2_bin);
             get_substring(r2_bin,bit4_1,strlen(r2_bin)-5,4);
             get_substring(r2_bin,bit11,strlen(r2_bin)-12,1);
             snprintf(imm_2, 6, "%s%s", bit4_1, bit11); // 4:
-
-                
-            // printf("bit12: %s, size: %lu\n", bit12, strlen(bit12));
-            // printf("bit10_5: %s, size: %lu\n", bit10_5, strlen(bit10_5));
-            // printf("bit4_1: %s, size: %lu\n", bit4_1, strlen(bit4_1));
-            // printf("bit11: %s, size: %lu\n", bit11, strlen(bit11));
-            // printf("r2_bin: %s, size: %lu\n", r2_bin, strlen(r2_bin));
-            // printf("imm_1: %s, size: %lu\n", imm_1, strlen(imm_1));
-            // printf("imm_2: %s, size: %lu\n", imm_2, strlen(imm_2));
-            // printf("r1_bin: %s, size: %lu\n", r1_bin, strlen(r1_bin));
-            // printf("rd_bin: %s, size: %lu\n", rd_bin, strlen(rd_bin));
-            // printf("opcode: %s, size: %lu\n", opcode, strlen(opcode));
 
             size_t buffer_size = sizeof(inst.binary_code); // バッファのサイズを取得
             if (buffer_size > 0) {
@@ -281,25 +238,15 @@ void parse_assembly(const char* assembly_code){
         }
 
         if(is_j_type(opcode)){
-            printf("j_type\n");
             //r1 -> offsetに対応
             char bit20[2],bit10_1[11],bit11[2],bit19_12[9];
             char imm[21];
-            printf("r1_bin:%s\n",r1_bin);
             
             get_substring(r1_bin,bit20,strlen(r1_bin)-21,1);
             get_substring(r1_bin,bit10_1,strlen(r1_bin)-11,10);
             get_substring(r1_bin,bit11,strlen(r1_bin)-12,1);
             get_substring(r1_bin,bit19_12,strlen(r1_bin)-20,8);
             snprintf(imm, 21,"%s%s%s%s", bit20, bit10_1, bit11, bit19_12);
-
-            printf("bit20: %s, size: %lu\n", bit20, strlen(bit20));
-            printf("bit10_1: %s, size: %lu\n", bit10_1, strlen(bit10_1));
-            printf("bit11: %s, size: %lu\n", bit11, strlen(bit11));
-            printf("bit19_12: %s, size: %lu\n", bit19_12, strlen(bit19_12));
-            printf("r1_bin: %s, size: %lu\n", r1_bin, strlen(r1_bin));
-            printf("rd_bin: %s, size: %lu\n", rd_bin, strlen(rd_bin));
-            printf("opcode: %s, size: %lu\n", opcode, strlen(opcode));
             
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s",imm, rd_bin, opcode_bin);
         }
@@ -308,7 +255,6 @@ void parse_assembly(const char* assembly_code){
 
         instruction_count++;
         binary_instructions[binary_instruction_count++] = inst;
-        printf("token:%s\n",token);
         free((void*)rd_bin);
         if(need_free_reg_1 == 1 || need_free_imm_1 == 1){
             free((void*)r1_bin);
@@ -318,7 +264,6 @@ void parse_assembly(const char* assembly_code){
         }
 
         token = strtok(NULL,delimiter);
-        printf("token:%s\n",token);
     }
     free(code_copy);
 }
