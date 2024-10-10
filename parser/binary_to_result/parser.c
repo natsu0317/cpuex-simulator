@@ -2,7 +2,11 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
 #define NUM_REGISTERS 32
+#define MAX_INSTRUCTIONS 100 //読み取る最大行数
+#define INSTRUCTION_LENGTH 33 //32bit + 終端文字
 
 // registerのsimulation
 int registers[NUM_REGISTERS] = {0};  // 32個のレジスタを初期化
@@ -26,7 +30,7 @@ int get_register(int reg_num) {
 }
 
 // バイナリ命令をデコードして処理
-void execute_binary_instruction(const char* binary_instruction[], int num_instructions) {
+void execute_binary_instruction(const char binary_instruction[][33], int num_instructions) {
     for(int pc=0; pc<num_instructions; pc++){
         printf("pc:%d\n",pc);
         printf("x1:%d\n",get_register(1));
@@ -217,35 +221,47 @@ void execute_binary_instruction(const char* binary_instruction[], int num_instru
 
 }
 
+void print_register(FILE* output_file){
+    for(int i=0;i<32;i++){
+        fprintf(output_file, "x%d = %d\n", i, get_register(i));
+    }
+}
+
 
 int main() {
-    const char* binary_instructions[] = {
-        "00000000010000000000000000010011",
-        "00000000000100000000000010010011",
-        "00000000000100000001100001100011",
-        "00000000000100001000000010010011",
-        "01000000000000001000000010110011",
-        "00000001000000000000000011101111",
-        "00000000000000000000000000000000",
-        "00000000000000001000000010110011",
-        "00000001000000000000000011101111",
-        "00000000000000000000000000000000",
-        "00000000101000001000000010010011",
-        "00000000000000001000000000010011",
-        "00000000000000000000000000000000",
-        "00000000000000000000000000000000",
-        // 他のバイナリ命令
-    };
+    char binary_instructions[MAX_INSTRUCTIONS][INSTRUCTION_LENGTH];  // 読み取った命令を格納する配列
+    FILE *file = fopen("instruction.txt", "r");
+    if (file == NULL) {
+        printf("Error: Could not open file\n");
+        return 1;
+    }
 
-    int num_instructions = sizeof(binary_instructions) / sizeof(binary_instructions[0]);
+    int index = 0;
+    while (fgets(binary_instructions[index], INSTRUCTION_LENGTH, file) != NULL && index < MAX_INSTRUCTIONS) {
+        // 改行文字を削除
+        //printf("index:%d\n",index);
+        binary_instructions[index][strcspn(binary_instructions[index], "\n")] = '\0';//最後の文字を\0に
+        //printf("%s\n",binary_instructions[index]);
+        if(strlen(binary_instructions[index]) == 0){
+            continue;
+        }
+        //printf("%ld\n",strlen(binary_instructions[index]));
+        index++;
+        //printf("after_index:%d\n",index);
+    }
 
-    printf("%d\n",num_instructions);
-    execute_binary_instruction(binary_instructions,num_instructions);
+    fclose(file);
+    printf("%d\n",index);
+    execute_binary_instruction(binary_instructions,index);
 
     // レジスタの状態を表示
-    for (int i = 0; i < NUM_REGISTERS; i++) {
-        printf("x%d = %d\n", i, get_register(i));
+    FILE *output_file = fopen("result.txt","w");
+    if(output_file == NULL){
+        perror("Error opening file");
+        return 1;
     }
+    print_register(output_file);
+    fclose(output_file);
 
     return 0;
 }
