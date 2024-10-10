@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+//アセンブリコードをバイナリコードにparse
+
 #define MAX_LENGTH 100
 #define MAX_ASSEMBLY_SIZE 1024 //アセンブリコードの最大サイズ
 
