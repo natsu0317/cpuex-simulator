@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #define NUM_REGISTERS 32
 #define MAX_INSTRUCTIONS 100 //読み取る最大行数
@@ -15,6 +16,7 @@ int sp = MEMORY_SIZE - 1; //スタックポインタ
 
 // registerのsimulation
 int registers[NUM_REGISTERS] = {0};  // 32個のレジスタを初期化
+float float_registers[NUM_REGISTERS];
 
 // レジスタの値を設定する
 void set_register(int reg_num, int value) {
@@ -34,6 +36,35 @@ int get_register(int reg_num) {
     return 0;
 }
 
+// 小数が格納されているレジスタの値を取得する
+float get_float_register(int reg_num){
+    float_registers[2] = 0.25f;
+    float_registers[3] = -0.125f;
+    if(reg_num >= 0 && reg_num < NUM_REGISTERS){
+        uint32_t bits;
+        memcpy(&bits, &float_registers[reg_num],sizeof(bits));
+        printf("%d: bits = %x\n",reg_num,bits);
+
+        //符号ビット
+        uint32_t sign = (bits >> 31) & 0x1;
+        printf("sign:%x\n",sign);
+        //指数部
+        uint32_t exponent = (bits >> 23) & 0xFF;
+        printf("exp:%x\n",exponent);
+        //仮数部
+        uint32_t mantissa = bits & 0x7FFFFF;
+        printf("man:%x\n",mantissa);
+
+        // mantissa / (float)(1<<23) : 小数の値
+        float actual_mantissa = 1.0f + (mantissa / (float)(1 << 23));
+        int actual_exponent = exponent - 127;
+        float result = pow(-1,sign) * pow(2,actual_exponent) * actual_mantissa;
+
+        printf("%.8f\n",result);
+        return result;
+    }
+}
+
 // バイナリ命令をデコードして処理
 void execute_binary_instruction(const char binary_instruction[][33], int num_instructions) {
     for(int pc=0; pc<num_instructions; pc++){
@@ -45,6 +76,7 @@ void execute_binary_instruction(const char binary_instruction[][33], int num_ins
         // オペコードを取得
         //下7桁(F=15)
         uint32_t opcode = instruction & 0x7F;
+        printf("%x\n",opcode);
 
         switch (opcode) {
             case 0x0:   //label部分
@@ -100,7 +132,7 @@ void execute_binary_instruction(const char binary_instruction[][33], int num_ins
                     printf("after_imm:%x\n",imm);
                     //printf("funct3:%x\n,opcode:%x\n",funct3,opcode);
 
-                    if(minus == 0){
+                    if(minus == 0){//immは正
                         if (funct3 == 0 && opcode == 0x13) {  // addi命令
                             set_register(rd, get_register(rs1) + imm);
                             printf("Executed addi: x%d = x%d + %d\n", rd, rs1, imm);
@@ -170,6 +202,7 @@ void execute_binary_instruction(const char binary_instruction[][33], int num_ins
                     printf("memoryの中に格納されている値:%d\n",lw);
                     set_register(rd,lw);
                 }   
+                break;
             
             case 0x23:{   // sw mem[x[r1] + offset] = x[r2]
                     uint32_t rs1 = (instruction >> 15) & 0x1F;
@@ -188,9 +221,9 @@ void execute_binary_instruction(const char binary_instruction[][33], int num_ins
                     }else{
                         memory[get_register(rs1) + imm] = get_register(rs2);
                         printf("memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
-                    }
-                    
-            } 
+                    }    
+                } 
+                break;
 
             case 0x63:  // B形式命令 (例: "beq", "bne", "blt", "bge")
                 {
@@ -295,6 +328,74 @@ void execute_binary_instruction(const char binary_instruction[][33], int num_ins
                     }
                 }
                 break;
+            case 0x53:   //fadd,fsub,fmul,fdiv
+                {   
+                    //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv
+                    uint32_t func = (instruction >> 27) & 0x1F;
+                    uint32_t rd = (instruction >> 7) & 0x7F;
+                    uint32_t r1 = (instruction >> 15) & 0x1F;
+                    uint32_t r2 = (instruction >> 20) & 0x1F;
+                    float a1 = get_float_register(r1);
+                    float a2 = get_float_register(r2);
+                    uint32_t r1_bits;
+                    uint32_t r2_bits;
+                    memcpy(&r1_bits,&float_registers[r1],sizeof(r1_bits));
+                    memcpy(&r2_bits,&float_registers[r2],sizeof(r2_bits));
+                    uint32_t r1_sign = (r1_bits >> 31) & 0x1;
+                    uint32_t r2_sign = (r2_bits >> 31) & 0x1;
+                    uint32_t r1_exp = (r1_bits >> 23) & 0xFF;
+                    uint32_t r2_exp = (r2_bits >> 23) & 0xFF;
+                    uint32_t r1_man = r1_bits & 0x7FFFFF;
+                    uint32_t r2_man = r2_bits & 0x7FFFFF;
+                    uint32_t result_sign,result_exp,result_man;
+                    
+                    printf("%x\n",r1_exp);
+                    printf("r2_exp:%x\n",r2_exp);
+                    // 2数の絶対値の大きさを比べる
+                    if(fabsf(a1) > fabsf(a2)){
+                    // 小さいほうの数の仮数部を、指数部の差だけ右シフト
+                    // 指数部は大きいほうの指数部にそろえる
+                        int dif = r1_exp - r2_exp;
+                        printf("%d\n",dif);
+                        r2_man = r2_man >> dif;
+                        result_exp = r1_exp;
+                    } else {
+                        int dif = r2_exp - r1_exp;
+                        r1_man = r1_man >> dif;
+                        result_exp = r2_exp;
+                    }
+
+                    
+                    // 二つの数の符号部と指定された演算とを加味して実際に行う演算を決定する
+                    // 非正規化のまま演算
+                    if((r1_sign == r2_sign & func == 0x0) || (r1_sign != r2_sign & func == 0x1)){
+                        //fadd
+                        result_man = r1_man + r2_man;
+                        result_sign = r1_sign;
+                    }
+                    if((r1_sign != r2_sign & func == 0x0) || (r1_sign == r2_sign & func == 0x1)){
+                        //fsub
+                        if(r1_man > r2_man){
+                            result_man = r1_man - r2_man;
+                            result_sign = r1_sign;
+                        } else {
+                            result_man = r2_man - r1_man;
+                            result_sign = r2_sign;
+                        }
+                    } 
+                    // 正規化数になるようにシフトを行い、それに合わせて指数部も適宜加減する
+                    // while(result_man > 0xFFFFFF){
+                    //     result_man >>= 1;
+                    //     result_exp++;
+                    // }
+                    // 丸め処理を行う。
+
+                    uint32_t result_bits = (result_sign << 31) | (result_exp << 23) | (result_man & 0x7FFFFF);
+                    float result;
+                    memcpy(&result, &result_bits, sizeof(result));
+                    return result;
+                }
+                break;
 
         }
     }
@@ -306,6 +407,7 @@ void print_register(FILE* output_file){
         fprintf(output_file, "x%d = %d\n", i, get_register(i));
     }
 }
+
 
 
 int main() {
