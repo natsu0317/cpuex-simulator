@@ -7,6 +7,11 @@
 #define NUM_REGISTERS 32
 #define MAX_INSTRUCTIONS 100 //読み取る最大行数
 #define INSTRUCTION_LENGTH 33 //32bit + 終端文字
+#define MEMORY_SIZE 1024
+#define STACK_SIZE 1024
+
+int memory[MEMORY_SIZE];
+int sp = MEMORY_SIZE - 1; //スタックポインタ
 
 // registerのsimulation
 int registers[NUM_REGISTERS] = {0};  // 32個のレジスタを初期化
@@ -147,6 +152,45 @@ void execute_binary_instruction(const char binary_instruction[][33], int num_ins
 
                 }
                 break;
+
+            case 0x3:  // lw  x[rd] = mem[x[r1] + offset]
+                {
+                    uint32_t rs1 = (instruction >> 15) & 0x1F;
+                    uint32_t rd = (instruction >> 7) & 0x1F;
+                    uint32_t lw_offset = (instruction >> 20) & 0xFFF;
+                    int lw = 0; //setする値
+                    if(lw_offset && 0x800 == 1){//負の値
+                        uint32_t mask = (1<<12) - 1;
+                        lw_offset = ~lw_offset & mask;
+                        lw_offset = lw_offset + 1;
+                        lw = memory[get_register(rs1) - lw_offset];
+                    }else{
+                        int lw = memory[get_register(rs1) + lw_offset];
+                    }
+                    printf("memoryの中に格納されている値:%d\n",lw);
+                    set_register(rd,lw);
+                }   
+            
+            case 0x23:{   // sw mem[x[r1] + offset] = x[r2]
+                    uint32_t rs1 = (instruction >> 15) & 0x1F;
+                    uint32_t rs2 = (instruction >> 20) & 0x1F;
+                    uint32_t sw_offset_11_5 = (instruction >> 25) & 0x8F;
+                    uint32_t sw_offset_4_0 = (instruction >> 7) & 0x1F;
+                    uint32_t imm = 0;
+                    imm |= (sw_offset_11_5 << 5);
+                    imm |= (sw_offset_4_0);
+                    if(imm && 0x800 == 1){//負の値
+                        uint32_t mask = (1<<12) - 1;
+                        imm = ~imm & mask;
+                        imm = imm + 1;
+                        memory[get_register(rs1) - imm] = get_register(rs2);
+                        printf("memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
+                    }else{
+                        memory[get_register(rs1) + imm] = get_register(rs2);
+                        printf("memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
+                    }
+                    
+            } 
 
             case 0x63:  // B形式命令 (例: "beq", "bne", "blt", "bge")
                 {
