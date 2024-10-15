@@ -100,7 +100,8 @@ const char* get_opcode_binary(const char* opcode){
     if(strcmp(opcode,"fadd") == 0) return "0000000";
     if(strcmp(opcode,"fsub") == 0) return "0000100";
     if(strcmp(opcode,"fmul") == 0) return "0001000";
-    if(strcmp(opcode,"fdiv") == 0) return "0001100";    
+    if(strcmp(opcode,"fdiv") == 0) return "0001100"; 
+        
 }
 
 char* get_register_binary(const char* reg) {
