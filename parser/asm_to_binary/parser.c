@@ -22,6 +22,7 @@ const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori","jalr", NULL};
 const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL};
 const char* j_type_opcodes[] = {"jal", NULL};
 const char* s_type_opcodes[] = {"sw","lw"};
+const char* f_type_opcodes[] = {"fadd", "fsub", "fmul", "fdiv"};
 
 int is_opcode_type(const char* opcode,const char** type_opcodes){
     const char** op = type_opcodes;
@@ -52,6 +53,10 @@ int is_j_type(const char* opcode){
 
 int is_s_type(const char* opcode){
     return is_opcode_type(opcode,s_type_opcodes);
+}
+
+int is_f_type(const char* opcode){
+    return is_opcode_type(opcode,f_type_opcodes);
 }
 
 const char* get_opcode_binary(const char* opcode){
@@ -90,6 +95,12 @@ const char* get_opcode_binary(const char* opcode){
     //imm[20|10:1|11|19:12] | rd | opcode
     if(strcmp(opcode,"jal") == 0) return "1101111";
 
+    //F
+    // opcode | rs2 | rs1 | rm | rd | 1010011
+    if(strcmp(opcode,"fadd") == 0) return "0000000";
+    if(strcmp(opcode,"fsub") == 0) return "0000100";
+    if(strcmp(opcode,"fmul") == 0) return "0001000";
+    if(strcmp(opcode,"fdiv") == 0) return "0001100";    
 }
 
 char* get_register_binary(const char* reg) {
@@ -344,7 +355,15 @@ void parse_assembly(const char* assembly_code){
             
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s",imm, rd_bin, opcode_bin);
         }
-        //printf("behello");
+
+        if(is_f_type){
+            //丸めモード: 最近傍
+            snprintf(inst.binary_code,sizeof(inst.binary_code),"%s%s%s000%s1010011",opcode_bin,r2_bin,r1_bin,rd_bin);
+
+        }
+
+
+        
         printf("Binary Code: %s\n",inst.binary_code);
         //printf("before");
         instruction_count++;
