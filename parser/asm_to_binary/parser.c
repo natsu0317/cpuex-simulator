@@ -22,7 +22,7 @@ const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori","jalr", NULL};
 const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL};
 const char* j_type_opcodes[] = {"jal", NULL};
 const char* s_type_opcodes[] = {"sw","lw"};
-const char* f_type_opcodes[] = {"fadd", "fsub", "fmul", "fdiv"};
+const char* f_type_opcodes[] = {"fadd", "fsub", "fmul", "fdiv", NULL};
 
 int is_opcode_type(const char* opcode,const char** type_opcodes){
     const char** op = type_opcodes;
@@ -232,6 +232,7 @@ void parse_assembly(const char* assembly_code){
         BinaryInstruction inst;
 
         if(is_r_type(opcode)){
+            printf("r_type\n");
             if(strcmp(opcode, "add") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "sub") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0100000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "and") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s111%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
@@ -240,6 +241,7 @@ void parse_assembly(const char* assembly_code){
         }
 
         if(is_i_type(opcode)){
+            printf("i_type\n");
             //[11:0]
             char r2_bin_sub[13];//12bit + 終端文字
             get_substring(r2_bin,r2_bin_sub,strlen(r2_bin)-12,12);
@@ -265,9 +267,10 @@ void parse_assembly(const char* assembly_code){
             }
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s%s%s",r2_bin_sub,r1_bin,opcode_bin,rd_bin,opcode);
         }
-        printf("%s\n",inst.binary_code);
+        printf("binary: %s\n",inst.binary_code);
 
         if(is_s_type(opcode)){
+            printf("s_type\n");
             // lw x8, 4(x6)
             // rd->r2に対応
             const char *op_start = operand2;
@@ -305,6 +308,7 @@ void parse_assembly(const char* assembly_code){
         }
 
         if(is_b_type(opcode)){
+            printf("b_type\n");
             //offsetを求める
             int current_line = instruction_count;
             const char* label_name = operand3;
@@ -334,6 +338,7 @@ void parse_assembly(const char* assembly_code){
         }
 
         if(is_j_type(opcode)){
+            printf("j_type\n");
             //offsetを求める
             int current_line = instruction_count;
             const char* label_name = operand2;
@@ -356,13 +361,12 @@ void parse_assembly(const char* assembly_code){
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s",imm, rd_bin, opcode_bin);
         }
 
-        if(is_f_type){
+        if(is_f_type(opcode)){
+            printf("f_type\n");
             //丸めモード: 最近傍
             snprintf(inst.binary_code,sizeof(inst.binary_code),"%s%s%s000%s1010011",opcode_bin,r2_bin,r1_bin,rd_bin);
 
         }
-
-
         
         printf("Binary Code: %s\n",inst.binary_code);
         //printf("before");
