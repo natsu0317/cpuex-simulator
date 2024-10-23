@@ -17,6 +17,11 @@ typedef struct{
 BinaryInstruction binary_instructions[MAX_LENGTH];
 int binary_instruction_count = 0;
 
+// mv ret li
+// mv a b = add a, x0, b(a = b)
+// li a imm = addi a, x0, imm(a = imm)
+// ret 
+
 const char* r_type_opcodes[] = {"add", "sub", "and", "or", "xor", NULL};
 const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori","jalr", NULL};
 const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL};
@@ -203,6 +208,19 @@ void parse_assembly(const char* assembly_code){
         char opcode[16],operand1[32],operand2[32],operand3[32];
         sscanf(token, "%s %s %s %s", opcode, operand1, operand2, operand3); 
         printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
+
+        // 疑似命令に対応(mv, li)
+        if(strcmp(opcode, "mv") == 0){
+            strcpy(opcode, "add");
+            strcpy(operand3, operand2);
+            strcpy(operand2, "x0");
+        }
+        if(strcmp(opcode, "li") == 0){
+            strcpy(opcode, "addi");
+            strcpy(operand3, operand2);
+            strcpy(operand2, "x0");
+        }
+
 
         const char* opcode_bin = get_opcode_binary(opcode);
         char* rd_bin = get_register_binary(operand1);
