@@ -408,6 +408,7 @@ void parse_assembly(const char* assembly_code){
 
 // すべてのバイナリ命令を出力
 void print_binary_instructions(FILE* output_file) {
+    fprintf(output_file, "%d\n", binary_instruction_count);
     for (int i = 0; i < binary_instruction_count; i++) {
         fprintf(output_file, "%s\n", binary_instructions[i].binary_code);
     }
