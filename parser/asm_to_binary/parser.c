@@ -377,7 +377,7 @@ void parse_assembly(const char* assembly_code){
             r1_bin = get_immediate_binary(offset_str);
             need_free_imm_1 = 1;
             printf("offset:%d\n",offset);
-            rd_bin = get_register_binary("x0");
+            rd_bin = get_register_binary("x1");
             printf("rd_bin:%s\n",rd_bin);
 
             //r1 -> offsetに対応
