@@ -66,9 +66,9 @@ float get_float_register(int reg_num){
 }
 
 // バイナリ命令をデコードして処理
-void execute_binary_instruction(const char binary_instruction[][33], int num_instructions) {
+int execute_binary_instruction(const char binary_instruction[][33], int num_instructions, int current_line) {
     for(int pc=0; pc<num_instructions; pc++){
-        printf("%d行目を実行\n",pc);
+        //printf("%d行目を実行\n",pc);
 
         //printf("x1:%d\n",get_register(1));
         uint32_t instruction = strtol(binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
@@ -128,6 +128,7 @@ void execute_binary_instruction(const char binary_instruction[][33], int num_ins
                         imm = ~imm & mask;//反転
                         imm = imm+1;
                         minus = 1;
+                        printf("minus%d\n",minus);
                     }
                     printf("after_imm:%x\n",imm);
                     //printf("funct3:%x\n,opcode:%x\n",funct3,opcode);
@@ -135,7 +136,7 @@ void execute_binary_instruction(const char binary_instruction[][33], int num_ins
                     if(minus == 0){//immは正
                         if (funct3 == 0 && opcode == 0x13) {  // addi命令
                             set_register(rd, get_register(rs1) + imm);
-                            printf("Executed addi: x%d = x%d + %d\n", rd, rs1, imm);
+                            printf("Executed plus addi: x%d = x%d + %d\n", rd, rs1, imm);
                             printf("result:%d\n",get_register(rd));
                         } else if (funct3 == 0x7 && opcode == 0x13){  // andi
                             set_register(rd, get_register(rs1) & imm);
@@ -151,10 +152,10 @@ void execute_binary_instruction(const char binary_instruction[][33], int num_ins
                             pc = get_register(rs1) + imm/4;
                             pc -= 1;
                         } 
-                    }else{
+                    }else if(minus == 1){
                         if (funct3 == 0 && opcode == 0x13) {  // addi命令
                             set_register(rd, get_register(rs1) - imm);
-                            printf("Executed addi: x%d = x%d - %d\n", rd, rs1, imm);
+                            printf("Executed minus addi: x%d = x%d - %d\n", rd, rs1, imm);
                             printf("result:%d\n",get_register(rd));
                         } else if (funct3 == 0x0 && opcode == 0x67){  //jalr
                             set_register(rd, pc+1);
@@ -162,26 +163,6 @@ void execute_binary_instruction(const char binary_instruction[][33], int num_ins
                             pc -= 1;
                         } 
                     }
-
-                    if (funct3 == 0 && opcode == 0x13) {  // addi命令
-                        set_register(rd, get_register(rs1) + imm);
-                        printf("Executed addi: x%d = x%d + %d\n", rd, rs1, imm);
-                        printf("result:%d\n",get_register(rd));
-                    } else if (funct3 == 0x7 && opcode == 0x13){  // andi
-                        set_register(rd, get_register(rs1) & imm);
-                        printf("Executed and: x%d = x%d & x%d\n", rd, rs1, imm);
-                    } else if (funct3 == 0x6 && opcode == 0x13){  // ori
-                        set_register(rd, get_register(rs1) | imm);
-                        printf("Executed ori: x%d = x%d | x%d\n", rd, rs1, imm);
-                    } else if (funct3 == 0x4 && opcode == 0x13){  // xori
-                        set_register(rd, get_register(rs1) ^ imm);
-                        printf("Executed xori: x%d = x%d ^ x%d\n", rd, rs1, imm);
-                    } else if (funct3 == 0x0 && opcode == 0x67){  //jalr
-                        set_register(rd, pc+1);
-                        pc = get_register(rs1) + imm/4;
-                        pc -= 1;
-                    } 
-
                 }
                 break;
 
@@ -306,26 +287,24 @@ void execute_binary_instruction(const char binary_instruction[][33], int num_ins
                     uint32_t bit11 = (instruction >> 20) & 0x1;
                     uint32_t bit19_12 = (instruction >> 12) & 0xFF;
                     uint32_t rd = (instruction >> 7) & 0x1F;
-                    uint32_t imm = 0;
+                    int32_t imm = 0;
                     imm |= (bit20 << 20);
                     imm |= (bit19_12 << 12);
                     imm |= (bit11 << 11);
                     imm |= (bit10_1 << 1);
                     printf("jal\n");
-                    if(bit20 == 1){
-                        //immが負の値
-                        uint32_t mask = (1 << 20) - 1;
-                        imm = ~imm & mask;
-                        imm = imm + 1;
-                        set_register(rd,pc+1);
-                        pc -= imm/4;
-                    } else {
-                        set_register(rd, pc+1);
-                        //printf("imm:%d\n",imm);
-                        //printf("before_pc:%d\n",pc);
-                        pc += imm/4;
-                        //printf("after_pc:%d\n",pc);
+                    // 符号拡張
+                    if (bit20) {
+                        imm |= 0xFFE00000;  // 負の値の場合、上位ビットを1で埋める
                     }
+                    int next_line = current_line + imm/4;
+                    printf("jal x%d, %d (PC: %d -> %d)\n", rd, imm, current_line, next_line);
+                    // 戻りアドレスを保存
+                    set_register(rd, current_line + 1);
+                    printf("rd: %d\n",get_register(rd));
+                    
+                    // PCの更新後に即座にreturn
+                    return next_line;
                 }
                 break;
             case 0x53:   //fadd,fsub,fmul,fdiv
@@ -393,7 +372,7 @@ void execute_binary_instruction(const char binary_instruction[][33], int num_ins
                     uint32_t result_bits = (result_sign << 31) | (result_exp << 23) | (result_man & 0x7FFFFF);
                     float result;
                     memcpy(&result, &result_bits, sizeof(result));
-                    return result;
+                    //return result;
                 }
                 break;
 
@@ -431,10 +410,35 @@ int main() {
         index++;
         //printf("after_index:%d\n",index);
     }
+    printf("index:%d\n",index);
+    int current_line = 0;
+    char input[10];
+    while (current_line < index) {    
+        int pc = 0;
+        printf("Press Enter to execute next instruction (or 'q' to quit): ");
+        fgets(input, sizeof(input), stdin);
+        
+        if (input[0] == 'q' || input[0] == 'Q') {
+            break;
+        }
 
-    fclose(file);
-    //printf("%d\n",index);
-    execute_binary_instruction(binary_instructions,index);
+        printf("Executing instruction %d: %s\n", current_line + 1, binary_instructions[current_line]);
+        printf("%d行目を実行\n",current_line);
+        pc = execute_binary_instruction(&binary_instructions[current_line], 1, current_line);
+        printf("pc:%d\n",pc);        
+        // レジスタの状態を表示
+        for (int i = 0; i < NUM_REGISTERS; i++) {
+            printf("x%d = %d\n", i, get_register(i));
+        }
+        
+        if(pc == 1){
+            current_line++;
+        }else{
+            current_line = pc+1;
+        }
+        printf("current_line:%d\n",current_line);
+    }
+
 
     // レジスタの状態を表示
     FILE *output_file = fopen("result.txt","w");
