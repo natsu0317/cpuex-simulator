@@ -20,7 +20,7 @@ int binary_instruction_count = 0;
 // mv ret li
 // mv a b = add a, x0, b(a = b)
 // li a imm = addi a, x0, imm(a = imm)
-// ret 
+// ret = jalr x0, x1, 0
 
 const char* r_type_opcodes[] = {"add", "sub", "and", "or", "xor", NULL};
 const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori","jalr", NULL};
@@ -220,7 +220,12 @@ void parse_assembly(const char* assembly_code){
             strcpy(operand3, operand2);
             strcpy(operand2, "x0");
         }
-
+        if(strcmp(opcode, "ret") == 0){
+            strcpy(opcode, "jalr");
+            strcpy(operand1, "x0");
+            strcpy(operand2, "x1");
+            strcpy(operand3, "0");
+        }
 
         const char* opcode_bin = get_opcode_binary(opcode);
         char* rd_bin = get_register_binary(operand1);
