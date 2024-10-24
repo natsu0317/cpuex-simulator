@@ -110,7 +110,6 @@ const char* get_opcode_binary(const char* opcode){
 
 char* get_register_binary(const char* reg) {
     char* binary = (char*)malloc(6*sizeof(char));
-    printf("reg_num:%s",reg);
     if(binary == NULL){
         return NULL;
     } 
@@ -119,7 +118,6 @@ char* get_register_binary(const char* reg) {
         free(binary);
         return "00000"; 
     }
-    printf("reg_num:%d\n",reg_num);
     // 2進数に変換する
     for (int i = 4; i >= 0; --i) {
         binary[i] = (reg_num % 2) + '0';
@@ -132,7 +130,7 @@ char* get_register_binary(const char* reg) {
 
 // 即値をバイナリに変換
 char* get_immediate_binary(const char* imm) {
-    printf("imm:%s\n",imm);
+    //printf("imm:%s\n",imm);
     char* binary = (char*)malloc(33*sizeof(char));
     if(binary == NULL){
         return NULL;
@@ -150,7 +148,7 @@ char* get_immediate_binary(const char* imm) {
     for (int i = 31; i >= 0; i--) { // 24bit分の値を格納
         binary[31 - i] = (imm_value & (1 << i)) ? '1' : '0';
     }
-    printf("binary:%s\n",binary);
+    //printf("binary:%s\n",binary);
     binary[32] = '\0';
     return binary;
 }
@@ -206,6 +204,11 @@ void parse_assembly(const char* assembly_code){
             continue;
         }
         char opcode[16],operand1[32],operand2[32],operand3[32];
+        memset(opcode, 0, sizeof(opcode));
+        memset(operand1, 0, sizeof(operand1));
+        memset(operand2, 0, sizeof(operand2));
+        memset(operand3, 0, sizeof(operand3));
+        printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
         sscanf(token, "%s %s %s %s", opcode, operand1, operand2, operand3); 
         printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
 
@@ -233,9 +236,11 @@ void parse_assembly(const char* assembly_code){
         int need_free_reg_1 = 0;
         int need_free_imm_1 = 0;
         if(operand2[0] == 'x'){
+            printf("need_free_reg_1");
             r1_bin = get_register_binary(operand2);
             need_free_reg_1 = 1;
-        }else{
+        }else if(operand2[0] != '\0'){
+            printf("need_free_imm_1");
             r1_bin = get_immediate_binary(operand2);
             need_free_imm_1 = 1;
         }
@@ -245,11 +250,12 @@ void parse_assembly(const char* assembly_code){
         if(operand3[0] == 'x'){
             r2_bin = get_register_binary(operand3);
             need_free_reg_2 = 1;
-        }else{
+        }else if(operand2[0] != '\0'){
             r2_bin = get_immediate_binary(operand3);
             need_free_imm_2 = 1;
         }
-        printf("op_bin:%s, rd_bin:%s, r1_bin:%s, r2_bin:%s\n",opcode_bin,rd_bin,r1_bin,r2_bin);
+        printf("free_reg:%d %d %d %d\n",need_free_imm_1,need_free_imm_2,need_free_reg_1,need_free_reg_2);
+        //printf("op_bin:%s, rd_bin:%s, r1_bin:%s, r2_bin:%s\n",opcode_bin,rd_bin,r1_bin,r2_bin);
         //printf("%d,%d,%d,%d\n",need_free_imm_1,need_free_imm_2,need_free_reg_1,need_free_reg_2);
 
         BinaryInstruction inst;
@@ -290,7 +296,7 @@ void parse_assembly(const char* assembly_code){
             }
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s%s%s",r2_bin_sub,r1_bin,opcode_bin,rd_bin,opcode);
         }
-        printf("binary: %s\n",inst.binary_code);
+        //printf("binary: %s\n",inst.binary_code);
 
         if(is_s_type(opcode)){
             printf("s_type\n");
@@ -324,7 +330,7 @@ void parse_assembly(const char* assembly_code){
             get_substring(offset_bin,bit11_5,strlen(offset_bin)-12,7);
             get_substring(offset_bin,bit4_0,strlen(offset_bin)-5,5);
             get_substring(offset_bin,bit11_0,strlen(offset_bin)-12,12);
-            printf("offset%s,bit11_5:%s,bit4_0:%s,rd:%s\n",bit11_5,bit4_0,r1_bin,rd_bin);
+            //printf("offset%s,bit11_5:%s,bit4_0:%s,rd:%s\n",bit11_5,bit4_0,r1_bin,rd_bin);
 
             if(strcmp(opcode, "sw") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code), "%s%s%s010%s%s",bit11_5,rd_bin,r1_bin,bit4_0,opcode_bin);
             if(strcmp(opcode, "lw") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code), "%s%s010%s%s", bit11_0,r1_bin,rd_bin,opcode_bin);
@@ -364,12 +370,15 @@ void parse_assembly(const char* assembly_code){
             printf("j_type\n");
             //offsetを求める
             int current_line = instruction_count;
-            const char* label_name = operand2;
+            const char* label_name = operand1;
             int offset = calculate_offset(assembly_code,label_name,current_line);
             char offset_str[20];
             snprintf(offset_str,sizeof(offset_str),"%d",offset);
             r1_bin = get_immediate_binary(offset_str);
+            need_free_imm_1 = 1;
             printf("offset:%d\n",offset);
+            rd_bin = get_register_binary("x0");
+            printf("rd_bin:%s\n",rd_bin);
 
             //r1 -> offsetに対応
             char bit20[2],bit10_1[11],bit11[2],bit19_12[9];
