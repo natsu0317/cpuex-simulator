@@ -81,9 +81,9 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
         switch (opcode) {
             case 0x0:   //label部分
                 {
-
+                    pc = 1;
                 }
-                break;
+                return 1;
             case 0x33:  // R形式命令 (例:"add", "sub", "and", "or", "xor",)
                 {
                     uint32_t funct3 = (instruction >> 12) & 0x7;
@@ -216,18 +216,19 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     uint32_t bit4_1 = (instruction >> 8) & 0xF;
                     uint32_t bit11 = (instruction >> 7) & 0x1;
                     uint32_t imm = 0;
+                    printf("12; %d, 11: %d, 10_5: %d, 4_1: %d",bit12,bit11,bit10_5,bit4_1);
                     imm |= (bit12 << 12);
                     imm |= (bit11 << 11);
                     imm |= (bit10_5 << 5);
                     imm |= (bit4_1 << 1);
-                    //printf("imm:%x\n",imm);
+                    printf("imm:%x\n",imm);
                     if(bit12 == 1){
                         //immは負の値
                         //2の補数
                         uint32_t mask = (1 << 12) -1;
                         imm = ~imm & mask;
                         imm = imm + 1;
-                        //printf("imm:%x\n",imm);
+                        printf("imm:%d\n",imm);
                         if (funct3 == 0) {  // beq
                             if(get_register(rs1) == get_register(rs2)){
                                 printf("beq\n");
@@ -236,9 +237,9 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                         } else if(funct3 == 0x1){  // bne
                             if(get_register(rs1) != get_register(rs2)){
                                 printf("bne\n");
-                                //printf("pc:%d\n",pc);
+                                printf("pc:%d\n",pc);
                                 pc -= imm/4;
-                                //printf("after_pc:%d\n",pc);
+                                printf("after_pc:%d\n",pc);
                             }
                         } else if(funct3 == 0x4){  // blt
                             if(get_register(rs1) < get_register(rs2)){
@@ -250,10 +251,11 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                                 printf("bge\n");
                                 pc -= imm/4;
                             }
-                        }  
-                    }
-
-                    if (funct3 == 0) {  // beq
+                        }  else {
+                            pc = 1;
+                        }
+                    } else if (funct3 == 0) {  // beq
+                        printf("beq\n");
                         if(get_register(rs1) == get_register(rs2)){
                             printf("beq\n");
                             pc += imm/4;
@@ -275,9 +277,14 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                             printf("bge\n");
                             pc += imm/4;
                         }
-                    }  
+                    }
                 }
-                break;
+                printf("284pc: %d\n",pc);
+                if(pc == 0){
+                    return 1;
+                } else {
+                    return pc;
+                }
                   
 
             case 0x6F:  // J形式命令 (例: "jal")
@@ -424,18 +431,20 @@ int main() {
         }
 
         printf("Executing instruction %d: %s\n", current_line + 1, binary_instructions[current_line]);
-        printf("%d行目を実行\n",current_line);
+        printf("%d行目を実行\n",current_line+1);
         pc = execute_binary_instruction(&binary_instructions[current_line], 1, current_line);
         printf("pc:%d\n",pc);        
         // レジスタの状態を表示
         for (int i = 0; i < NUM_REGISTERS; i++) {
             printf("x%d = %d\n", i, get_register(i));
         }
+        printf("before_current_line:%d\n",current_line);
+        printf("pc = %d\n",pc);
         
         if(pc == 1){
             current_line++;
         }else{
-            current_line = pc+1;
+            current_line += pc;
         }
         printf("current_line:%d\n",current_line);
     }
