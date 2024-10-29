@@ -38,8 +38,6 @@ int get_register(int reg_num) {
 
 // 小数が格納されているレジスタの値を取得する
 float get_float_register(int reg_num){
-    float_registers[2] = 0.25f;
-    float_registers[3] = -0.125f;
     if(reg_num >= 0 && reg_num < NUM_REGISTERS){
         uint32_t bits;
         memcpy(&bits, &float_registers[reg_num],sizeof(bits));
@@ -324,6 +322,8 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     uint32_t r2 = (instruction >> 20) & 0x1F;
                     float a1 = get_float_register(r1);
                     float a2 = get_float_register(r2);
+                    printf("a1:%lf\n",a1);
+                    printf("a2:%lf\n",a2);
                     uint32_t r1_bits;
                     uint32_t r2_bits;
                     memcpy(&r1_bits,&float_registers[r1],sizeof(r1_bits));
@@ -352,7 +352,6 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                         result_exp = r2_exp;
                     }
 
-                    
                     // 二つの数の符号部と指定された演算とを加味して実際に行う演算を決定する
                     // 非正規化のまま演算
                     if((r1_sign == r2_sign & func == 0x0) || (r1_sign != r2_sign & func == 0x1)){
@@ -370,16 +369,21 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                             result_sign = r2_sign;
                         }
                     } 
-                    // 正規化数になるようにシフトを行い、それに合わせて指数部も適宜加減する
-                    // while(result_man > 0xFFFFFF){
-                    //     result_man >>= 1;
-                    //     result_exp++;
-                    // }
+                    //正規化数になるようにシフトを行い、それに合わせて指数部も適宜加減する
+                    while(result_man > 0xFFFFFF){
+                        result_man >>= 1;
+                        result_exp++;
+                    }
                     // 丸め処理を行う。
+                    while(result_man & 0x800000){
+                        result_man >>= 1;
+                        result_exp++;
+                    }
 
                     uint32_t result_bits = (result_sign << 31) | (result_exp << 23) | (result_man & 0x7FFFFF);
                     float result;
                     memcpy(&result, &result_bits, sizeof(result));
+                    set_register(rd, result);
                     //return result;
                 }
                 break;
