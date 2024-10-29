@@ -186,6 +186,40 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
     return 0; // ラベルが見つからない場合
 }
 
+    //レジスタセットに対応
+    // - `x0`: `zero` - 常に値が0のレジスタ
+    // - `x1`: `ra` - リターンアドレス (関数から戻るときのアドレス)
+    // - `x2`: `sp` - スタックポインタ (スタック領域を管理する)
+    // - `x10 ~ x17`: `a0 ~ a7` - 関数の引数または戻り値
+    // - `x5 ~ x7`: `t0 ~ t2` - 一時レジスタ（関数呼び出し間で保存されない）
+
+char change(char *operand, char *register_name, char *x_register_name){
+    if(strcmp(operand, register_name) == 0){
+        strcpy(operand, x_register_name);
+    }
+}
+void convert_registerset_to_x(char *operand){
+    printf("before_operand:%s\n",operand);
+    change(operand, "zero", "x0");
+    change(operand, "ra", "x1");
+    change(operand, "sp", "x2");
+    for(int i = 0; i <= 7; i++){
+        char reg_name[4];
+        char x_reg_name[4];
+        sprintf(reg_name, "a%d", i);
+        sprintf(x_reg_name, "x%d", 10 + i);
+        change(operand, reg_name, x_reg_name);
+    }
+    for(int i = 0; i <= 2; i++){
+        char reg_name[4];
+        char x_reg_name[4];
+        sprintf(reg_name, "t%d", i);
+        sprintf(x_reg_name, "x%d", 5 + i);
+        change(operand, reg_name, x_reg_name);
+    }
+    printf("after_operand:%s\n",operand);   
+}
+
 
 void parse_assembly(const char* assembly_code){
     const char* delimiter = "\n";
@@ -209,10 +243,11 @@ void parse_assembly(const char* assembly_code){
         memset(operand2, 0, sizeof(operand2));
         memset(operand3, 0, sizeof(operand3));
         printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
-        sscanf(token, "%s %s %s %s", opcode, operand1, operand2, operand3); 
+        // カンマと空白を区切り文字として扱う
+        sscanf(token, "%s %[^,], %[^,], %s", opcode, operand1, operand2, operand3);
         printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
 
-        // 疑似命令に対応(mv, li)
+        // 疑似命令に対応(mv, li, ret)
         if(strcmp(opcode, "mv") == 0){
             strcpy(opcode, "add");
             strcpy(operand3, operand2);
@@ -229,6 +264,11 @@ void parse_assembly(const char* assembly_code){
             strcpy(operand2, "x1");
             strcpy(operand3, "0");
         }
+
+        //レジスタセットに対応
+        convert_registerset_to_x(operand1);
+        convert_registerset_to_x(operand2);
+        convert_registerset_to_x(operand3);      
 
         const char* opcode_bin = get_opcode_binary(opcode);
         char* rd_bin = get_register_binary(operand1);
