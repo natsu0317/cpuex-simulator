@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 //アセンブリコードをバイナリコードにparse
 
@@ -127,30 +128,54 @@ char* get_register_binary(const char* reg) {
     return binary;
 }
 
+// intをbinaryに
+char* int_to_binary(int value){
+    printf("value: %d\n",value);
+    char* binary = (char*)malloc(33 * sizeof(char));
+    if (binary == NULL){
+        return NULL;
+    }
+    memset(binary, 0, 33);
+    for(int i=31; i>=0; i--){
+        binary[31-i] = (value & (1 << i)) ? '1' : '0';
+    }
+    binary[32] = '\0';
+    return binary;
+}
+
+// floatをbinaryに
+char* float_to_binary(float value){
+    // inputとoutputは同じメモリ領域を共有
+    union{
+        float input;
+        int output;
+    } data;
+    data.input = value;
+    return int_to_binary(data.output);
+}
+
+// 文字列がfloatかどうかを判断
+bool is_float(const char* str){
+    while(*str){
+        if(*str == '.'){
+            return true;
+        }
+        str++;
+    }
+    return false;
+}
+
 
 // 即値をバイナリに変換
 char* get_immediate_binary(const char* imm) {
-    //printf("imm:%s\n",imm);
-    char* binary = (char*)malloc(33*sizeof(char));
-    if(binary == NULL){
-        return NULL;
+    printf("imm: %s\n",imm);
+    if (is_float(imm)){
+        float imm_value = atof(imm);
+        return float_to_binary(imm_value);
+    } else {
+        int imm_value = atoi(imm);
+        return int_to_binary(imm_value);
     }
-    int imm_value;
-    // if(imm == "zero"){
-    //     imm_value = 0;
-    // } else{
-    //     imm_value = atoi(imm); // 即値を整数に変換
-    // }
-    imm_value = atoi(imm);
-    // バッファをクリア
-    memset(binary, 0, 33);
-    // 即値を2進数に変換
-    for (int i = 31; i >= 0; i--) { // 24bit分の値を格納
-        binary[31 - i] = (imm_value & (1 << i)) ? '1' : '0';
-    }
-    //printf("binary:%s\n",binary);
-    binary[32] = '\0';
-    return binary;
 }
 
 
@@ -199,7 +224,6 @@ char change(char *operand, char *register_name, char *x_register_name){
     }
 }
 void convert_registerset_to_x(char *operand){
-    printf("before_operand:%s\n",operand);
     change(operand, "zero", "x0");
     change(operand, "ra", "x1");
     change(operand, "sp", "x2");
@@ -216,8 +240,7 @@ void convert_registerset_to_x(char *operand){
         sprintf(reg_name, "t%d", i);
         sprintf(x_reg_name, "x%d", 5 + i);
         change(operand, reg_name, x_reg_name);
-    }
-    printf("after_operand:%s\n",operand);   
+    } 
 }
 
 
@@ -268,7 +291,8 @@ void parse_assembly(const char* assembly_code){
         //レジスタセットに対応
         convert_registerset_to_x(operand1);
         convert_registerset_to_x(operand2);
-        convert_registerset_to_x(operand3);      
+        convert_registerset_to_x(operand3); 
+        printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);     
 
         const char* opcode_bin = get_opcode_binary(opcode);
         char* rd_bin = get_register_binary(operand1);
@@ -294,8 +318,8 @@ void parse_assembly(const char* assembly_code){
             r2_bin = get_immediate_binary(operand3);
             need_free_imm_2 = 1;
         }
-        printf("free_reg:%d %d %d %d\n",need_free_imm_1,need_free_imm_2,need_free_reg_1,need_free_reg_2);
-        //printf("op_bin:%s, rd_bin:%s, r1_bin:%s, r2_bin:%s\n",opcode_bin,rd_bin,r1_bin,r2_bin);
+        //printf("free_reg:%d %d %d %d\n",need_free_imm_1,need_free_imm_2,need_free_reg_1,need_free_reg_2);
+        printf("op_bin:%s, rd_bin:%s, r1_bin:%s, r2_bin:%s\n",opcode_bin,rd_bin,r1_bin,r2_bin);
         //printf("%d,%d,%d,%d\n",need_free_imm_1,need_free_imm_2,need_free_reg_1,need_free_reg_2);
 
         BinaryInstruction inst;
@@ -469,7 +493,8 @@ void print_binary_instructions(FILE* output_file) {
         binary_instruction_count /= 2;
     }
     instruction_count_binary_code[31] = '\0'; // 終端文字を追加
-    fprintf(output_file, "%s\n", instruction_count_binary_code);
+    // 行数表示
+    //fprintf(output_file, "%s\n", instruction_count_binary_code);
     for (int i = 0; i < instruction_count; i++) {
         fprintf(output_file, "%s\n", binary_instructions[i].binary_code);
     }
