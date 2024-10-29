@@ -1,9 +1,14 @@
 cpuex 3班 simulator
 
 parser
+```
+cd asm_to_binary
+./parser
+```
     assembly to binary
     入力: assembly.txt
     出力: output.txt
+        出力の1行目にはassembly.txtの行数を2進数表示
     入力例:
     addi x5, x0, 5
     addi x6, x0, 10
@@ -11,6 +16,10 @@ parser
     spaceは必要
     
     binary to result
+```
+cd binary_to_result
+./parser
+```
     入力: instruction.txt   
     出力: result.txt
     入力例:

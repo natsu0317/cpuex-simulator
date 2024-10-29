@@ -310,6 +310,7 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
             case 0x53:   //fadd,fsub,fmul,fdiv
                 {   
                     //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv
+                    printf("f形式");
                     uint32_t func = (instruction >> 27) & 0x1F;
                     uint32_t rd = (instruction >> 7) & 0x7F;
                     uint32_t r1 = (instruction >> 15) & 0x1F;
@@ -335,7 +336,7 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     // 小さいほうの数の仮数部を、指数部の差だけ右シフト
                     // 指数部は大きいほうの指数部にそろえる
                         int dif = r1_exp - r2_exp;
-                        printf("%d\n",dif);
+                        printf("dif:%d\n",dif);
                         r2_man = r2_man >> dif;
                         result_exp = r1_exp;
                     } else {

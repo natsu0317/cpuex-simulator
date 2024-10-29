@@ -422,8 +422,15 @@ void parse_assembly(const char* assembly_code){
 
 // すべてのバイナリ命令を出力
 void print_binary_instructions(FILE* output_file) {
-    fprintf(output_file, "%d\n", binary_instruction_count);
-    for (int i = 0; i < binary_instruction_count; i++) {
+    int instruction_count = binary_instruction_count;
+    char instruction_count_binary_code[32];
+    for (int i = 30; i >= 0; --i) {
+        instruction_count_binary_code[i] = (binary_instruction_count % 2) + '0';
+        binary_instruction_count /= 2;
+    }
+    instruction_count_binary_code[31] = '\0'; // 終端文字を追加
+    fprintf(output_file, "%s\n", instruction_count_binary_code);
+    for (int i = 0; i < instruction_count; i++) {
         fprintf(output_file, "%s\n", binary_instructions[i].binary_code);
     }
 }
@@ -437,13 +444,6 @@ int main(){
         perror("Error opening file");
         return 1;
     }
-    // const char* assembly_code = 
-    //     "add x1 x2 x3\n"
-    //     "addi x1 x2 20\n"
-    //     "beq x1 x2 label\n"
-    //     "addi x1 x2 20\n"
-    //     "label:\n"
-    //     "jal x1 20\n";
 
     size_t read_size = fread(assembly_code, 1, sizeof(assembly_code)-1, file);
     if(read_size == 0){
@@ -466,25 +466,3 @@ int main(){
 
     return 0;
 }
-
-
-// add x1 x2 x3
-//00000 00 00011 00010 000 00001 01100 11
-//00000 00 00011 00010 000 00001 01100 11
-
-//addi x1 x2 20
-//000000010100 00010 000 00001 00100 11
-//000000010100 00010 000 00001 00100 11
-
-//addi x1 x2 -100
-//111110011100 00010 000 00001 00100 11
-//111110011100 00010 000 00001 00100 11
-
-//beq x1 x2 label
-//offset = 2
-//0000000 00010 00001 000 01000 11000 11
-//0000000 00010 00001 000 01000 11000 11
-
-//jal x1 20
-//0 0000001010 0 00000000 00001 11011 11
-//0 0000001010 0 00000000 00001 11011 11
