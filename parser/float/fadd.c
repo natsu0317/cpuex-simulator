@@ -4,7 +4,7 @@
 #include <math.h>
 #include <float.h>
 
-float fadd(float a, float b){
+extern float fadd(float a, float b){
     uint32_t a_bits, b_bits;
     memcpy(&a_bits, &a, sizeof(a_bits));
     memcpy(&b_bits, &b, sizeof(b_bits));
