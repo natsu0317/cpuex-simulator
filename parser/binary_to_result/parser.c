@@ -322,8 +322,6 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     uint32_t r2 = (instruction >> 20) & 0x1F;
                     float a1 = get_float_register(r1);
                     float a2 = get_float_register(r2);
-                    printf("a1:%lf\n",a1);
-                    printf("a2:%lf\n",a2);
                     uint32_t r1_bits;
                     uint32_t r2_bits;
                     memcpy(&r1_bits,&float_registers[r1],sizeof(r1_bits));
@@ -383,7 +381,7 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     uint32_t result_bits = (result_sign << 31) | (result_exp << 23) | (result_man & 0x7FFFFF);
                     float result;
                     memcpy(&result, &result_bits, sizeof(result));
-                    set_register(rd, result);
+                    set_float_register(rd, result);
                     //return result;
                 }
                 break;
