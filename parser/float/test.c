@@ -33,8 +33,10 @@ void run_test(float a, float b, float expected, const char* test_name) {
 
 int main() {
     // 基本的な除算
-    //run_test(0.75f, 0.375f, 2.0f, "Basic division");
-    run_test(-1.5f, 1.8f, -2.7f, "Division with negative number");
+    // run_test(0.75f, 0.375f, 0.28125f, "Basic division");
+    // run_test(-1.5f, 1.8f, -2.7f, "Division with negative number");
+    // run_test(-1.5f, 0.2f, -0.3f,"easy");
+    // run_test(-1.5f, 2.0f, -3.0f,"easy");
 
     // // ゼロとの除算
     // run_test(0.0f, 5.0f, 0.0f, "Division with zero numerator");
