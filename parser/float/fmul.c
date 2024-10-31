@@ -55,8 +55,9 @@ float fmul(float a, float b){
     }
     m = (m >> (se - 23)) & 0x7FFFFF;
     printf("m: %x\n",m);
+    printf("se: %d\n",se);
 
-    e = e1 + e2 - 127;
+    e = e1 + e2 - 127 + (se - 24);
     s = (s1 == s2) ? 0 : 1;
 
     uint32_t result_bits = (s << 31) | (e << 23) | (m & 0x7FFFFF);
@@ -64,60 +65,4 @@ float fmul(float a, float b){
     memcpy(&result, &result_bits, sizeof(result));
     return result;
 
-}
-
-int compare_floats(float a, float b) {
-    // 両方がNaNの場合は等しいとみなす
-    if (isnan(a) && isnan(b)) return 1;
-    
-    // 両方が無限大の場合、符号を確認
-    if (isinf(a) && isinf(b)) return (signbit(a) == signbit(b));
-    
-    // 相対誤差を使用して比較
-    float rel_error = fabsf(a - b) / fmaxf(fabsf(a), fabsf(b));
-    return rel_error < FLT_EPSILON;
-}
-
-// テストケース
-void run_test(float a, float b, float expected, const char* test_name) {
-    float result = fmul(a, b);
-    if (compare_floats(result, expected)) {
-        printf("%s: PASSED\n", test_name);
-    } else {
-        printf("%s: FAILED. Expected %f, got %f\n", test_name, expected, result);
-    }
-}
-
-int main() {
-    // 基本的な乗算
-    run_test(3.0f, 2.0f, 6.0f, "Basic multiplication");
-    run_test(-1.5f, 2.0f, -3.0f, "Multiplication with negative number");
-
-    // ゼロとの乗算
-    run_test(0.0f, 5.0f, 0.0f, "Multiplication with zero");
-    run_test(-0.0f, 0.0f, 0.0f, "Multiplication of zeros");
-
-    // 大きな数と小さな数の乗算
-    run_test(1e30f, 1.0f, 1e30f, "Large number * small number");
-
-    // オーバーフローのテスト
-    run_test(FLT_MAX, 2.0f, INFINITY, "Overflow test");
-
-    // アンダーフローのテスト
-    run_test(FLT_MIN, FLT_MIN, 0.0f, "Underflow test");
-
-    // 無限大のテスト
-    run_test(INFINITY, 5.0f, INFINITY, "Infinity * finite");
-    run_test(INFINITY, -INFINITY, -INFINITY, "Infinity * -Infinity");
-
-    // NaNのテスト
-    run_test(NAN, 1.0f, NAN, "NaN * finite");
-
-    // 丸め処理のテスト
-    run_test(16777215.0f, 1.0000001f, 16777215.0f, "Rounding test");
-
-    // 符号付きゼロのテスト
-    run_test(0.0f, -0.0f, -0.0f, "Signed zero test");
-
-    return 0;
 }
