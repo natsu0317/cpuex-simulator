@@ -65,18 +65,19 @@ float fdiv(float a, float b){
     uint32_t e_m = 0x7F;
     init_ab();
     printf("m2_&0x4FFFFF: %x\n",m2 & 0x7FFFFF);
-    uint32_t m2_for_inv_bits = (s2 << 31) | (e_m << 23) | m2 & 0x7FFFFF;
+    uint32_t m2_for_inv_bits = (0 << 31) | (e_m << 23) | m2 & 0x7FFFFF;
     printf("m2_for_inv_bits: %x\n",m2_for_inv_bits);
     float m2_for_inv;
     memcpy(&m2_for_inv, &m2_for_inv_bits, sizeof(m2_for_inv));
     printf("m2_for_inv: %f\n",m2_for_inv);
     float m2_inv = calculate_inv(m2_for_inv);
     uint32_t m2_inv_bits;
+    printf("m2_inv_bits: %x\n",m2_inv_bits);
     memcpy(&m2_inv_bits, &m2_inv, sizeof(m2_inv));
     printf("m2_inv: %f\n",m2_inv);
 
-    uint32_t m1_m = (s1 << 31) | (e_m << 23) | m1 & 0x4FFFFF;
-    uint32_t m2_m = (s2 << 31) | (e_m << 23) | m2_inv_bits & 0x4FFFFF;
+    uint32_t m1_m = (s1 << 31) | (e_m << 23) | m1 & 0x7FFFFF;
+    uint32_t m2_m = (s2 << 31) | (e_m << 23) | m2_inv_bits & 0x7FFFFF;
     float m1_m_f, m2_m_f;
     memcpy(&m1_m_f, &m1_m, sizeof(m1_m_f));
     memcpy(&m2_m_f, &m2_m, sizeof(m2_m_f));
@@ -89,7 +90,7 @@ float fdiv(float a, float b){
     memcpy(&m_mul, &m_mul_f, sizeof(m_mul));
     printf("m_mul: %f\n",m_mul_f);
     printf("m_mul; %x\n",m_mul);
-    m = (m_mul >> 23) & 0xFF;
+    m = m_mul & 0x7FFFFF;
     printf("m: %x\n",m);
 
     s = (s1 == s2) ? 0 : 1;
@@ -97,16 +98,16 @@ float fdiv(float a, float b){
     e = e1 - e2 + 127;
     printf("e: %x\n",e);
 
-    int se;
-    for(int i = 31; i >= 0; i--){
-        if((( m >> i ) & 0x1) == 1 ){
-            se = i;
-            break;
-        }
-    }
-    printf("se: %d\n",se);
-    m = (m >> (se - 23)) & 0x7FFFFF;
-    printf("m: %x\n",m);
+    // int se;
+    // for(int i = 31; i >= 0; i--){
+    //     if((( m >> i ) & 0x1) == 1 ){
+    //         se = i;
+    //         break;
+    //     }
+    // }
+    // printf("se: %d\n",se);
+    // m = (m >> (se - 23)) & 0x7FFFFF;
+    // printf("m: %x\n",m);
 
     uint32_t result_bits = (s << 31) | (e << 23) | (m & 0x7FFFFF);
     float result;
