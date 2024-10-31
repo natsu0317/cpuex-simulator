@@ -1,4 +1,7 @@
-all:
-	gcc -o fadd_test fadd.c -lm
-	gcc -o fsub_test fsub.c -lm
-	gcc -o fmul_test fmul.c -lm
+all: test
+
+test: test.c fadd.c fsub.c fmul.c fdiv.c
+	gcc -o test test.c fadd.c fsub.c fmul.c fdiv.c -lm
+
+clean:
+	rm -f test
