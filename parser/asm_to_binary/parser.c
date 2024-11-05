@@ -484,6 +484,26 @@ void parse_assembly(const char* assembly_code){
     free(code_copy);
 }
 
+void remove_comments(char *code) {
+    char *src = code;
+    char *dst = code;
+    int in_comment = 0;
+
+    while (*src) {
+        if (*src == ';' || *src == '#') {
+            in_comment = 1;
+        }
+        if (*src == '\n') {
+            in_comment = 0;
+        }
+        if (!in_comment) {
+            *dst++ = *src;
+        }
+        src++;
+    }
+    *dst = '\0';
+}
+
 // すべてのバイナリ命令を出力
 void print_binary_instructions(FILE* output_file) {
     int instruction_count = binary_instruction_count;
@@ -518,6 +538,8 @@ int main(){
     }
     assembly_code[read_size] = '\0';
     fclose(file);
+
+    remove_comments(assembly_code);
 
     parse_assembly(assembly_code);
 
