@@ -218,12 +218,24 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
     // - `x10 ~ x17`: `a0 ~ a7` - 関数の引数または戻り値
     // - `x5 ~ x7`: `t0 ~ t2` - 一時レジスタ（関数呼び出し間で保存されない）
 
-char change(char *operand, char *register_name, char *x_register_name){
-    if(strcmp(operand, register_name) == 0){
-        strcpy(operand, x_register_name);
+void change(char *operand, const char *register_name, const char *x_register_name) {
+    char *found = strstr(operand, register_name);
+    if (found != NULL) {
+        size_t reg_len = strlen(register_name);
+        size_t x_reg_len = strlen(x_register_name);
+        memmove(found + x_reg_len, found + reg_len, strlen(found + reg_len) + 1);
+        memcpy(found, x_register_name, x_reg_len);
     }
 }
 void convert_registerset_to_x(char *operand){
+    change(operand, "%eax", "x10");
+    change(operand, "%ebx", "x19");
+    change(operand, "%ecx", "x11");
+    change(operand, "%edx", "x12");
+    change(operand, "%esi", "x6");
+    change(operand, "%edi", "x7");
+    change(operand, "%ebp", "x8");
+    change(operand, "%esp", "x2");
     change(operand, "zero", "x0");
     change(operand, "ra", "x1");
     change(operand, "sp", "x2");
@@ -241,13 +253,6 @@ void convert_registerset_to_x(char *operand){
         sprintf(x_reg_name, "x%d", 5 + i);
         change(operand, reg_name, x_reg_name);
     } 
-    change(operand, "%eax", "x10");
-    change(operand, "%ebx", "x19");
-    change(operand, "%ecx", "x11");
-    change(operand, "%edx", "x12");
-    change(operand, "%esi", "x6");
-    change(operand, "%edi", "x7");
-    change(operand, "%ebp", "x8");
 }
 
 
@@ -277,7 +282,7 @@ void parse_assembly(const char* assembly_code){
         sscanf(token, "%s %[^,], %[^,], %s", opcode, operand1, operand2, operand3);
         printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
 
-        // 疑似命令に対応(mv, li, ret)
+        // 疑似命令に対応(mv, li, ret, j)
         if(strcmp(opcode, "mv") == 0){
             strcpy(opcode, "add");
             strcpy(operand3, operand2);
@@ -294,6 +299,11 @@ void parse_assembly(const char* assembly_code){
             strcpy(operand2, "x1");
             strcpy(operand3, "0");
         }
+        if(strcmp(opcode, "j") == 0){
+            strcpy(opcode, "jal");
+            strcpy(operand2,operand1);
+            strcpy(operand1, "x0");
+        }
 
         //レジスタセットに対応
         convert_registerset_to_x(operand1);
@@ -303,17 +313,26 @@ void parse_assembly(const char* assembly_code){
 
         const char* opcode_bin = get_opcode_binary(opcode);
         char* rd_bin = get_register_binary(operand1);
+        int not_rd_free = 0;
+        if(strchr(operand1, '(')){
+            //0ならfree
+            not_rd_free = 1;
+        }
         char* r1_bin;
         int need_free_reg_1 = 0;
         int need_free_imm_1 = 0;
+        printf("%d\n",strcmp(opcode, "sw"));
         if(operand2[0] == 'x'){
             printf("need_free_reg_1");
             r1_bin = get_register_binary(operand2);
             need_free_reg_1 = 1;
         }else if(operand2[0] != '\0'){
-            printf("need_free_imm_1");
-            r1_bin = get_immediate_binary(operand2);
-            need_free_imm_1 = 1;
+            if(strcmp(opcode, "sw") == 0 || strcmp(opcode, "lw") == 0){
+            } else {
+                printf("need_free_imm_1\n");
+                r1_bin = get_immediate_binary(operand2);
+                need_free_imm_1 = 1;
+            }
         }
         char* r2_bin;
         int need_free_reg_2 = 0;
@@ -322,12 +341,16 @@ void parse_assembly(const char* assembly_code){
             r2_bin = get_register_binary(operand3);
             need_free_reg_2 = 1;
         }else if(operand2[0] != '\0'){
-            r2_bin = get_immediate_binary(operand3);
-            need_free_imm_2 = 1;
+            if(strcmp(opcode, "sw") == 0 || strcmp(opcode, "lw") == 0){
+            } else {
+                printf("need_free_imm_2\n");
+                r2_bin = get_immediate_binary(operand2);
+                need_free_imm_2 = 1;
+            }
         }
         //printf("free_reg:%d %d %d %d\n",need_free_imm_1,need_free_imm_2,need_free_reg_1,need_free_reg_2);
         printf("op_bin:%s, rd_bin:%s, r1_bin:%s, r2_bin:%s\n",opcode_bin,rd_bin,r1_bin,r2_bin);
-        //printf("%d,%d,%d,%d\n",need_free_imm_1,need_free_imm_2,need_free_reg_1,need_free_reg_2);
+        printf("%d,%d,%d,%d\n",need_free_imm_1,need_free_imm_2,need_free_reg_1,need_free_reg_2);
 
         BinaryInstruction inst;
 
@@ -374,12 +397,12 @@ void parse_assembly(const char* assembly_code){
             // lw x8, 4(x6)
             // rd->r2に対応
             const char *op_start = operand2;
+            convert_registerset_to_x(operand2);
             char *x;
+            printf("operand2 %s\n",operand2);
             x = strchr(operand2,'x');
-            char *start;
-            start = strchr(operand2,'(');
-            char *end;
-            end = strchr(operand2,')');
+            char *start = strchr(operand2, '(');
+            char *end = strchr(operand2, ')');
             char offset[10];
             char *offset_ptr = offset;
             while(op_start < start){
@@ -434,6 +457,7 @@ void parse_assembly(const char* assembly_code){
             } else {
                 fprintf(stderr, "Error: Binary code buffer size is zero or negative.\n");
             }
+            printf("end");
 
         }
 
@@ -477,12 +501,14 @@ void parse_assembly(const char* assembly_code){
         //printf("after_instruction_count");
         binary_instructions[binary_instruction_count++] = inst;
         //printf("hello");
-        free((void*)rd_bin);
+        if(not_rd_free == 0){
+            free((void*)rd_bin);
+        }
         if(need_free_reg_1 == 1 || need_free_imm_1 == 1){
-            free(r1_bin);
+            //free(r1_bin);
         }        
         if(need_free_reg_2 == 1 || need_free_imm_2 == 1){
-            free(r2_bin);
+            //free(r2_bin);
         }
         //printf("before_token:%s\n",token);
         token = strtok(NULL,delimiter);
