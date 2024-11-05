@@ -263,7 +263,8 @@ void parse_assembly(const char* assembly_code){
 
     while (token != NULL){
         //labelの部分は0000...0で出力するようになっている
-        if(strchr(token, ':') != NULL){
+        if (strchr(token, ':') != NULL ||
+            strstr(token, ".globl") != NULL){
             BinaryInstruction inst;
             //token = strtok(NULL, "\n");
             instruction_count++;
