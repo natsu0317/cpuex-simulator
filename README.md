@@ -25,3 +25,13 @@ cd binary_to_result
     入力例:
     00000000010000000000000000010011
     00000000000100000000000010010011
+
+
+float計算
+```
+cd float
+make
+./test
+```
+    入力: flu.txt   
+    出力: output.txt

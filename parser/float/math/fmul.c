@@ -1,3 +1,4 @@
+#include "math_function.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,8 +22,8 @@ float fmul(float a, float b){
     }
 
     uint32_t s,e,m; // 出力
-    printf("s1: %x, e1: %x, m1: %x\n",s1, e1, m1);
-    printf("s2: %x, e2: %x, m2: %x\n",s2, e2, m2);
+    //printf("s1: %x, e1: %x, m1: %x\n",s1, e1, m1);
+    //printf("s2: %x, e2: %x, m2: %x\n",s2, e2, m2);
 
     e1 = (e1 == 0) ? 1 : e1;
     e2 = (e2 == 0) ? 1 : e2;
@@ -31,19 +32,19 @@ float fmul(float a, float b){
     uint32_t h2 = (m2 >> 11) & 0xFFF;
     uint32_t l1 = m1 & 0x7FF;
     uint32_t l2 = m2 & 0x7FF;
-    printf("h1: %x, h2: %x, l1: %x, l2: %x\n",h1, h2, l1, l2);
+    //printf("h1: %x, h2: %x, l1: %x, l2: %x\n",h1, h2, l1, l2);
     //ケチビットを補う
     h1 += 0x1000;
     h2 += 0x1000;
-    printf("h1: %x, h2: %x\n",h1, h2);
+    //printf("h1: %x, h2: %x\n",h1, h2);
 
     uint32_t HH = h1 * h2;
     uint32_t HL = h1 * l2;
     uint32_t LH = l1 * h2;
-    printf("HH:%x,HL:%x,LH:%x\n",HH,HL,LH);
+    //printf("HH:%x,HL:%x,LH:%x\n",HH,HL,LH);
 
     m = HH + (HL >> 11) + (LH >> 11) + 2;
-    printf("m:%x\n",m);
+    //printf("m:%x\n",m);
 
     //丸めは行わず最上位の1から下23bitを答えの仮数部
     int se;
@@ -54,8 +55,8 @@ float fmul(float a, float b){
         }
     }
     m = (m >> (se - 23)) & 0x7FFFFF;
-    printf("m: %x\n",m);
-    printf("se: %d\n",se);
+    //printf("m: %x\n",m);
+    //printf("se: %d\n",se);
 
     e = e1 + e2 - 127 + (se - 24);
     s = (s1 == s2) ? 0 : 1;

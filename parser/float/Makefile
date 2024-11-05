@@ -1,7 +1,7 @@
 all: test
 
-test: test.c fadd.c fsub.c fmul.c fdiv.c
-	gcc -o test test.c fadd.c fsub.c fmul.c fdiv.c -lm
+test:
+	gcc -o test test.c math/fadd.c math/fsub.c math/fmul.c math/fdiv.c
 
 clean:
 	rm -f test

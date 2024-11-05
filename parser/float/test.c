@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
+#include "math/math_function.h"
 
 float fadd(float a, float b);
 float fsub(float a, float b);
@@ -21,40 +22,52 @@ int compare_floats(float a, float b) {
     return rel_error < FLT_EPSILON;
 }
 
-// テストケース
-void run_test(float a, float b, float expected, const char* test_name) {
-    float result = fmul(a, b);
-    if (compare_floats(result, expected)) {
-        printf("%s: PASSED\n", test_name);
+void execute_and_write_result(const char* operation, float a, float b, FILE* output_file) {
+    float result;
+    if (strcmp(operation, "fadd") == 0) {
+        result = fadd(a, b);
+    } else if (strcmp(operation, "fsub") == 0) {
+        result = fsub(a, b);
+    } else if (strcmp(operation, "fmul") == 0) {
+        result = fmul(a, b);
+    } else if (strcmp(operation, "fdiv") == 0) {
+        result = fdiv(a, b);
     } else {
-        printf("%s: FAILED. Expected %f, got %f\n", test_name, expected, result);
+        fprintf(stderr, "Unknown operation: %s\n", operation);
+        return;
     }
+    fprintf(output_file, "%s(%f, %f) = %f\n", operation, a, b, result);
 }
 
 int main() {
-    // 基本的な除算
-    // run_test(0.75f, 0.375f, 0.28125f, "Basic division");
-    // run_test(-1.5f, 1.8f, -2.7f, "Division with negative number");
-    // run_test(-1.5f, 0.2f, -0.3f,"easy");
-    // run_test(-1.5f, 2.0f, -3.0f,"easy");
+    FILE *file;
+    char line[128];
 
-    // // ゼロとの除算
-    // run_test(0.0f, 5.0f, 0.0f, "Division with zero numerator");
-    // run_test(5.0f, 1.0f, 5.0f, "Division by one");
-    
-    // // 特別なケース
-    // run_test(1.0f, 0.0f, INFINITY, "Division by zero (positive)");
-    // run_test(-1.0f, 0.0f, -INFINITY, "Division by zero (negative)");
+    file = fopen("flu.txt", "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return 1;
+    }
 
-    // // 無限大の除算
-    // run_test(INFINITY, 2.0f, INFINITY, "Infinity divided by finite");
-    // run_test(-INFINITY, 2.0f, -INFINITY, "Negative infinity divided by finite");
-    // run_test(INFINITY, INFINITY, NAN, "Infinity divided by infinity");
-    // run_test(-INFINITY, -INFINITY, NAN, "Negative infinity divided by negative infinity");
+    FILE *output_file = fopen("output.txt", "w");
+    if (output_file == NULL) {
+        perror("Error opening file");
+        fclose(file);
+        return 1;
+    }
 
-    // // NaNの除算
-    // run_test(NAN, 1.0f, NAN, "NaN divided by finite");
-    // run_test(1.0f, NAN, NAN, "Finite divided by NaN");
+    while (fgets(line, sizeof(line), file)) {
+        char operation[16];
+        float a, b;
+        if (sscanf(line, "%15s %f %f", operation, &a, &b) == 3) {
+            execute_and_write_result(operation, a, b, output_file);
+        } else {
+            fprintf(stderr, "Error parsing line: %s", line);
+        }
+    }
+
+    fclose(file);
+    fclose(output_file);
 
     return 0;
 }
