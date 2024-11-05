@@ -241,6 +241,13 @@ void convert_registerset_to_x(char *operand){
         sprintf(x_reg_name, "x%d", 5 + i);
         change(operand, reg_name, x_reg_name);
     } 
+    change(operand, "%eax", "x10");
+    change(operand, "%ebx", "x19");
+    change(operand, "%ecx", "x11");
+    change(operand, "%edx", "x12");
+    change(operand, "%esi", "x6");
+    change(operand, "%edi", "x7");
+    change(operand, "%ebp", "x8");
 }
 
 
