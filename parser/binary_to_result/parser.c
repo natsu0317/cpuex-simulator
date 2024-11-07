@@ -221,7 +221,7 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                 }   
                 break;
             
-            case 0x23:{   // sw mem[x[r1] + offset] = x[r2]
+            case 0x35:{   // sw mem[x[r1] + offset] = x[r2]
                     printf("sw");
                     uint32_t rs1 = (instruction >> 15) & 0x1F;
                     uint32_t rs2 = (instruction >> 20) & 0x1F;
@@ -245,6 +245,7 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
 
             case 0x63:  // B形式命令 (例: "beq", "bne", "blt", "bge")
                 {
+                    printf("b_type\n");
                     uint32_t funct3 = (instruction >> 12) & 0x7;
                     uint32_t rs1 = (instruction >> 15) & 0x1F;
                     uint32_t rs2 = (instruction >> 20) & 0x1F;
