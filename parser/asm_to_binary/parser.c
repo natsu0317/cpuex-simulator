@@ -198,13 +198,13 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
         size_t line_length = line_end - line_start;
 
         // 行の先頭にラベルがあり、コロンで終わっているかを確認
-        if (line_length > label_length && 
-            strncmp(line_start, label_name, label_length) == 0 && 
-            line_start[label_length] == ':') {
-            return (line_number - current_line)*4; // オフセットを計算
+        if (line_length >= label_length + 1 && 
+            strncmp(line_start, label_name, label_length-1) == 0 && 
+            (line_start[label_length-1] == ':' || line_start[label_length] == ':')) {
+            return (line_number - current_line) * 4; // オフセットを計算
         }
         // 次の行へ進む
-        line_start = (*line_end == '\n') ? line_end + 1 : line_end; // 改行がある場合は次の行に移動
+        line_start = (*line_end == '\n') ? line_end + 1 : line_end;
         line_number++;
     }
 
@@ -322,7 +322,6 @@ void parse_assembly(const char* assembly_code){
         char* r1_bin;
         int need_free_reg_1 = 0;
         int need_free_imm_1 = 0;
-        printf("%d\n",strcmp(opcode, "sw"));
         if(operand2[0] == 'x'){
             printf("need_free_reg_1");
             r1_bin = get_register_binary(operand2);
@@ -341,11 +340,11 @@ void parse_assembly(const char* assembly_code){
         if(operand3[0] == 'x'){
             r2_bin = get_register_binary(operand3);
             need_free_reg_2 = 1;
-        }else if(operand2[0] != '\0'){
+        }else if(operand3[0] != '\0'){
             if(strcmp(opcode, "sw") == 0 || strcmp(opcode, "lw") == 0){
             } else {
                 printf("need_free_imm_2\n");
-                r2_bin = get_immediate_binary(operand2);
+                r2_bin = get_immediate_binary(operand3);
                 need_free_imm_2 = 1;
             }
         }
@@ -369,27 +368,29 @@ void parse_assembly(const char* assembly_code){
             //[11:0]
             char r2_bin_sub[13];//12bit + 終端文字
             get_substring(r2_bin,r2_bin_sub,strlen(r2_bin)-12,12);
-            char opcode[8];
+            char opcode_bin1[8];
+            printf("opcode:%s\n",opcode);
             if (strcmp(opcode, "jalr") == 0) {
-                opcode[0] = '1';
-                opcode[1] = '1';
-                opcode[2] = '0';
-                opcode[3] = '0';
-                opcode[4] = '1';
-                opcode[5] = '1';
-                opcode[6] = '1';
-                opcode[7] = '\0';
+                opcode_bin1[0] = '1';
+                opcode_bin1[1] = '1';
+                opcode_bin1[2] = '0';
+                opcode_bin1[3] = '0';
+                opcode_bin1[4] = '1';
+                opcode_bin1[5] = '1';
+                opcode_bin1[6] = '1';
+                opcode_bin1[7] = '\0';
             } else {
-                opcode[0] = '0';
-                opcode[1] = '0';
-                opcode[2] = '1';
-                opcode[3] = '0';
-                opcode[4] = '0';
-                opcode[5] = '1';
-                opcode[6] = '1';
-                opcode[7] = '\0';
+                opcode_bin1[0] = '0';
+                opcode_bin1[1] = '0';
+                opcode_bin1[2] = '1';
+                opcode_bin1[3] = '0';
+                opcode_bin1[4] = '0';
+                opcode_bin1[5] = '1';
+                opcode_bin1[6] = '1';
+                opcode_bin1[7] = '\0';
             }
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s%s%s",r2_bin_sub,r1_bin,opcode_bin,rd_bin,opcode);
+            printf("opcode: %s\n",opcode_bin1);
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s%s%s",r2_bin_sub,r1_bin,opcode_bin,rd_bin,opcode_bin1);
         }
         //printf("binary: %s\n",inst.binary_code);
 
@@ -466,7 +467,7 @@ void parse_assembly(const char* assembly_code){
             printf("j_type\n");
             //offsetを求める
             int current_line = instruction_count;
-            const char* label_name = operand1;
+            const char* label_name = operand2;
             int offset = calculate_offset(assembly_code,label_name,current_line);
             char offset_str[20];
             snprintf(offset_str,sizeof(offset_str),"%d",offset);
@@ -577,7 +578,7 @@ int main(){
 
     parse_assembly(assembly_code);
 
-    FILE *output_file = fopen("output.txt","w");    
+    FILE *output_file = fopen("binary.txt","w");    
     if (output_file == NULL) {
         perror("Error opening file");
         return 1;
