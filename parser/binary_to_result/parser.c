@@ -436,8 +436,9 @@ void print_register(FILE* output_file){
     }
 }
 
-void print_transition_register(FILE *transition_file){
+void print_transition_register(FILE *transition_file, int pc){
     fprintf(transition_file, "| ");
+    fprintf(transition_file, "%d行|",pc);
     for (int i = 0; i < NUM_REGISTERS; i++) {
         fprintf(transition_file, "%3d | ", get_register(i));
     }
@@ -477,13 +478,14 @@ int main() {
 
     // Markdownの表ヘッダーを出力
     fprintf(transition_file, "| ");
+    fprintf(transition_file, "実行命令|");
     for (int i = 0; i < NUM_REGISTERS; i++) {
         fprintf(transition_file, "x%-2d | ", i);
     }
     fprintf(transition_file, "\n|");
 
     // 区切り線を出力
-    for (int i = 0; i < NUM_REGISTERS; i++) {
+    for (int i = 0; i < NUM_REGISTERS+1; i++) {
         fprintf(transition_file, "---:|");
     }
     fprintf(transition_file, "\n");
@@ -493,7 +495,7 @@ int main() {
         int pc = 0;
         pc = execute_binary_instruction(&binary_instructions[current_line], 1, current_line);
         
-        print_transition_register(transition_file);
+        print_transition_register(transition_file, current_line);
         fflush(transition_file);
         
         if (pc == 1) {
