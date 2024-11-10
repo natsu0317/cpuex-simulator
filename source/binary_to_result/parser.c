@@ -447,7 +447,7 @@ void print_transition_register(FILE *transition_file, int pc){
 
 int main() {
     char binary_instructions[MAX_INSTRUCTIONS][INSTRUCTION_LENGTH];  // 読み取った命令を格納する配列
-    FILE *file = fopen("instruction.txt", "r");
+    FILE *file = fopen("/home/natsu/cpuex-simulator/source/asm_to_binary/binary.txt", "r");
     if (file == NULL) {
         printf("Error: Could not open file\n");
         return 1;
