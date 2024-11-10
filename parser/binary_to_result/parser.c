@@ -436,7 +436,13 @@ void print_register(FILE* output_file){
     }
 }
 
-
+void print_transition_register(FILE *transition_file){
+    fprintf(transition_file, "| ");
+    for (int i = 0; i < NUM_REGISTERS; i++) {
+        fprintf(transition_file, "%3d | ", get_register(i));
+    }
+    fprintf(transition_file, "\n");
+}
 
 int main() {
     char binary_instructions[MAX_INSTRUCTIONS][INSTRUCTION_LENGTH];  // 読み取った命令を格納する配列
@@ -462,42 +468,47 @@ int main() {
     printf("index:%d\n",index);
     int current_line = 0;
     char input[10];
-    while (current_line < index) {    
-        int pc = 0;
-        printf("Press Enter to execute next instruction (or 'q' to quit): ");
-        fgets(input, sizeof(input), stdin);
-        
-        if (input[0] == 'q' || input[0] == 'Q') {
-            break;
-        }
 
-        printf("Executing instruction %d: %s\n", current_line + 1, binary_instructions[current_line]);
-        printf("%d行目を実行\n",current_line+1);
-        pc = execute_binary_instruction(&binary_instructions[current_line], 1, current_line);
-        printf("pc:%d\n",pc);        
-        // レジスタの状態を表示
-        for (int i = 0; i < NUM_REGISTERS; i++) {
-            printf("x%d = %d\n", i, get_register(i));
-        }
-        printf("memory[0]%d\n",memory[0]);
-        printf("memory[4]%d\n",memory[4]);
-        printf("memory[64]%d\n",memory[64]);
-        printf("before_current_line:%d\n",current_line);
-        printf("pc = %d\n",pc);
-        
-        if(pc == 1){
-            current_line++;
-        }else{
-            current_line += pc;
-        }
-        printf("current_line:%d\n",current_line);
+    FILE *transition_file = fopen("transition.md", "w");
+    if (transition_file == NULL) {
+        perror("Error opening transition file");
+        return 1;
     }
 
+    // Markdownの表ヘッダーを出力
+    fprintf(transition_file, "| ");
+    for (int i = 0; i < NUM_REGISTERS; i++) {
+        fprintf(transition_file, "x%-2d | ", i);
+    }
+    fprintf(transition_file, "\n|");
 
-    // レジスタの状態を表示
-    FILE *output_file = fopen("result.txt","w");
-    if(output_file == NULL){
-        perror("Error opening file");
+    // 区切り線を出力
+    for (int i = 0; i < NUM_REGISTERS; i++) {
+        fprintf(transition_file, "---:|");
+    }
+    fprintf(transition_file, "\n");
+    fflush(transition_file);
+
+    while (current_line < index) {    
+        int pc = 0;
+        pc = execute_binary_instruction(&binary_instructions[current_line], 1, current_line);
+        
+        print_transition_register(transition_file);
+        fflush(transition_file);
+        
+        if (pc == 1) {
+            current_line++;
+        } else {
+            current_line += pc;
+        }
+    }
+    
+    fclose(transition_file);
+
+    // レジスタの状態を別のファイルに出力
+    FILE *output_file = fopen("result.txt", "w");
+    if (output_file == NULL) {
+        perror("Error opening result file");
         return 1;
     }
     print_register(output_file);
