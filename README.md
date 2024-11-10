@@ -7,7 +7,7 @@ cd asm_to_binary
 ```
     assembly to binary
     入力: assembly.txt
-    出力: output.txt
+    出力: binary.txt
         出力の1行目にはassembly.txtの行数を2進数表示
     入力例:
     addi x5, x0, 5
@@ -20,8 +20,10 @@ cd asm_to_binary
 cd binary_to_result
 ./parser
 ```
-    入力: instruction.txt   
-    出力: result.txt
+    入力: asm_to_binary/binary.txt
+    (asm_to_binaryでbinaryを出力した場合はdirectoryを移動してそのまま実行可)
+    出力: result.txt(最終結果)
+    transition.md(逐次のregister値)
     入力例:
     00000000010000000000000000010011
     00000000000100000000000010010011
