@@ -444,7 +444,7 @@ void print_register(FILE* output_file){
 
 void print_register_transition(FILE *transition_file, int pc){
     fprintf(transition_file, "| ");
-    fprintf(transition_file, "%d行|",pc);
+    fprintf(transition_file, "%2d行|",pc);
     for (int i = 0; i < NUM_REGISTERS; i++) {
         fprintf(transition_file, "%3d | ", get_register(i));
     }
