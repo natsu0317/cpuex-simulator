@@ -3,13 +3,13 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdbool.h>
+extern int instruction_count;
 
 //アセンブリコードをバイナリコードにparse
 
 #define MAX_LENGTH 100
 #define MAX_ASSEMBLY_SIZE 1024 //アセンブリコードの最大サイズ
 
-int instruction_count = 0;
 
 typedef struct{
     char binary_code[33];
@@ -497,7 +497,7 @@ void parse_assembly(const char* assembly_code){
 
         }
         
-        printf("Binary Code: %s\n",inst.binary_code);
+        //printf("Binary Code: %s\n",inst.binary_code);
         ////printf("before");
         instruction_count++;
         ////printf("after_instruction_count");
@@ -540,7 +540,7 @@ void remove_comments(char *code) {
 }
 
 // すべてのバイナリ命令を出力
-void print_binary_instructions(FILE* output_file) {
+int print_binary_instructions(FILE* output_file) {
     int instruction_count = binary_instruction_count;
     char instruction_count_binary_code[32];
     for (int i = 30; i >= 0; --i) {
@@ -553,6 +553,7 @@ void print_binary_instructions(FILE* output_file) {
     for (int i = 0; i < instruction_count; i++) {
         fprintf(output_file, "%s\n", binary_instructions[i].binary_code);
     }
+    return instruction_count;
 }
 
 int parse_main(){
@@ -583,7 +584,7 @@ int parse_main(){
         perror("Error opening file");
         return 1;
     }
-    print_binary_instructions(output_file);
+    int count = print_binary_instructions(output_file);
     fclose(output_file);
 
     return 0;

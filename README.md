@@ -8,6 +8,7 @@ make
 ```
     入力: assembly.txt
     出力: binary.txt : binaryのcode
+          transition.md : registerの遷移を表示
 
     入力例:
     addi x5, x0, 5
