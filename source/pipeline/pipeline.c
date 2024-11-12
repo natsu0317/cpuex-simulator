@@ -16,28 +16,42 @@
 //write back :
 
 //IF -> ID -> EX -> MEM -> WB
-typedef struct {
-    char instruction[MAX_INSTRUCTION_LENGTH];
-    int start_cycle;
-    int stall_cycles;
-} Instruction;
 
 int instruction_count = 0;
 
 void execute_binary(char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int instruction_length, FILE* transition_file) {
     int current_line = 0;
-    int total_cycles = 0;
+    int total_cycles = 1;
     while (current_line < instruction_length) {    
         int pc = 0;
         pc = execute_binary_instruction(&binary_instructions[current_line].binary_code, 1, current_line);
         //register遷移の出力
         print_register_transition(transition_file, current_line);
         fflush(transition_file); 
+        //printf("binary_insturcinos[current_line]:%s\n",binary_instructions[current_line].binary_code);
+        printf("assembly_code:%20s",assembly_instructions[current_line+4]);
+        if(strcmp(binary_instructions[current_line].binary_code,"00000000000000000000000000000000") == 0){
+            current_line++;
+            printf("\n");
+            continue;
+        } else {
+            for (int i = 0; i < total_cycles; i++) {
+                printf("     ");
+            }
+            printf(" IF  ");
+            printf(" ID  ");
+            printf(" EX  ");
+            printf(" MEM ");
+            printf(" WB  ");
+            printf("\n");
+        }
+        
         if (pc == 1) {
             current_line++;
         } else {
             current_line += pc;
         }
+        total_cycles++;
     }
 }
 
@@ -104,7 +118,7 @@ int main(){
     //pipeline
     //binary codeを受け取ってpipelineにする
     
-    execute_binary(assembly_instructions, binary_instructions, instruction_length, transition_file);
+    //execute_binary(assembly_instructions, binary_instructions, instruction_length, transition_file);
     
     fclose(transition_file);
 
