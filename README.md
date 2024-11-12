@@ -1,5 +1,6 @@
 cpuex 3班 simulator
 
+## 
 parser
 ```
 cd pipeline
@@ -38,3 +39,10 @@ make
 ```
     入力: flu.txt   
     出力: output.txt
+
+## cache
+```
+cd cache
+make
+./direct
+```

@@ -22,14 +22,15 @@ int instruction_count = 0;
 void execute_binary(char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int instruction_length, FILE* transition_file) {
     int current_line = 0;
     int total_cycles = 1;
-    while (current_line < instruction_length) {    
+    while (current_line < instruction_length) {   
+        printf("%d\n",current_line+1); 
         int pc = 0;
         pc = execute_binary_instruction(&binary_instructions[current_line].binary_code, 1, current_line);
         //register遷移の出力
         print_register_transition(transition_file, current_line);
         fflush(transition_file); 
-        //printf("binary_insturcinos[current_line]:%s\n",binary_instructions[current_line].binary_code);
-        printf("assembly_code:%20s",assembly_instructions[current_line+4]);
+        printf("binary_insturcinos[current_line]:%s\n",binary_instructions[current_line].binary_code);
+        //printf("assembly_code:%20s",assembly_instructions[current_line+4]);
         // if(strcmp(binary_instructions[current_line].binary_code,"00000000000000000000000000000000") == 0){
         //     current_line++;
         //     printf("\n");
@@ -58,7 +59,7 @@ void execute_binary(char assembly_instructions[][MAX_INSTRUCTION_LENGTH], Binary
 void print_pipeline_state(char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int current_line){
     printf("binary_code:%s\n",binary_instructions[current_line].binary_code);
     //binary codeに対応したassembly code
-    printf("assembly_code: %-20s\n",assembly_instructions[current_line+4]);
+    printf("assembly_code: %-20s\n",assembly_instructions[current_line]);
     int total_cycles = current_line + PIPELINE_STAGES;
 }
 

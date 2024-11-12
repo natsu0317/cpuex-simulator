@@ -74,6 +74,7 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
         // オペコードを取得
         //下7桁(F=15)
         uint32_t opcode = instruction & 0x7F;
+        printf("opcode:%x\n",opcode);
 
         switch (opcode) {
             case 0x0:   //label部分
@@ -223,8 +224,8 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                 }   
                 break;
             
-            case 0x35:{   // sw mem[x[r1] + offset] = x[r2]
-                   //printf("sw");
+            case 0x23:{   // sw mem[x[r1] + offset] = x[r2]
+                    printf("sw");
                     uint32_t rs1 = (instruction >> 15) & 0x1F;
                     uint32_t rs2 = (instruction >> 20) & 0x1F;
                     uint32_t sw_offset_11_5 = (instruction >> 25) & 0x8F;
