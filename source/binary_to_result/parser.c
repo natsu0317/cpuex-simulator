@@ -436,7 +436,7 @@ void print_register(FILE* output_file){
     }
 }
 
-void print_transition_register(FILE *transition_file, int pc){
+void print_register_transition(FILE *transition_file, int pc){
     fprintf(transition_file, "| ");
     fprintf(transition_file, "%d行|",pc);
     for (int i = 0; i < NUM_REGISTERS; i++) {
@@ -495,7 +495,7 @@ int main() {
         int pc = 0;
         pc = execute_binary_instruction(&binary_instructions[current_line], 1, current_line);
         
-        print_transition_register(transition_file, current_line);
+        print_register_transition(transition_file, current_line);
         fflush(transition_file);
         
         if (pc == 1) {

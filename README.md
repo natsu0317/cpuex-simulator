@@ -2,20 +2,20 @@ cpuex 3班 simulator
 
 parser
 ```
-cd asm_to_binary
-./parser
+cd pipeline
+make
+./pipeline
 ```
-    assembly to binary
     入力: assembly.txt
-    出力: binary.txt
-        出力の1行目にはassembly.txtの行数を2進数表示
+    出力: binary.txt : binaryのcode
+
     入力例:
     addi x5, x0, 5
     addi x6, x0, 10
     add x7, x6, x5
     spaceは必要
     
-    binary to result
+binary to result
 ```
 cd binary_to_result
 ./parser
