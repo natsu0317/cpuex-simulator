@@ -189,23 +189,23 @@ void get_substring(const char* source, char* destination, int start, int length)
 int calculate_offset(const char* assembly_code, const char* label_name, int current_line) {
     const char* line_start = assembly_code; // 現在の行の開始位置(ポインタ)
     int line_number = 0;
-    printf("%s\n",label_name);
+   //printf("%s\n",label_name);
     size_t label_length = strlen(label_name);
-    printf("Label: %s, Length: %zu\n", label_name, label_length);
+   //printf("Label: %s, Length: %zu\n", label_name, label_length);
     while (*line_start != '\0') {
         const char* line_end = strchr(line_start, '\n'); // 次の行の終わりを探す
         if (line_end == NULL) {
             line_end = line_start + strlen(line_start); // 最後の行の場合
         }
         size_t line_length = line_end - line_start;
-        printf("%ld\n",line_length);
+       //printf("%ld\n",line_length);
 
         // 行の先頭にラベルがあり、コロンで終わっているかを確認
         if (line_length >= label_length && 
             strncmp(line_start, label_name, label_length-1) == 0 && 
             (line_start[label_length-1] == ':' || line_start[label_length] == ':')) {
-            printf("hit\n");
-            printf("offset 204  %d\n",line_number - current_line);
+           //printf("hit\n");
+           //printf("offset 204  %d\n",line_number - current_line);
             return (line_number - current_line) * 4; // オフセットを計算
         }
         // 次の行へ進む
@@ -469,13 +469,13 @@ void parse_assembly(const char* assembly_code){
         }
 
         if(is_j_type(opcode)){
-            printf("j_type\n");
+           //printf("j_type\n");
             //offsetを求める
             int current_line = instruction_count;
             const char* label_name = operand1;
-            printf("label: %s\n",label_name);
+           //printf("label: %s\n",label_name);
             int offset = calculate_offset(assembly_code,label_name,current_line);
-            printf("offset 325  %d\n",offset);
+           //printf("offset 325  %d\n",offset);
             char offset_str[20];
             snprintf(offset_str,sizeof(offset_str),"%d",offset);
             r1_bin = get_immediate_binary(offset_str);
