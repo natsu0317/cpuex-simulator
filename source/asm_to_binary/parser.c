@@ -282,7 +282,7 @@ void parse_assembly(const char* assembly_code){
             continue;
         }
         //finishは1111...1で出力
-        if (strchr(token, 'finish') != NULL){
+        if (strstr(token, 'finish') != NULL){
             instruction_count++;
             snprintf(inst.binary_code, sizeof(inst.binary_code),"11111111111111111111111111111111");
             binary_instructions[binary_instruction_count++] = inst;
@@ -325,7 +325,7 @@ void parse_assembly(const char* assembly_code){
         //レジスタセットに対応
         convert_registerset_to_x(operand1);
         convert_registerset_to_x(operand2);
-        convert_registerset_to_x(operand3); 
+        convert_registerset_to_x(operand3);
         //printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);     
 
         const char* opcode_bin = get_opcode_binary(opcode);
