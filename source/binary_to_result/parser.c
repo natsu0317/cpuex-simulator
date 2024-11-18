@@ -18,6 +18,14 @@ int sp = MEMORY_SIZE - 1; //スタックポインタ
 int registers[NUM_REGISTERS] = {0};  // 32個のレジスタを初期化
 float float_registers[NUM_REGISTERS];
 
+typedef struct{
+    int pc;
+    int opcode; //sw,lwなら1,分岐命令なら2,それ以外なら0
+    int operand1;
+    int operand2;
+    int operand3;
+}Pc_operand;
+
 // レジスタの値を設定する
 void set_register(int reg_num, int value) {
     registers[0] = 0; //x0は常に0
@@ -64,7 +72,10 @@ float get_float_register(int reg_num){
 }
 
 // バイナリ命令をデコードして処理
-int execute_binary_instruction(const char binary_instruction[][33], int num_instructions, int current_line) {
+Pc_operand execute_binary_instruction(const char binary_instruction[][33], int num_instructions, int current_line) {
+    Pc_operand pc_operand;
+    pc_operand.opcode = 0;
+    pc_operand.pc = 1;
     for(int pc=0; pc<num_instructions; pc++){
         //printf("%d行目を実行\n",pc);
 
@@ -79,9 +90,9 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
         switch (opcode) {
             case 0x0:   //label部分
                 {
-                    pc = 1;
+                    pc_operand.pc = 1;
                 }
-                return 1;
+                return pc_operand;
             case 0x33:  // R形式命令 (例:"add", "sub", "and", "or", "xor",)
                 {
                     uint32_t funct3 = (instruction >> 12) & 0x7;
@@ -89,6 +100,9 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     uint32_t rd = (instruction >> 7) & 0x1F;
                     uint32_t rs1 = (instruction >> 15) & 0x1F;
                     uint32_t rs2 = (instruction >> 20) & 0x1F;
+                    pc_operand.operand1 = rd;
+                    pc_operand.operand2 = rs1;
+                    pc_operand.operand3 = rs2;
 
                     if (funct3 == 0 && funct7 == 0) {  // add命令
                         set_register(rd, get_register(rs1) + get_register(rs2));
@@ -108,7 +122,7 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                        printf("xor: x%d, x%d, x%d\n", rd, rs1, rs2);
                     }  
                 }
-                break;
+                return pc_operand;
 
             case 0x13:  // I形式命令 (例: "addi", "andi", "ori", "xori")
                 {   
@@ -118,6 +132,8 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     uint32_t rs1 = (instruction >> 15) & 0x1F;
                     int32_t imm = (instruction >> 20) & 0xFFF;
                     int32_t opcode = (instruction >> 0) & 0x7F;
+                    pc_operand.operand1 = rd;
+                    pc_operand.operand2 = rs1;
                    //printf("imm:%x\n",imm);
                     int minus = 0;//immが負なら1
                     if(imm & 0x800){
@@ -150,12 +166,12 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     }else if(minus == 1){
                         if (funct3 == 0 && opcode == 0x13) {  // addi命令
                             set_register(rd, get_register(rs1) - imm);
-                          printf("addi: x%d, x%d, -%d\n", rd, rs1, imm);
-                           printf("result:%d\n",get_register(rd));
+                            printf("addi: x%d, x%d, -%d\n", rd, rs1, imm);
+                            printf("result:%d\n",get_register(rd));
                         }
                     }
                 }
-                break;
+                return pc_operand;
 
             case 0x67:  // I形式命令 ("jalr")
                 {   
@@ -165,6 +181,8 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     uint32_t rs1 = (instruction >> 15) & 0x1F;
                     int32_t imm = (instruction >> 20) & 0xFFF;
                     int32_t opcode = (instruction >> 0) & 0x7F;
+                    pc_operand.operand1 = rd;
+                    pc_operand.operand2 = rs1;
                    //printf("imm:%x\n",imm);
                     int minus = 0;//immが負なら1
                     if(imm & 0x800){
@@ -197,10 +215,10 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                 }
                //printf("pc:%d\n",pc);
                 if(pc == 0){
-                    return 1;
-                } else {
-                    return pc;
+                    pc = 1;
                 }
+                pc_operand.pc = pc;
+                return pc_operand;
 
             case 0x3:  // lw  x[rd] = mem[x[r1] + offset]
                 {
@@ -209,6 +227,9 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     uint32_t rd = (instruction >> 7) & 0x1F;
                     uint32_t lw_offset = (instruction >> 20) & 0xFFF;
                     int lw = 0; //setする値
+                    pc_operand.opcode = 1;
+                    pc_operand.operand1 = rd;
+                    pc_operand.operand2 = rs1;
                     if(lw_offset && 0x800 == 1){//負の値
                         uint32_t mask = (1<<12) - 1;
                         lw_offset = ~lw_offset & mask;
@@ -222,7 +243,7 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     printf("memory%dの中に格納されている値:%d\n",get_register(rs1) + lw_offset,lw);
                     set_register(rd,lw);
                 }   
-                break;
+                return pc_operand;
             
             case 0x23:{   // sw mem[x[r1] + offset] = x[r2]
                     printf("sw");
@@ -231,6 +252,9 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     uint32_t sw_offset_11_5 = (instruction >> 25) & 0x8F;
                     uint32_t sw_offset_4_0 = (instruction >> 7) & 0x1F;
                     uint32_t imm = 0;
+                    pc_operand.opcode = 1;
+                    pc_operand.operand2 = rs1;
+                    pc_operand.operand3 = rs2;
                     imm |= (sw_offset_11_5 << 5);
                     imm |= (sw_offset_4_0);
                     if(imm && 0x800 == 1){//負の値
@@ -246,7 +270,7 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                        printf("memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
                     }    
                 } 
-                break;
+                return pc_operand;
 
             case 0x63:  // B形式命令 (例: "beq", "bne", "blt", "bge")
                 {
@@ -259,6 +283,9 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     uint32_t bit4_1 = (instruction >> 8) & 0xF;
                     uint32_t bit11 = (instruction >> 7) & 0x1;
                     uint32_t imm = 0;
+                    pc_operand.opcode = 2; 
+                    pc_operand.operand2 = rs1;
+                    pc_operand.operand3 = rs2;
                    //printf("12; %d, 11: %d, 10_5: %d, 4_1: %d",bit12,bit11,bit10_5,bit4_1);
                     imm |= (bit12 << 12);
                     imm |= (bit11 << 11);
@@ -323,10 +350,10 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                     }
                 }
                 if(pc == 0){
-                    return 1;
-                } else {
-                    return pc;
+                    pc = 1;
                 }
+                pc_operand.pc = pc;
+                return pc_operand;
                   
 
             case 0x6F:  // J形式命令 (例: "jal")
@@ -356,7 +383,9 @@ int execute_binary_instruction(const char binary_instruction[][33], int num_inst
                    //printf("rd: %d\n",get_register(rd));
                     
                     // PCの更新後に即座にreturn
-                    return imm/4;
+                    pc = imm/4;
+                    pc_operand.pc = pc;
+                    return pc_operand;
                 }
                 break;
             case 0x53:   //fadd,fsub,fmul,fdiv
@@ -507,8 +536,10 @@ int result_main() {
         if(strcmp(binary_instructions[current_line],"11111111111111111111111111111111") == 0){
             break;
         }
-        pc = execute_binary_instruction(&binary_instructions[current_line], 1, current_line);
-        
+        Pc_operand pc_opcode_operand1;
+        pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line], 1, current_line);
+        pc = pc_opcode_operand1.pc;
+
         print_register_transition(transition_file, current_line);
         fflush(transition_file);
         
