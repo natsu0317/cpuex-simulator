@@ -282,7 +282,7 @@ void parse_assembly(const char* assembly_code){
             continue;
         }
         //finishは1111...1で出力
-        if (strstr(token, 'finish') != NULL){
+        if (strstr(token, "finish") != NULL){
             instruction_count++;
             snprintf(inst.binary_code, sizeof(inst.binary_code),"11111111111111111111111111111111");
             binary_instructions[binary_instruction_count++] = inst;
