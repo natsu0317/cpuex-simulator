@@ -504,6 +504,9 @@ int result_main() {
 
     while (current_line < index) {    
         int pc = 0;
+        if(strcmp(binary_instructions[current_line],"11111111111111111111111111111111") == 0){
+            break;
+        }
         pc = execute_binary_instruction(&binary_instructions[current_line], 1, current_line);
         
         print_register_transition(transition_file, current_line);

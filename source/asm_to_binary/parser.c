@@ -107,6 +107,9 @@ const char* get_opcode_binary(const char* opcode){
     if(strcmp(opcode,"fsub") == 0) return "0000100";
     if(strcmp(opcode,"fmul") == 0) return "0001000";
     if(strcmp(opcode,"fdiv") == 0) return "0001100"; 
+
+    //FINISH
+    if(strcmp(opcode,"finish") == 0) return "1111111";
 }
 
 char* get_register_binary(const char* reg) {
@@ -265,15 +268,23 @@ void parse_assembly(const char* assembly_code){
     const char* delimiter = "\n";
     char* code_copy = strdup(assembly_code);
     char* token = strtok(code_copy, delimiter);
+    BinaryInstruction inst;
 
     while (token != NULL){
         //labelの部分は0000...0で出力するようになっている
         if (strchr(token, ':') != NULL ||
             strstr(token, ".globl") != NULL){
-            BinaryInstruction inst;
             //token = strtok(NULL, "\n");
             instruction_count++;
             snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000000000000000");
+            binary_instructions[binary_instruction_count++] = inst;
+            token = strtok(NULL,delimiter);
+            continue;
+        }
+        //finishは1111...1で出力
+        if (strchr(token, 'finish') != NULL){
+            instruction_count++;
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"11111111111111111111111111111111");
             binary_instructions[binary_instruction_count++] = inst;
             token = strtok(NULL,delimiter);
             continue;
