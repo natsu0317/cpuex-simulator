@@ -122,28 +122,35 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         } else {      
             //pipeline 出力
 
+            print_pipeline(pipeline_file, assembly_instructions, current_line, assembly_count, total_cycles);
+
             //data hazard
             //現在のoperand2 or operand3 == n個前のoperand1 -> (4-n)サイクルstall
-            for(int i=2;i>=0;i--){
-                if(operand2 == save_operand[i]){
-                    print_stall(pipeline_file, 4-i, total_cycles);
-                    total_cycles += (4-i);
-                    break;
-                } else if (operand3 == save_operand[i]){
-                    print_stall(pipeline_file, 4-i, total_cycles);
-                    total_cycles += (4-i);
-                    break;
-                }
-            }
+            // -> フォワーディングにより解決
+            //sw, lwが来たらその後1クロックstall
 
+            //フォワーディングがない場合
+            // for(int i=2;i>=0;i--){
+            //     if(operand2 == save_operand[i]){
+            //         print_stall(pipeline_file, 4-i, total_cycles);
+            //         total_cycles += (4-i);
+            //         break;
+            //     } else if (operand3 == save_operand[i]){
+            //         print_stall(pipeline_file, 4-i, total_cycles);
+            //         total_cycles += (4-i);
+            //         break;
+            //     }
+            // }
+            if( opcode == 1){
+                print_stall(pipeline_file, 1, total_cycles);
+                total_cycles++;
+            }
             //制御 hazard
             //分岐命令の後は1サイクルストール
             if( opcode == 2 ){
                 print_stall(pipeline_file, 1, total_cycles);
                 total_cycles++;
             }
-
-            print_pipeline(pipeline_file, assembly_instructions, current_line, assembly_count, total_cycles);
         }
         
         if (pc == 1) {
