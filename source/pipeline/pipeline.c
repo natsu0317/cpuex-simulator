@@ -104,11 +104,9 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         printf("operand1:%d\n",pc_opcode_operand1.operand1);
         printf("opcode:%d\n",pc_opcode_operand1.opcode);//1 = sw / lw, 2 = 分岐命令
 
-        int save_operand[4];
-        for(int i=0;i<3;i++){
-            save_operand[i] = save_operand[i+1];// 3,2,1個前のoperand1の値
-        }
-        save_operand[3] = pc_opcode_operand1.operand1;// 現在のoperand1の値
+        int save_operand[2];
+        save_operand[0] = save_operand[1]; // 1個前のoperand1の値
+        save_operand[1] = pc_opcode_operand1.operand1;// 現在のoperand1の値
 
         //register遷移の出力
         print_register_transition(transition_file, current_line);
@@ -142,8 +140,10 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
             //     }
             // }
             if( opcode == 1){
-                print_stall(pipeline_file, 1, total_cycles);
-                total_cycles++;
+                if(operand2 == save_operand[0] || operand3 == save_operand[0]){
+                    print_stall(pipeline_file, 1, total_cycles);
+                    total_cycles++;
+                }
             }
             //制御 hazard
             //分岐命令の後は1サイクルストール
