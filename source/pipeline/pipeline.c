@@ -5,8 +5,8 @@
 #include "../asm_to_binary/asm_to_binary.h"
 #include "../binary_to_result/binary_to_result.h"
 
-#define MAX_ASSEMBLY_SIZE 1024  // アセンブリコードの最大サイズ
-#define MAX_INSTRUCTION_LENGTH 50
+#define MAX_ASSEMBLY_SIZE 4096  // アセンブリコードの最大サイズ
+#define MAX_INSTRUCTION_LENGTH 100
 #define PIPELINE_STAGES 5
 #define INST_WIDTH 20
 #define CYCLE_WIDTH 5
@@ -189,7 +189,7 @@ int main(){
     }
     assembly_code[read_size] = '\0';
     fclose(file);
-    //printf("assmbly_code:%s\n",assembly_code);
+    printf("assmbly_code:%s\n",assembly_code);
 
     //assmblyをbinaryに変換
     remove_comments(assembly_code);
