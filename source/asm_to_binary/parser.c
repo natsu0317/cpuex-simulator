@@ -29,6 +29,8 @@ const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL
 const char* j_type_opcodes[] = {"jal", NULL};
 const char* s_type_opcodes[] = {"sw","lw"};
 const char* f_type_opcodes[] = {"fadd", "fsub", "fmul", "fdiv", NULL};
+const char* fl_type_opcodes[] = {"flw", "fld", NULL};
+const char* fs_type_opcodes[] = {"fsw", "fsd", NULL};
 
 int is_opcode_type(const char* opcode,const char** type_opcodes){
     const char** op = type_opcodes;
@@ -63,6 +65,14 @@ int is_s_type(const char* opcode){
 
 int is_f_type(const char* opcode){
     return is_opcode_type(opcode,f_type_opcodes);
+}
+
+int is_fl_type(const char* opcode){
+    return is_opcode_type(opcode,fl_type_opcodes);
+}
+
+int is_fs_type(const char* opcode){
+    return is_opcode_type(opcode,fs_type_opcodes);
 }
 
 const char* get_opcode_binary(const char* opcode){
@@ -107,6 +117,15 @@ const char* get_opcode_binary(const char* opcode){
     if(strcmp(opcode,"fsub") == 0) return "0000100";
     if(strcmp(opcode,"fmul") == 0) return "0001000";
     if(strcmp(opcode,"fdiv") == 0) return "0001100"; 
+
+    //FL
+    // imm[11:0] | rs1 | opcode | rd | 00001 | 11
+    if(strcmp(opcode,"flw") == 0) return "010";
+    if(strcmp(opcode,"fld") == 0) return "011";
+    //FS
+    // imm[11:5] | rs2 | rs1 | opcode | imm[4:0] | 01001 | 11
+    if(strcmp(opcode,"fsw") == 0) return "010";
+    if(strcmp(opcode,"fsd") == 0) return "011";
 
     //FINISH
     if(strcmp(opcode,"finish") == 0) return "1111111";
@@ -189,13 +208,34 @@ void get_substring(const char* source, char* destination, int start, int length)
     destination[length] = '\0';
 }
 
+void trim_whitespace(char* str){
+    char* end;
+    while(isspace((unsigned char)* str)) str++;
+
+    if(*str == 0){
+        *str = '\0';
+        return;
+    }
+    end = str + strlen(str) - 1;
+    while (end > str && isspace((unsigned char)*end)) end--;
+    *(end + 1) = '\0';
+}
+
 int calculate_offset(const char* assembly_code, const char* label_name, int current_line) {
     const char* line_start = assembly_code; // 現在の行の開始位置(ポインタ)
     int line_number = 0;
    //printf("%s\n",label_name);
     size_t label_length = strlen(label_name);
-   //printf("Label: %s, Length: %zu\n", label_name, label_length);
+    
+    char trimmed_label[256];
+    strncpy(trimmed_label, label_name, sizeof(trimmed_label) - 1);
+    trimmed_label[sizeof(trimmed_label) - 1] = '\0'; // 終端を保証
+    trim_whitespace(trimmed_label);
+    label_length = strlen(trimmed_label);
+
+    printf("Label: %s, Length: %zu\n", label_name, label_length);
     while (*line_start != '\0') {
+        //printf("%s",line_start);
         const char* line_end = strchr(line_start, '\n'); // 次の行の終わりを探す
         if (line_end == NULL) {
             line_end = line_start + strlen(line_start); // 最後の行の場合
@@ -205,10 +245,11 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
 
         // 行の先頭にラベルがあり、コロンで終わっているかを確認
         if (line_length >= label_length && 
-            strncmp(line_start, label_name, label_length-1) == 0 && 
-            (line_start[label_length-1] == ':' || line_start[label_length] == ':')) {
-           //printf("hit\n");
-           //printf("offset 204  %d\n",line_number - current_line);
+            strncmp(line_start, label_name, label_length) == 0 && 
+            (line_start[label_length] == ':')) {
+            printf("%c",line_start[label_length-1]);
+           printf("hit\n");
+           printf("offset 204  %d\n",line_number - current_line);
             return (line_number - current_line) * 4; // オフセットを計算
         }
         // 次の行へ進む
@@ -216,7 +257,6 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
         line_number++;
     }
     return 1;
-
 }
 
     //レジスタセットに対応
@@ -512,6 +552,19 @@ void parse_assembly(const char* assembly_code){
             //printf("f_type\n");
             //丸めモード: 最近傍
             snprintf(inst.binary_code,sizeof(inst.binary_code),"%s%s%s000%s1010011",opcode_bin,r2_bin,r1_bin,rd_bin);
+
+        }
+
+        if(is_fl_type(opcode)){
+            //flw, fld
+            // flw rd, offset(rs1)
+            //f[rd] = memory[x[rs1] + offset];
+
+        }
+
+        if(is_fs_type(opcode)){
+            // fsw rs2, offset(rs1)
+            //memory[x[rs1] + offset] = f[rs2];
 
         }
         

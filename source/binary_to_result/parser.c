@@ -44,31 +44,38 @@ int get_register(int reg_num) {
     //printf("reg[%d] = %d\n",reg_num,registers[reg_num]);
     return 0;
 }
-
+void set_float_register(int reg_num, int value) {
+    float_registers[0] = 0; //x0は常に0
+    if (reg_num >= 1 && reg_num < NUM_REGISTERS) {
+        float_registers[reg_num] = value;
+    }
+}
 // 小数が格納されているレジスタの値を取得する
 float get_float_register(int reg_num){
     if(reg_num >= 0 && reg_num < NUM_REGISTERS){
-        uint32_t bits;
-        memcpy(&bits, &float_registers[reg_num],sizeof(bits));
-        //printf("%d: bits = %x\n",reg_num,bits);
+        // uint32_t bits;
+        // memcpy(&bits, &float_registers[reg_num],sizeof(bits));
+        // //printf("%d: bits = %x\n",reg_num,bits);
 
-        //符号ビット
-        uint32_t sign = (bits >> 31) & 0x1;
-        //printf("sign:%x\n",sign);
-        //指数部
-        uint32_t exponent = (bits >> 23) & 0xFF;
-        //printf("exp:%x\n",exponent);
-        //仮数部
-        uint32_t mantissa = bits & 0x7FFFFF;
-        //printf("man:%x\n",mantissa);
+        // //符号ビット
+        // uint32_t sign = (bits >> 31) & 0x1;
+        // //printf("sign:%x\n",sign);
+        // //指数部
+        // uint32_t exponent = (bits >> 23) & 0xFF;
+        // //printf("exp:%x\n",exponent);
+        // //仮数部
+        // uint32_t mantissa = bits & 0x7FFFFF;
+        // //printf("man:%x\n",mantissa);
 
-        // mantissa / (float)(1<<23) : 小数の値
-        float actual_mantissa = 1.0f + (mantissa / (float)(1 << 23));
-        int actual_exponent = exponent - 127;
-        //float result = pow(-1,sign) * pow(2,actual_exponent) * actual_mantissa;
+        // // mantissa / (float)(1<<23) : 小数の値
+        // float actual_mantissa = 1.0f + (mantissa / (float)(1 << 23));
+        // int actual_exponent = exponent - 127;
+        // //float result = pow(-1,sign) * pow(2,actual_exponent) * actual_mantissa;
 
         //printf("%.8f\n",result);
         //return result;
+        float value = float_registers[reg_num];
+        return value;
     }
 }
 
@@ -412,6 +419,15 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     if(func == 3){
                         result = fdiv(a1,a2);
                     }
+                    if(func == 4){
+                        //flw
+                    }
+                    if(func == 5){
+                        //flw
+                    }
+
+                    // rdにresultを格納
+                    set_float_register(rd, result);
                 //     uint32_t r1_bits;
                 //     uint32_t r2_bits;
                 //     memcpy(&r1_bits,&float_registers[r1],sizeof(r1_bits));
