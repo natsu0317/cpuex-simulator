@@ -233,7 +233,7 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
     trim_whitespace(trimmed_label);
     label_length = strlen(trimmed_label);
 
-    printf("Label: %s, Length: %zu\n", label_name, label_length);
+    //printf("Label: %s, Length: %zu\n", label_name, label_length);
     while (*line_start != '\0') {
         //printf("%s",line_start);
         const char* line_end = strchr(line_start, '\n'); // 次の行の終わりを探す
@@ -247,9 +247,9 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
         if (line_length >= label_length && 
             strncmp(line_start, label_name, label_length) == 0 && 
             (line_start[label_length] == ':')) {
-            printf("%c",line_start[label_length-1]);
-           printf("hit\n");
-           printf("offset 204  %d\n",line_number - current_line);
+            //printf("%c",line_start[label_length-1]);
+           //printf("hit\n");
+           //printf("offset 204  %d\n",line_number - current_line);
             return (line_number - current_line) * 4; // オフセットを計算
         }
         // 次の行へ進む

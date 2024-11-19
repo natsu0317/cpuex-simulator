@@ -203,7 +203,7 @@ int main(){
         instruction_count++;
         token = strtok(NULL, "\n");
     }
-    printf("count:%d",instruction_count);
+    printf("count:%d\n",instruction_count);
 
     //binary codeはbinary.txtにoutput
     FILE *output_file = fopen("binary.txt","w");    
@@ -211,7 +211,8 @@ int main(){
         perror("Error opening file");
         return 1;
     }
-    int instruction_length = print_binary_instructions(output_file);
+    int instruction_length = print_binary_instructions(output_file) + 1;
+    printf("%d\n",instruction_length);
     fclose(output_file);
     printf("length:%d\n",instruction_length);
     int assembly_count =  instruction_count - instruction_length;
