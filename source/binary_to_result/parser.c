@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "../float/math/math_functions.h"
 
 #define NUM_REGISTERS 32
 #define MAX_INSTRUCTIONS 100 //読み取る最大行数
@@ -398,66 +399,78 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     uint32_t r2 = (instruction >> 20) & 0x1F;
                     float a1 = get_float_register(r1);
                     float a2 = get_float_register(r2);
-                    uint32_t r1_bits;
-                    uint32_t r2_bits;
-                    memcpy(&r1_bits,&float_registers[r1],sizeof(r1_bits));
-                    memcpy(&r2_bits,&float_registers[r2],sizeof(r2_bits));
-                    uint32_t r1_sign = (r1_bits >> 31) & 0x1;
-                    uint32_t r2_sign = (r2_bits >> 31) & 0x1;
-                    uint32_t r1_exp = (r1_bits >> 23) & 0xFF;
-                    uint32_t r2_exp = (r2_bits >> 23) & 0xFF;
-                    uint32_t r1_man = r1_bits & 0x7FFFFF;
-                    uint32_t r2_man = r2_bits & 0x7FFFFF;
-                    uint32_t result_sign,result_exp,result_man;
-                    
-                   //printf("%x\n",r1_exp);
-                   //printf("r2_exp:%x\n",r2_exp);
-                    // 2数の絶対値の大きさを比べる
-                    if(fabsf(a1) > fabsf(a2)){
-                    // 小さいほうの数の仮数部を、指数部の差だけ右シフト
-                    // 指数部は大きいほうの指数部にそろえる
-                        int dif = r1_exp - r2_exp;
-                       //printf("dif:%d\n",dif);
-                        r2_man = r2_man >> dif;
-                        result_exp = r1_exp;
-                    } else {
-                        int dif = r2_exp - r1_exp;
-                        r1_man = r1_man >> dif;
-                        result_exp = r2_exp;
-                    }
-
-                    // 二つの数の符号部と指定された演算とを加味して実際に行う演算を決定する
-                    // 非正規化のまま演算
-                    if((r1_sign == r2_sign & func == 0x0) || (r1_sign != r2_sign & func == 0x1)){
-                        //fadd
-                        result_man = r1_man + r2_man;
-                        result_sign = r1_sign;
-                    }
-                    if((r1_sign != r2_sign & func == 0x0) || (r1_sign == r2_sign & func == 0x1)){
-                        //fsub
-                        if(r1_man > r2_man){
-                            result_man = r1_man - r2_man;
-                            result_sign = r1_sign;
-                        } else {
-                            result_man = r2_man - r1_man;
-                            result_sign = r2_sign;
-                        }
-                    } 
-                    //正規化数になるようにシフトを行い、それに合わせて指数部も適宜加減する
-                    while(result_man > 0xFFFFFF){
-                        result_man >>= 1;
-                        result_exp++;
-                    }
-                    // 丸め処理を行う。
-                    while(result_man & 0x800000){
-                        result_man >>= 1;
-                        result_exp++;
-                    }
-
-                    uint32_t result_bits = (result_sign << 31) | (result_exp << 23) | (result_man & 0x7FFFFF);
                     float result;
-                    memcpy(&result, &result_bits, sizeof(result));
-                    //return result;
+                    if(func == 0){
+                        result = fadd(a1,a2);
+                    }
+                    if(func == 1){
+                        result = fsub(a1,a2);
+                    }
+                    if(func == 2){
+                        result = fmul(a1,a2);
+                    }
+                    if(func == 3){
+                        result = fdiv(a1,a2);
+                    }
+                //     uint32_t r1_bits;
+                //     uint32_t r2_bits;
+                //     memcpy(&r1_bits,&float_registers[r1],sizeof(r1_bits));
+                //     memcpy(&r2_bits,&float_registers[r2],sizeof(r2_bits));
+                //     uint32_t r1_sign = (r1_bits >> 31) & 0x1;
+                //     uint32_t r2_sign = (r2_bits >> 31) & 0x1;
+                //     uint32_t r1_exp = (r1_bits >> 23) & 0xFF;
+                //     uint32_t r2_exp = (r2_bits >> 23) & 0xFF;
+                //     uint32_t r1_man = r1_bits & 0x7FFFFF;
+                //     uint32_t r2_man = r2_bits & 0x7FFFFF;
+                //     uint32_t result_sign,result_exp,result_man;
+                    
+                //    //printf("%x\n",r1_exp);
+                //    //printf("r2_exp:%x\n",r2_exp);
+                //     // 2数の絶対値の大きさを比べる
+                //     if(fabsf(a1) > fabsf(a2)){
+                //     // 小さいほうの数の仮数部を、指数部の差だけ右シフト
+                //     // 指数部は大きいほうの指数部にそろえる
+                //         int dif = r1_exp - r2_exp;
+                //        //printf("dif:%d\n",dif);
+                //         r2_man = r2_man >> dif;
+                //         result_exp = r1_exp;
+                //     } else {
+                //         int dif = r2_exp - r1_exp;
+                //         r1_man = r1_man >> dif;
+                //         result_exp = r2_exp;
+                //     }
+
+                //     // 二つの数の符号部と指定された演算とを加味して実際に行う演算を決定する
+                //     // 非正規化のまま演算
+                //     if((r1_sign == r2_sign & func == 0x0) || (r1_sign != r2_sign & func == 0x1)){
+                //         //fadd
+                //         result_man = r1_man + r2_man;
+                //         result_sign = r1_sign;
+                //     }
+                //     if((r1_sign != r2_sign & func == 0x0) || (r1_sign == r2_sign & func == 0x1)){
+                //         //fsub
+                //         if(r1_man > r2_man){
+                //             result_man = r1_man - r2_man;
+                //             result_sign = r1_sign;
+                //         } else {
+                //             result_man = r2_man - r1_man;
+                //             result_sign = r2_sign;
+                //         }
+                //     } 
+                //     //正規化数になるようにシフトを行い、それに合わせて指数部も適宜加減する
+                //     while(result_man > 0xFFFFFF){
+                //         result_man >>= 1;
+                //         result_exp++;
+                //     }
+                //     // 丸め処理を行う。
+                //     while(result_man & 0x800000){
+                //         result_man >>= 1;
+                //         result_exp++;
+                //     }
+
+                //     uint32_t result_bits = (result_sign << 31) | (result_exp << 23) | (result_man & 0x7FFFFF);
+                //     memcpy(&result, &result_bits, sizeof(result));
+                //     //return result;
                 }
                 break;
 
