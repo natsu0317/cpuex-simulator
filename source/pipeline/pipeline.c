@@ -5,8 +5,8 @@
 #include "../asm_to_binary/asm_to_binary.h"
 #include "../binary_to_result/binary_to_result.h"
 
-#define MAX_ASSEMBLY_SIZE 1024  // アセンブリコードの最大サイズ
-#define MAX_INSTRUCTION_LENGTH 50
+#define MAX_ASSEMBLY_SIZE 4096  // アセンブリコードの最大サイズ
+#define MAX_INSTRUCTION_LENGTH 100
 #define PIPELINE_STAGES 5
 #define INST_WIDTH 20
 #define CYCLE_WIDTH 5
@@ -89,10 +89,11 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
     int current_line = 0;
     int total_cycles = 1;
     while (current_line < instruction_length) {   
+        printf("instruction start\n");
         if(strcmp(binary_instructions[current_line].binary_code,"11111111111111111111111111111111") == 0){
             break;
         }
-        printf("%d\n",current_line+1); 
+        printf("%d\n",current_line); 
         int pc = 0;
         Pc_operand pc_opcode_operand1;
         pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line].binary_code, 1, current_line);
@@ -100,9 +101,9 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         int opcode = pc_opcode_operand1.opcode;//1 = sw / lw, 2 = 分岐命令
         int operand2 = pc_opcode_operand1.operand2;
         int operand3 = pc_opcode_operand1.operand3;
-        printf("pc:%d\n",pc);
-        printf("operand1:%d\n",pc_opcode_operand1.operand1);
-        printf("opcode:%d\n",pc_opcode_operand1.opcode);//1 = sw / lw, 2 = 分岐命令
+        // printf("pc:%d\n",pc);
+        // printf("operand1:%d\n",pc_opcode_operand1.operand1);
+        // printf("opcode:%d\n",pc_opcode_operand1.opcode);//1 = sw / lw, 2 = 分岐命令
 
         int save_operand[4];
         for(int i=0;i<3;i++){
@@ -114,7 +115,7 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         print_register_transition(transition_file, current_line);
         fflush(transition_file); 
         printf("binary_insturcinos[current_line]:%s\n",binary_instructions[current_line].binary_code);
-        printf("assembly_code:%20s",assembly_instructions[current_line+assembly_count]);
+        printf("assembly_code:%20s\n",assembly_instructions[current_line+assembly_count + 1]);
         if(strcmp(binary_instructions[current_line].binary_code,"00000000000000000000000000000000") == 0){
             current_line++;
             printf("\n");
@@ -182,14 +183,14 @@ int main(){
     }
 
     size_t read_size = fread(assembly_code, 1, sizeof(assembly_code)-1, file);
-    if(read_size == 0){
+    if(ferror(file)){
         perror("Error reading file");
         fclose(file);
         return 1;
     }
     assembly_code[read_size] = '\0';
     fclose(file);
-    //printf("assmbly_code:%s\n",assembly_code);
+    printf("assmbly_code:%s\n",assembly_code);
 
     //assmblyをbinaryに変換
     remove_comments(assembly_code);
@@ -212,9 +213,8 @@ int main(){
         return 1;
     }
     int instruction_length = print_binary_instructions(output_file) + 1;
-    printf("%d\n",instruction_length);
+    printf("length: %d\n",instruction_length);
     fclose(output_file);
-    printf("length:%d\n",instruction_length);
     int assembly_count =  instruction_count - instruction_length;
     printf("assembly_code:%20s",assembly_instructions[assembly_count]);
 
