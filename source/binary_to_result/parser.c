@@ -85,9 +85,10 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
     pc_operand.opcode = 0;
     pc_operand.pc = 1;
     for(int pc=0; pc<num_instructions; pc++){
-        //printf("%d行目を実行\n",pc);
+        // pcは常に0
 
         //printf("x1:%d\n",get_register(1));
+        printf("instruction :%s\n",binary_instruction[pc]);
         uint32_t instruction = strtol(binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
 
         // オペコードを取得
@@ -209,7 +210,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         if (funct3 == 0x0 && opcode == 0x67){  //jalr
                            printf("jalr: x%d, x%d, %d\n", rd, rs1, imm);
                             set_register(rd, pc+1);
-                            pc = get_register(rs1) + imm/4 - current_line;
+                            pc = get_register(rs1) + imm/4 - current_line - 1;
                            //printf("rs1:%d\n",get_register(rs1));
                            //printf("pc:%d\n",pc);
                         } 
@@ -217,7 +218,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         if (funct3 == 0x0 && opcode == 0x67){  //jalr
                            printf("jalr: x%d, x%d, -%d\n", rd, rs1, imm);
                             set_register(rd, pc+1);
-                            pc = get_register(rs1) - imm/4 - current_line;
+                            pc = get_register(rs1) - imm/4 - current_line - 1;
                         } 
                     }
                 }
@@ -282,7 +283,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
 
             case 0x63:  // B形式命令 (例: "beq", "bne", "blt", "bge")
                 {
-                   //printf("b_type\n");
+                    printf("b_type\n");
                     uint32_t funct3 = (instruction >> 12) & 0x7;
                     uint32_t rs1 = (instruction >> 15) & 0x1F;
                     uint32_t rs2 = (instruction >> 20) & 0x1F;
@@ -351,11 +352,13 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                             pc += imm/4;
                         }
                     } else if(funct3 == 0x5){  // bge
+                        printf("rs1: %d, rs2: %d\n",get_register(rs1),get_register(rs2));
                         if(get_register(rs1) >= get_register(rs2)){
                            printf("bge: x%d, x%d, %d\n", rs1, rs2, imm);
                             pc += imm/4;
                         }
                     }
+                    printf("pc: 361: %d\n",pc);
                 }
                 if(pc == 0){
                     pc = 1;
@@ -385,10 +388,10 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     int next_line = current_line + imm/4;
                     printf("imm: %d\n",imm);
                     printf("jal: x%d, %d\n", rd, imm);
-                    printf("jal x%d, %d (PC: %d -> %d)\n", rd, imm, current_line, next_line);
+                    printf("jal x%d, %d (PC: %d -> %d)\n", rd, imm, current_line +1, next_line +1);
                     // 戻りアドレスを保存
-                    set_register(rd, current_line + 1);
-                   //printf("rd: %d\n",get_register(rd));
+                    set_register(rd, current_line + 2);
+                    printf("戻りアドレスrd: %d\n",get_register(rd));
                     
                     // PCの更新後に即座にreturn
                     pc = imm/4;
@@ -439,54 +442,6 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 //     uint32_t r1_man = r1_bits & 0x7FFFFF;
                 //     uint32_t r2_man = r2_bits & 0x7FFFFF;
                 //     uint32_t result_sign,result_exp,result_man;
-                    
-                //    //printf("%x\n",r1_exp);
-                //    //printf("r2_exp:%x\n",r2_exp);
-                //     // 2数の絶対値の大きさを比べる
-                //     if(fabsf(a1) > fabsf(a2)){
-                //     // 小さいほうの数の仮数部を、指数部の差だけ右シフト
-                //     // 指数部は大きいほうの指数部にそろえる
-                //         int dif = r1_exp - r2_exp;
-                //        //printf("dif:%d\n",dif);
-                //         r2_man = r2_man >> dif;
-                //         result_exp = r1_exp;
-                //     } else {
-                //         int dif = r2_exp - r1_exp;
-                //         r1_man = r1_man >> dif;
-                //         result_exp = r2_exp;
-                //     }
-
-                //     // 二つの数の符号部と指定された演算とを加味して実際に行う演算を決定する
-                //     // 非正規化のまま演算
-                //     if((r1_sign == r2_sign & func == 0x0) || (r1_sign != r2_sign & func == 0x1)){
-                //         //fadd
-                //         result_man = r1_man + r2_man;
-                //         result_sign = r1_sign;
-                //     }
-                //     if((r1_sign != r2_sign & func == 0x0) || (r1_sign == r2_sign & func == 0x1)){
-                //         //fsub
-                //         if(r1_man > r2_man){
-                //             result_man = r1_man - r2_man;
-                //             result_sign = r1_sign;
-                //         } else {
-                //             result_man = r2_man - r1_man;
-                //             result_sign = r2_sign;
-                //         }
-                //     } 
-                //     //正規化数になるようにシフトを行い、それに合わせて指数部も適宜加減する
-                //     while(result_man > 0xFFFFFF){
-                //         result_man >>= 1;
-                //         result_exp++;
-                //     }
-                //     // 丸め処理を行う。
-                //     while(result_man & 0x800000){
-                //         result_man >>= 1;
-                //         result_exp++;
-                //     }
-
-                //     uint32_t result_bits = (result_sign << 31) | (result_exp << 23) | (result_man & 0x7FFFFF);
-                //     memcpy(&result, &result_bits, sizeof(result));
-                //     //return result;
                 }
                 break;
 
@@ -503,7 +458,7 @@ void print_register(FILE* output_file){
 
 void print_register_transition(FILE *transition_file, int pc){
     fprintf(transition_file, "| ");
-    fprintf(transition_file, "%2d行|",pc+1);
+    fprintf(transition_file, "%2d行|",pc);
     for (int i = 0; i < NUM_REGISTERS; i++) {
         fprintf(transition_file, "%3d | ", get_register(i));
     }

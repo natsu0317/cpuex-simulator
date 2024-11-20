@@ -222,9 +222,10 @@ void trim_whitespace(char* str){
 }
 
 int calculate_offset(const char* assembly_code, const char* label_name, int current_line) {
+    //print("current_line:%d\n",current_line);
     const char* line_start = assembly_code; // 現在の行の開始位置(ポインタ)
     int line_number = 0;
-   //printf("%s\n",label_name);
+   //print("%s\n",label_name);
     size_t label_length = strlen(label_name);
     
     char trimmed_label[256];
@@ -233,7 +234,7 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
     trim_whitespace(trimmed_label);
     label_length = strlen(trimmed_label);
 
-    //printf("Label: %s, Length: %zu\n", label_name, label_length);
+    //print("Label: %s, Length: %zu\n", label_name, label_length);
     while (*line_start != '\0') {
         //printf("%s",line_start);
         const char* line_end = strchr(line_start, '\n'); // 次の行の終わりを探す
@@ -247,9 +248,9 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
         if (line_length >= label_length && 
             strncmp(line_start, label_name, label_length) == 0 && 
             (line_start[label_length] == ':')) {
-            //printf("%c",line_start[label_length-1]);
-           //printf("hit\n");
-           //printf("offset 204  %d\n",line_number - current_line);
+            //print("%c",line_start[label_length-1]);
+           //print("hit\n");
+           //print("offset 204  %d\n",line_number - current_line);
             return (line_number - current_line) * 4; // オフセットを計算
         }
         // 次の行へ進む
@@ -523,7 +524,8 @@ void parse_assembly(const char* assembly_code){
            //printf("j_type\n");
             //offsetを求める
             int current_line = instruction_count;
-            const char* label_name = operand1;
+            const char* label_name = operand2;
+            //print("label_name 528 : %s\n",label_name);
            //printf("label: %s\n",label_name);
             int offset = calculate_offset(assembly_code,label_name,current_line);
            //printf("offset 325  %d\n",offset);
@@ -532,8 +534,8 @@ void parse_assembly(const char* assembly_code){
             r1_bin = get_immediate_binary(offset_str);
             need_free_imm_1 = 1;
             //printf("offset:%d\n",offset);
-            rd_bin = get_register_binary("x1");
-            //printf("rd_bin:%s\n",rd_bin);
+            rd_bin = get_register_binary(operand1);
+            //print("rd_bin:%s\n",rd_bin);
 
             //r1 -> offsetに対応
             char bit20[2],bit10_1[11],bit11[2],bit19_12[9];
