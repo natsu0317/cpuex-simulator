@@ -7,8 +7,8 @@ extern int instruction_count;
 
 //アセンブリコードをバイナリコードにparse
 
-#define MAX_LENGTH 100
-#define MAX_ASSEMBLY_SIZE 1024 //アセンブリコードの最大サイズ
+#define MAX_LENGTH 1000
+#define MAX_ASSEMBLY_SIZE 8192 //アセンブリコードの最大サイズ
 
 
 typedef struct{
@@ -312,6 +312,7 @@ void parse_assembly(const char* assembly_code){
     BinaryInstruction inst;
 
     while (token != NULL){
+        //printf("token\n:%s\n",token);
         //labelの部分は0000...0で出力するようになっている
         if (strchr(token, ':') != NULL ||
             strstr(token, ".globl") != NULL){

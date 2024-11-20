@@ -5,7 +5,7 @@
 #include "../asm_to_binary/asm_to_binary.h"
 #include "../binary_to_result/binary_to_result.h"
 
-#define MAX_ASSEMBLY_SIZE 4096  // アセンブリコードの最大サイズ
+#define MAX_ASSEMBLY_SIZE 8192  // アセンブリコードの最大サイズ
 #define MAX_INSTRUCTION_LENGTH 100
 #define PIPELINE_STAGES 5
 #define INST_WIDTH 20
@@ -204,7 +204,7 @@ int main(){
         instruction_count++;
         token = strtok(NULL, "\n");
     }
-    //printf("count:%d\n",instruction_count);
+    printf("count:%d\n",instruction_count);
 
     //binary codeはbinary.txtにoutput
     FILE *output_file = fopen("binary.txt","w");    
