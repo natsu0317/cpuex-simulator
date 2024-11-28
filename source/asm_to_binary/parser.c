@@ -117,6 +117,10 @@ const char* get_opcode_binary(const char* opcode){
     if(strcmp(opcode,"fsub") == 0) return "0000100";
     if(strcmp(opcode,"fmul") == 0) return "0001000";
     if(strcmp(opcode,"fdiv") == 0) return "0001100"; 
+    
+    //FS
+    // opcode | 00000 | rs1 | rm | rd | 10100 | 11
+    if(strcmp(opcode, "Fsqrt") == 0) return "0101100"
 
     //FL
     // imm[11:0] | rs1 | opcode | rd | 00001 | 11
@@ -558,16 +562,80 @@ void parse_assembly(const char* assembly_code){
 
         }
 
+        if(is_fs_type(opcode)){
+            snprintf(inst.binary_code,sizeof(inst.binary_code),"%s00000%s000%s1010011",opcode_bin,r1_bin,rd_bin);
+        }
+
         if(is_fl_type(opcode)){
-            //flw, fld
+            //printf("fl_type\n");
+            // lw x8, 4(x6)
+            // rd->r2に対応
+            const char *op_start = operand2;
+            convert_registerset_to_x(operand2);
+            char *x;
+            //printf("operand2 %s\n",operand2);
+            x = strchr(operand2,'x');
+            char *start = strchr(operand2, '(');
+            char *end = strchr(operand2, ')');
+            char offset[10];
+            char *offset_ptr = offset;
+            while(op_start < start){
+                *offset_ptr++ = *op_start++;
+            }
+            *offset_ptr = '\0';
+            char reg_num[4];
+            char *reg_ptr = reg_num;
+            while(x<end){
+                *reg_ptr++ = *x++;
+            }
+            *reg_ptr = '\0';
+
+            char *offset_bin = get_immediate_binary(offset);
+            char *r1_bin = get_register_binary(reg_num);
+
+            char bit11_0[13];
+            get_substring(offset_bin,bit11_0,strlen(offset_bin)-12,12);
+            // flw, fld
             // flw rd, offset(rs1)
             //f[rd] = memory[x[rs1] + offset];
+            snprintf(inst.binary_code,sizeof(inst.binary_code),"%s%s010%s0000111",imm_bin,r1_bin,rd_bin);
 
         }
 
         if(is_fs_type(opcode)){
+            //printf("fs_type\n");
+            // lw x8, 4(x6)
+            // rd->r2に対応
+            const char *op_start = operand2;
+            convert_registerset_to_x(operand2);
+            char *x;
+            //printf("operand2 %s\n",operand2);
+            x = strchr(operand2,'x');
+            char *start = strchr(operand2, '(');
+            char *end = strchr(operand2, ')');
+            char offset[10];
+            char *offset_ptr = offset;
+            while(op_start < start){
+                *offset_ptr++ = *op_start++;
+            }
+            *offset_ptr = '\0';
+            char reg_num[4];
+            char *reg_ptr = reg_num;
+            while(x<end){
+                *reg_ptr++ = *x++;
+            }
+            *reg_ptr = '\0';
+
+            char *offset_bin = get_immediate_binary(offset);
+            char *r1_bin = get_register_binary(reg_num);
+
+            char bit11_5[8],bit4_0[6];
+            char bit11_0[13];
+            get_substring(offset_bin,bit11_5,strlen(offset_bin)-12,7);
+            get_substring(offset_bin,bit4_0,strlen(offset_bin)-5,5);
             // fsw rs2, offset(rs1)
             //memory[x[rs1] + offset] = f[rs2];
+            snprintf(inst.binary_code,sizeof(inst.binary_code),"%s%s%s010%s0100111",bit11_5,rd_bin,r1_bin,bit4_0);
 
         }
         
