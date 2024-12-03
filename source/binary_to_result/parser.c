@@ -27,7 +27,7 @@ typedef struct{
 }Pc_operand;
 
 // レジスタの値を設定するreg_numは0 ~ 63
-void set_register(int reg_num, int value) {
+void set_register(int reg_num, double value) {
     registers[0] = 0; //x0は常に0
     if (reg_num >= 1 && reg_num < NUM_REGISTERS) {
         registers[reg_num] = value;
@@ -53,8 +53,16 @@ double get_float_register(int reg_num) {
     return 0;
 }
 
+uint32_t read_next_value_from_file(FILE *file) {
+    char line[50];
+    if (fgets(line, sizeof(line), file)) {
+        return (uint32_t)atoi(line); // 行を数値に変換して返す
+    }
+    return 0; // ファイルの終わりやエラーの場合
+}
+
 // バイナリ命令をデコードして処理
-Pc_operand execute_binary_instruction(const char binary_instruction[][33], int num_instructions, int current_line) {
+Pc_operand execute_binary_instruction(const char binary_instruction[][33], int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file) {
     Pc_operand pc_operand;
     pc_operand.opcode = 0;
     pc_operand.pc = 1;
@@ -349,6 +357,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 }
                 pc_operand.pc = pc;
                 return pc_operand;
+
             case 0x8:  // lw  x[rd] = mem[x[r1] + offset]
                 {
                    //printf("lw");
@@ -405,6 +414,21 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     set_register(rd, result);
                     pc_operand.pc = pc;
                 }
+                return pc_operand;
+                
+            case 0x10:  // csrr, csrw
+                {
+                    uint32_t func = (instruction >> 10) & 0x7;
+                    if(func == 1){ // x10の値をファイルに書きこむ
+                        double value = get_register(10);
+                        fprintf(sld_result_file, "%lf\n", value);
+                    }
+                    if(func == 2){ // x10にsldファイルの内容を書きこむ
+                        //sldの中身はとりあえずdoubleと仮定
+                        double value = read_next_value_from_file(sld_file);
+                        set_register(10, value);
+                    }
+                }   
                 return pc_operand;
         }
     }
@@ -485,7 +509,7 @@ int result_main() {
             break;
         }
         Pc_operand pc_opcode_operand1;
-        pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line], 1, current_line);
+        // pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line], 1, current_line);
         pc = pc_opcode_operand1.pc;
 
         print_register_transition(transition_file, current_line);
