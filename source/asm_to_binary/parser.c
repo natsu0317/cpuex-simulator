@@ -121,10 +121,9 @@ const char* get_opcode_binary(const char* opcode){
     if(strcmp(opcode,"fmul") == 0) return "0001000";
     if(strcmp(opcode,"fdiv") == 0) return "0001100"; 
     
-    //FS rm = 000(丸め)
+    //FS
     // opcode | 00000 | rs1 | rm | rd | 10100 | 11
-    if(strcmp(opcode, "fsqrt") == 0) return "0101100";
-    if(strcmp(opcode, "finv") == 0) return "0101000";
+    if(strcmp(opcode, "Fsqrt") == 0) return "0101100";
 
     //FL
     // imm[11:0] | rs1 | opcode | rd | 00001 | 11
@@ -146,26 +145,6 @@ char* get_register_binary(const char* reg) {
     } 
     int reg_num;
     if (sscanf(reg, "x%d", &reg_num) != 1 || reg_num < 0 || reg_num > 31) {
-        free(binary);
-        return "00000"; 
-    }
-    // 2進数に変換する
-    for (int i = 4; i >= 0; --i) {
-        binary[i] = (reg_num % 2) + '0';
-        reg_num /= 2;
-    }
-    binary[5] = '\0'; // 終端文字を追加
-    return binary;
-}
-
-
-char* get_float_register_binary(const char* reg) {
-    char* binary = (char*)malloc(6*sizeof(char));
-    if(binary == NULL){
-        return NULL;
-    } 
-    int reg_num;
-    if (sscanf(reg, "f%d", &reg_num) != 1 || reg_num < 0 || reg_num > 31) {
         free(binary);
         return "00000"; 
     }
@@ -522,19 +501,44 @@ void parse_assembly(const char* assembly_code){
         if (is_s_type(opcode)) {
             // lw/swの既存処理またはla命令の解析
             const char *op_start = operand2;
-            // 既存のlw/swの処理
-            printf("lw/sw\n");
-            //lw x8 x0(0)
-            convert_registerset_to_x(operand2);
-            char *x = strchr(operand2, 'x');
-            char *start = strchr(operand2, '(');
-            char *end = strchr(operand2, ')');
-            char offset[10];
-            char *offset_ptr = offset;
-            while (op_start < start) {
-                *offset_ptr++ = *op_start++;
-            }
-            *offset_ptr = '\0';
+
+            if (strcmp(opcode, "la") == 0) {
+                // "la x10, l.8"の形
+                char label[20];  // ラベル（l.8）
+                // レジスタ番号を抽出
+                // ラベルを抽出
+                char* label_start = strstr(operand2, "l.") + 2;  // "l."の後を指す
+                int index = 0;
+                while (*label_start >= '0' && *label_start <= '9') {
+                    index = index * 10 + (*label_start - '0');
+                    label_start++;
+                }
+                printf("Parsed index: %d\n", index);
+                char offset_bin[12];
+                // 2進数に変換する
+                for (int i = 11; i >= 0; --i) {
+                    offset_bin[i] = (index % 2) + '0';
+                    index /= 2;
+                }
+                offset_bin[12] = '\0';
+                // レジスタをバイナリに変換
+                char *rd_bin = get_register_binary(operand1);
+
+                // 命令のバイナリ生成
+                snprintf(inst.binary_code, sizeof(inst.binary_code), "%s%s010%s%s", offset_bin, rd_bin, "00000", opcode_bin);
+            } else {
+                // 既存のlw/swの処理
+                //lw x8 x0(0)
+                convert_registerset_to_x(operand2);
+                char *x = strchr(operand2, 'x');
+                char *start = strchr(operand2, '(');
+                char *end = strchr(operand2, ')');
+                char offset[10];
+                char *offset_ptr = offset;
+                while (op_start < start) {
+                    *offset_ptr++ = *op_start++;
+                }
+                *offset_ptr = '\0';
 
             char reg_num[4];
             char *reg_ptr = reg_num;
