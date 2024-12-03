@@ -383,7 +383,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 return pc_operand;
             case 0x53:   //fadd,fsub,fmul,fdiv
                 {   
-                    //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv
+                    //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv, 10:finv, 11: fsqrt
                    //printf("f形式");
                     uint32_t func = (instruction >> 27) & 0x1F;
                     uint32_t rd = (instruction >> 7) & 0x7F;
@@ -404,12 +404,15 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     if(func == 3){
                         result = fdiv(a1,a2);
                     }
-                    // if(func == 11){
-                    //     result = fsqrt(a1,a2);
-                    // }
+                    if(func == 10){
+                        result = finv(a1,a2);
+                    }
+                    if(func == 11){
+                        result = fsqrt(a1,a2);
+                    }
 
                     // rdにresultを格納
-                    set_flaot_register(rd, result);
+                    set_float_register(rd, result);
                     pc_operand.pc = pc;
                 }
                 return pc_operand;
