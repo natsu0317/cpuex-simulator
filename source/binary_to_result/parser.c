@@ -37,7 +37,16 @@ void set_register(int reg_num, int value) {
 // レジスタの値を取得する reg_num = 0~31(int version)
 int get_register(int reg_num) {
     registers[0] = 0; //x0は常に0
-    if (reg_num >= 1 && reg_num < NUM_REGISTERS) {
+    if (reg_num >= 1 && reg_num < 32) {
+        return registers[reg_num];
+    }
+    //printf("reg[%d] = %d\n",reg_num,registers[reg_num]);
+    return 0;
+}
+//reg_num 32 ~ 63
+double get_float_register(int reg_num) {
+    registers[0] = 0; //x0は常に0
+    if (reg_num >= 32 && reg_num < NUM_REGISTERS) {
         return registers[reg_num];
     }
     //printf("reg[%d] = %d\n",reg_num,registers[reg_num]);
@@ -132,7 +141,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         } else if (funct3 == 0x6){  // ori
                             set_register(rd, get_register(rs1) | imm);
                            //printf("andi: x%d, x%d, %d\n", rd, rs1, imm);
-                        } else if (funct3 == 0x4\){  // xori
+                        } else if (funct3 == 0x4){  // xori
                             set_register(rd, get_register(rs1) ^ imm);
                            //printf("xori: x%d, x%d, %d\n", rd, rs1, imm);
                         }
@@ -262,7 +271,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 {
                     //printf("u_type/n");
                     uint32_t rd = (instruction >> 4) & 0x3F;
-                    uint32_t bit31_12 = (insttruction >> 12) & 0xFFFFF;
+                    uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
                     uint32_t value = bit31_12 << 12;
                     set_register(rd,value);
                 }
@@ -397,18 +406,6 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     pc_operand.pc = pc;
                 }
                 return pc_operand;
-            case 0x43:
-            {   // la x10 l.8
-                //この場合float_registerの10番目つまりregister[42]に格納する。
-                // offset_bin(12) | rd_bin(5) | 010 | 00000 | 1000011
-                printf("la\n");
-                uint32_t rs1 = (instruction >> 15) & 0x1F;
-                uint32_t offset_bin = (instruction >> 20) & 0xFFF;
-                // float_memory[offset_bin] の値を x(10 + 32)に格納
-                set_float_register( rs1 + 32, float_memory[offset_bin] );
-                pc_operand.pc = 1;
-            } 
-            return pc_operand;
         }
     }
 
@@ -423,14 +420,11 @@ void print_register(FILE* output_file){
 void print_register_transition(FILE *transition_file, int pc){
     fprintf(transition_file, "| ");
     fprintf(transition_file, "%2d行|",pc);
-    float reg42_before = get_float_register(42);
-    //整数レジスタ出力
-    for (int i = 0; i < 32; i++) {
-        fprintf(transition_file, "%3d | ", get_register(i));
-    }
-    //floatのレジスタ出力
     for(int i = 0; i< 32; i++) {
-        fprintf(transition_file, "%3f | ", get_float_register(i+32));
+        fprintf(transition_file, "%3d | ", get_register(i));
+    }    
+    for(int i = 32; i< NUM_REGISTERS; i++) {
+        fprintf(transition_file, "%3f | ", get_float_register(i));
     }
     fprintf(transition_file, "\n");
 }
