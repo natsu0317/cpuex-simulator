@@ -27,12 +27,14 @@ double float_memory[256]; //メモリに浮動小数点の値を格納
 
 const char* r_type_opcodes[] = {"add", "sub", "and", "or", "xor", NULL};
 const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori","jalr", NULL};
+const char* s_type_opcodes[] = {"sw", NULL};
 const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL};
+const char* u_type_opcodes[] = {"lui", NULL};
 const char* j_type_opcodes[] = {"jal", NULL};
-const char* s_type_opcodes[] = {"sw","lw","la"};
+const char* jalr_type_opcodes[] = {"jalr", NULL};
+const char* lw_type_opcodes[] = {"lw", NULL};
 const char* f_type_opcodes[] = {"fadd", "fsub", "fmul", "fdiv", NULL};
-const char* fl_type_opcodes[] = {"flw", "fld", NULL};
-const char* fs_type_opcodes[] = {"fsw", "fsd", NULL};
+const char* c_type_opcodes[] = {"csrr", "csrw", NULL};
 
 int is_opcode_type(const char* opcode,const char** type_opcodes){
     const char** op = type_opcodes;
@@ -48,92 +50,64 @@ int is_opcode_type(const char* opcode,const char** type_opcodes){
 int is_r_type(const char* opcode){
     return is_opcode_type(opcode,r_type_opcodes);
 }
-
 int is_i_type(const char* opcode){
     return is_opcode_type(opcode,i_type_opcodes);
 }
-
-int is_b_type(const char* opcode){
-    return is_opcode_type(opcode,b_type_opcodes);
-}
-
-int is_j_type(const char* opcode){
-    return is_opcode_type(opcode,j_type_opcodes);
-}
-
 int is_s_type(const char* opcode){
     return is_opcode_type(opcode,s_type_opcodes);
 }
-
+int is_b_type(const char* opcode){
+    return is_opcode_type(opcode,b_type_opcodes);
+}
+int is_u_type(const char* opcode){
+    return is_opcode_type(opcode,u_type_opcodes);
+}
+int is_j_type(const char* opcode){
+    return is_opcode_type(opcode,j_type_opcodes);
+}
+int is_jalr_type(const char* opcode){
+    return is_opcode_type(opcode,jalr_type_opcodes);
+}
+int is_lw_type(const char* opcode){
+    return is_opcode_type(opcode,lw_type_opcodes);
+}
 int is_f_type(const char* opcode){
     return is_opcode_type(opcode,f_type_opcodes);
 }
-
-int is_fl_type(const char* opcode){
-    return is_opcode_type(opcode,fl_type_opcodes);
-}
-
-int is_fs_type(const char* opcode){
-    return is_opcode_type(opcode,fs_type_opcodes);
+int is_c_type(const char* opcode){
+    return is_opcode_type(opcode,c_type_opcodes);
 }
 
 const char* get_opcode_binary(const char* opcode){
     //R : add
     //funct7 | rs2 | rs1 | funct3 | rd | opcode
-    if(strcmp(opcode,"add") == 0 || strcmp(opcode,"sub") == 0) return "0110011";
-    if(strcmp(opcode,"and") == 0 || strcmp(opcode, "or") == 0 || strcmp(opcode, "xor") == 0)  return "0110011";
+    if(is_r_type(opcode)) return "0001";
     //I : addi
     //imm[11:0] | rs1 | funct3 | r | opcode
     //funct3に対応
-    if(strcmp(opcode,"addi") == 0) return "000";
-    if(strcmp(opcode,"andi") == 0) return "111";
-    if(strcmp(opcode,"ori") == 0) return "110";
-    if(strcmp(opcode,"xori") == 0) return "100";
-    if(strcmp(opcode,"jalr") == 0) return "000";
-
+    if(is_i_type(opcode)) return "0010";
     //S
     //imm[11:5] | rs2 | rs1 | funct3 | imm[4:0] | opcode
-    if(strcmp(opcode,"sw") == 0) return "0100011";
-    if(strcmp(opcode,"lw") == 0) return "0000011";
-    if(strcmp(opcode,"la") == 0) return "1000011";
-
+    if(is_s_type(opcode)) return "0011";
     //B : bne
     //funct3に対応
     //imm[12|10:5] | rs2 | rs1 | funct3 | imm[4:1] | imm[11] | opcode
-    if(strcmp(opcode,"beq") == 0) return "000";
-    if(strcmp(opcode,"bne") == 0) return "001";
-    if(strcmp(opcode,"blt") == 0) return "100";
-    if(strcmp(opcode,"bge") == 0) return "101";
-    if(strcmp(opcode,"bltu") == 0) return "110";
-    if(strcmp(opcode,"bgeu") == 0) return "111";
-
+    if(is_b_type(opcode)) return "0100";
     //U
     //imm[31:12] | rd | opcode
-
+    if(is_u_type(opcode)) return "0101";
     //J : JAL
     //imm[20|10:1|11|19:12] | rd | opcode
-    if(strcmp(opcode,"jal") == 0) return "1101111";
-
+    if(is_j_type(opcode)) return "0110";
+    //JALR: jalr
+    if(is_jalr_type(opcode)) return "0111";
+    //lw
+    if(is_lw_type(opcode)) return "1000";
     //F
     // opcode | rs2 | rs1 | rm | rd | 1010011
-    if(strcmp(opcode,"fadd") == 0) return "0000000";
-    if(strcmp(opcode,"fsub") == 0) return "0000100";
-    if(strcmp(opcode,"fmul") == 0) return "0001000";
-    if(strcmp(opcode,"fdiv") == 0) return "0001100"; 
-    
-    //FS
-    // opcode | 00000 | rs1 | rm | rd | 10100 | 11
-    if(strcmp(opcode, "Fsqrt") == 0) return "0101100";
-
-    //FL
-    // imm[11:0] | rs1 | opcode | rd | 00001 | 11
-    if(strcmp(opcode,"flw") == 0) return "010";
-    if(strcmp(opcode,"fld") == 0) return "011";
-    //FS
-    // imm[11:5] | rs2 | rs1 | opcode | imm[4:0] | 01001 | 11
-    if(strcmp(opcode,"fsw") == 0) return "010";
-    if(strcmp(opcode,"fsd") == 0) return "011";
-
+    if(is_f_type(opcode)) return "1001";
+    //c
+    if(is_c_type(opcode)) return "1010";
     //FINISH
     if(strcmp(opcode,"finish") == 0) return "1111111";
 }
