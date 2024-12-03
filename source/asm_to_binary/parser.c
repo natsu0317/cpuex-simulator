@@ -121,9 +121,10 @@ const char* get_opcode_binary(const char* opcode){
     if(strcmp(opcode,"fmul") == 0) return "0001000";
     if(strcmp(opcode,"fdiv") == 0) return "0001100"; 
     
-    //FS
+    //FS rm = 000(丸め)
     // opcode | 00000 | rs1 | rm | rd | 10100 | 11
-    if(strcmp(opcode, "Fsqrt") == 0) return "0101100";
+    if(strcmp(opcode, "fsqrt") == 0) return "0101100";
+    if(strcmp(opcode, "finv") == 0) return "0101000";
 
     //FL
     // imm[11:0] | rs1 | opcode | rd | 00001 | 11
@@ -145,6 +146,26 @@ char* get_register_binary(const char* reg) {
     } 
     int reg_num;
     if (sscanf(reg, "x%d", &reg_num) != 1 || reg_num < 0 || reg_num > 31) {
+        free(binary);
+        return "00000"; 
+    }
+    // 2進数に変換する
+    for (int i = 4; i >= 0; --i) {
+        binary[i] = (reg_num % 2) + '0';
+        reg_num /= 2;
+    }
+    binary[5] = '\0'; // 終端文字を追加
+    return binary;
+}
+
+
+char* get_float_register_binary(const char* reg) {
+    char* binary = (char*)malloc(6*sizeof(char));
+    if(binary == NULL){
+        return NULL;
+    } 
+    int reg_num;
+    if (sscanf(reg, "f%d", &reg_num) != 1 || reg_num < 0 || reg_num > 31) {
         free(binary);
         return "00000"; 
     }
@@ -503,7 +524,7 @@ void parse_assembly(const char* assembly_code){
             const char *op_start = operand2;
 
             if (strcmp(opcode, "la") == 0) {
-                // "la x10, l.8"の形
+                // "la f0, l.8"の形
                 char label[20];  // ラベル（l.8）
                 // レジスタ番号を抽出
                 // ラベルを抽出
@@ -522,7 +543,7 @@ void parse_assembly(const char* assembly_code){
                 }
                 offset_bin[12] = '\0';
                 // レジスタをバイナリに変換
-                char *rd_bin = get_register_binary(operand1);
+                char *rd_bin = get_float_register_binary(operand1);
 
                 // 命令のバイナリ生成
                 snprintf(inst.binary_code, sizeof(inst.binary_code), "%s%s010%s%s", offset_bin, rd_bin, "00000", opcode_bin);
