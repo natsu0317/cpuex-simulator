@@ -26,7 +26,7 @@ double float_memory[256]; //メモリに浮動小数点の値を格納
 // ret = jalr x0, x1, 0
 
 const char* r_type_opcodes[] = {"add", "sub", "and", "or", "xor", NULL};
-const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori","jalr", NULL};
+const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori", NULL};
 const char* s_type_opcodes[] = {"sw", NULL};
 const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL};
 const char* u_type_opcodes[] = {"lui", NULL};
@@ -113,21 +113,21 @@ const char* get_opcode_binary(const char* opcode){
 }
 
 char* get_register_binary(const char* reg) {
-    char* binary = (char*)malloc(6*sizeof(char));
+    char* binary = (char*)malloc(7*sizeof(char));
     if(binary == NULL){
         return NULL;
     } 
     int reg_num;
-    if (sscanf(reg, "x%d", &reg_num) != 1 || reg_num < 0 || reg_num > 31) {
+    if (sscanf(reg, "x%d", &reg_num) != 1 || reg_num < 0 || reg_num > 63) {
         free(binary);
-        return "00000"; 
+        return "000000"; 
     }
     // 2進数に変換する
-    for (int i = 4; i >= 0; --i) {
+    for (int i = 5; i >= 0; --i) {
         binary[i] = (reg_num % 2) + '0';
         reg_num /= 2;
     }
-    binary[5] = '\0'; // 終端文字を追加
+    binary[6] = '\0'; // 終端文字を追加
     return binary;
 }
 
@@ -167,7 +167,6 @@ bool is_float(const char* str){
     }
     return false;
 }
-
 
 // 即値をバイナリに変換
 char* get_immediate_binary(const char* imm) {
@@ -247,6 +246,7 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
     // - `x2`: `sp` - スタックポインタ (スタック領域を管理する)
     // - `x10 ~ x17`: `a0 ~ a7` - 関数の引数または戻り値
     // - `x5 ~ x7`: `t0 ~ t2` - 一時レジスタ（関数呼び出し間で保存されない）
+    // - 'f0 ~ f31' : 'x32 ~ x63'
 
 void change(char *operand, const char *register_name, const char *x_register_name) {
     char *found = strstr(operand, register_name);
@@ -281,6 +281,13 @@ void convert_registerset_to_x(char *operand){
         char x_reg_name[4];
         sprintf(reg_name, "t%d", i);
         sprintf(x_reg_name, "x%d", 5 + i);
+        change(operand, reg_name, x_reg_name);
+    } 
+    for(int i = 0; i <= 32; i++){
+        char reg_name[4];
+        char x_reg_name[4];
+        sprintf(reg_name, "f%d", i);
+        sprintf(x_reg_name, "x%d", 32 + i);
         change(operand, reg_name, x_reg_name);
     } 
 }
@@ -390,8 +397,8 @@ void parse_assembly(const char* assembly_code){
         convert_registerset_to_x(operand3);
         //printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);     
 
-        const char* opcode_bin = get_opcode_binary(opcode);
-        char* rd_bin = get_register_binary(operand1);
+        const char* opcode_bin = get_opcode_binary(opcode);//opcodeを生成 add -> r_type -> 0001
+        char* rd_bin = get_register_binary(operand1); 
         int not_rd_free = 0;
         if(strchr(operand1, '(')){
             //0ならfree
@@ -400,7 +407,7 @@ void parse_assembly(const char* assembly_code){
         char* r1_bin;
         int need_free_reg_1 = 0;
         int need_free_imm_1 = 0;
-        if(operand2[0] == 'x'){
+        if(operand2[0] == 'x'){ //operand2がレジスタ
             //printf("need_free_reg_1");
             r1_bin = get_register_binary(operand2);
             need_free_reg_1 = 1;
@@ -440,103 +447,46 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "or") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s110%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "xor") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s100%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
         }
-
         if(is_i_type(opcode)){
             //printf("i_type\n");
             //[11:0]
             char r2_bin_sub[13];//12bit + 終端文字
             get_substring(r2_bin,r2_bin_sub,strlen(r2_bin)-12,12);
-            char opcode_bin1[8];
-            //printf("opcode:%s\n",opcode);
-            if (strcmp(opcode, "jalr") == 0) {
-                opcode_bin1[0] = '1';
-                opcode_bin1[1] = '1';
-                opcode_bin1[2] = '0';
-                opcode_bin1[3] = '0';
-                opcode_bin1[4] = '1';
-                opcode_bin1[5] = '1';
-                opcode_bin1[6] = '1';
-                opcode_bin1[7] = '\0';
-            } else {
-                opcode_bin1[0] = '0';
-                opcode_bin1[1] = '0';
-                opcode_bin1[2] = '1';
-                opcode_bin1[3] = '0';
-                opcode_bin1[4] = '0';
-                opcode_bin1[5] = '1';
-                opcode_bin1[6] = '1';
-                opcode_bin1[7] = '\0';
-            }
-            //printf("opcode: %s\n",opcode_bin1);
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s%s%s",r2_bin_sub,r1_bin,opcode_bin,rd_bin,opcode_bin1);
+            if(strcmp(opcode, "addi") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
+            if(strcmp(opcode, "andi") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s111%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
+            if(strcmp(opcode, "ori") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s110%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
+            if(strcmp(opcode, "xori") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s100%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
         }
-        ////printf("binary: %s\n",inst.binary_code);
-
-        if (is_s_type(opcode) || strcmp(opcode, "la") == 0) {
-            // lw/swの既存処理またはla命令の解析
-            const char *op_start = operand2;
-
-            if (strcmp(opcode, "la") == 0) {
-                // "la x10, l.8"の形
-                char label[20];  // ラベル（l.8）
-                // レジスタ番号を抽出
-                // ラベルを抽出
-                char* label_start = strstr(operand2, "l.") + 2;  // "l."の後を指す
-                int index = 0;
-                while (*label_start >= '0' && *label_start <= '9') {
-                    index = index * 10 + (*label_start - '0');
-                    label_start++;
-                }
-                printf("Parsed index: %d\n", index);
-                char offset_bin[12];
-                // 2進数に変換する
-                for (int i = 11; i >= 0; --i) {
-                    offset_bin[i] = (index % 2) + '0';
-                    index /= 2;
-                }
-                offset_bin[12] = '\0';
-                // レジスタをバイナリに変換
-                char *rd_bin = get_register_binary(operand1);
-
-                // 命令のバイナリ生成
-                snprintf(inst.binary_code, sizeof(inst.binary_code), "%s%s010%s%s", offset_bin, rd_bin, "00000", opcode_bin);
-            } else {
-                // 既存のlw/swの処理
-                //lw x8 x0(0)
-                convert_registerset_to_x(operand2);
-                char *x = strchr(operand2, 'x');
-                char *start = strchr(operand2, '(');
-                char *end = strchr(operand2, ')');
-                char offset[10];
-                char *offset_ptr = offset;
-                while (op_start < start) {
-                    *offset_ptr++ = *op_start++;
-                }
-                *offset_ptr = '\0';
-
-                char reg_num[4];
-                char *reg_ptr = reg_num;
-                while (x < end) {
-                    *reg_ptr++ = *x++;
-                }
-                *reg_ptr = '\0';
-
-                char *offset_bin = get_immediate_binary(offset);
-                char *r1_bin = get_register_binary(reg_num);
-
-                char bit11_5[8], bit4_0[6], bit11_0[13];
-                get_substring(offset_bin, bit11_5, strlen(offset_bin) - 12, 7);
-                get_substring(offset_bin, bit4_0, strlen(offset_bin) - 5, 5);
-                get_substring(offset_bin, bit11_0, strlen(offset_bin) - 12, 12);
-
-                if (strcmp(opcode, "sw") == 0)
-                    snprintf(inst.binary_code, sizeof(inst.binary_code), "%s%s%s010%s%s", bit11_5, rd_bin, r1_bin, bit4_0, opcode_bin);
-                if (strcmp(opcode, "lw") == 0)
-                    snprintf(inst.binary_code, sizeof(inst.binary_code), "%s%s010%s%s", bit11_0, r1_bin, rd_bin, opcode_bin);
+        if (is_s_type(opcode)) {
+            const char *op_start = operand2; //x0(0)
+            //swの処理
+            //sw x8 x0(0)
+            convert_registerset_to_x(operand2);
+            char *x = strchr(operand2, 'x');
+            char *start = strchr(operand2, '(');
+            char *end = strchr(operand2, ')');
+            char offset[10];
+            char *offset_ptr = offset;
+            while (op_start < start) {
+                *offset_ptr++ = *op_start++;
             }
+            *offset_ptr = '\0';
+            char reg_num[5];
+            char *reg_ptr = reg_num;
+            while (x < end) {
+                *reg_ptr++ = *x++;
+            }
+            *reg_ptr = '\0';
+
+            char *offset_bin = get_immediate_binary(offset);
+            char *r1_bin = get_register_binary(reg_num);
+
+            char bit11_5[8], bit4_0[6];
+            get_substring(offset_bin, bit11_5, strlen(offset_bin) - 12, 7);
+            get_substring(offset_bin, bit4_0, strlen(offset_bin) - 5, 5);
+
+            snprintf(inst.binary_code, sizeof(inst.binary_code), "%s%s%s010%s%s", bit11_5, rd_bin, r1_bin, bit4_0, opcode_bin);
         }
-
-
         if(is_b_type(opcode)){
             //printf("b_type\n");
             //offsetを求める
@@ -558,16 +508,22 @@ void parse_assembly(const char* assembly_code){
             get_substring(r2_bin,bit11,strlen(r2_bin)-12,1);
             snprintf(imm_2, 6, "%s%s", bit4_1, bit11); // 4:
 
-            size_t buffer_size = sizeof(inst.binary_code); // バッファのサイズを取得
-            if (buffer_size > 0) {
-                snprintf(inst.binary_code, buffer_size, "%s%s%s%s%s1100011", imm_1, r1_bin, rd_bin, opcode_bin, imm_2);
-            } else {
-                fprintf(stderr, "Error: Binary code buffer size is zero or negative.\n");
-            }
+            if(strcmp(opcode, "beq") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s000%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
+            if(strcmp(opcode, "bne") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s001%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
+            if(strcmp(opcode, "blt") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s100%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
+            if(strcmp(opcode, "bge") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s101%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
+            if(strcmp(opcode, "bltu") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s110%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
+            if(strcmp(opcode, "bgeu") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s111%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
             //printf("end");
-
         }
-
+        if(is_u_type(opcode)){
+            //printf("u_type\n");
+            //lui rd upimm
+            char bit31_12[21];
+            get_substring(r2_bin, bit31_12, strlen(r2_bin)-32, 20);
+            if(strcmp(opcode, "lui") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s%s", bit31_12, rd_bin, opcode_bin);
+            //printf("end");
+        }
         if(is_j_type(opcode)){
            //printf("j_type\n");
             //offsetを求める
@@ -595,76 +551,30 @@ void parse_assembly(const char* assembly_code){
             get_substring(r1_bin,bit19_12,strlen(r1_bin)-20,8);
             snprintf(imm, 21,"%s%s%s%s", bit20, bit10_1, bit11, bit19_12);
             
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s",imm, rd_bin, opcode_bin);
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s%s",imm, rd_bin, opcode_bin);
         }
-
-        if(is_f_type(opcode)){
-            //printf("f_type\n");
-            //丸めモード: 最近傍
-            snprintf(inst.binary_code,sizeof(inst.binary_code),"%s%s%s000%s1010011",opcode_bin,r2_bin,r1_bin,rd_bin);
-
+        if(is_jalr_type(opcode)){
+            char r2_bin_sub[13];//12bit + 終端文字
+            get_substring(r2_bin,r2_bin_sub,strlen(r2_bin)-12,12);
+            if(strcmp(opcode, "jalr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
         }
-
-        // if(is_fs_type(opcode)){
-        //     snprintf(inst.binary_code,sizeof(inst.binary_code),"%s00000%s000%s1010011",opcode_bin,r1_bin,rd_bin);
-        // }
-
-        // if(is_fl_type(opcode)){
-        //     //printf("fl_type\n");
-        //     // lw x8, 4(x6)
-        //     // rd->r2に対応
-        //     const char *op_start = operand2;
-        //     convert_registerset_to_x(operand2);
-        //     char *x;
-        //     //printf("operand2 %s\n",operand2);
-        //     x = strchr(operand2,'x');
-        //     char *start = strchr(operand2, '(');
-        //     char *end = strchr(operand2, ')');
-        //     char offset[10];
-        //     char *offset_ptr = offset;
-        //     while(op_start < start){
-        //         *offset_ptr++ = *op_start++;
-        //     }
-        //     *offset_ptr = '\0';
-        //     char reg_num[4];
-        //     char *reg_ptr = reg_num;
-        //     while(x<end){
-        //         *reg_ptr++ = *x++;
-        //     }
-        //     *reg_ptr = '\0';
-
-        //     char *offset_bin = get_immediate_binary(offset);
-        //     char *r1_bin = get_register_binary(reg_num);
-
-        //     char bit11_0[13];
-        //     get_substring(offset_bin,bit11_0,strlen(offset_bin)-12,12);
-        //     // flw, fld
-        //     // flw rd, offset(rs1)
-        //     //f[rd] = memory[x[rs1] + offset];
-        //     snprintf(inst.binary_code,sizeof(inst.binary_code),"%s%s010%s0000111",imm_bin,r1_bin,rd_bin);
-
-        // }
-
-        if(is_fs_type(opcode)){
-            //printf("fs_type\n");
-            // lw x8, 4(x6)
-            // rd->r2に対応
-            const char *op_start = operand2;
+        if (is_lw_type(opcode)) {
+            const char *op_start = operand2; //x0(0)
+            //lwの処理
+            //lw x8 x0(0)
             convert_registerset_to_x(operand2);
-            char *x;
-            //printf("operand2 %s\n",operand2);
-            x = strchr(operand2,'x');
+            char *x = strchr(operand2, 'x');
             char *start = strchr(operand2, '(');
             char *end = strchr(operand2, ')');
             char offset[10];
             char *offset_ptr = offset;
-            while(op_start < start){
+            while (op_start < start) {
                 *offset_ptr++ = *op_start++;
             }
             *offset_ptr = '\0';
-            char reg_num[4];
+            char reg_num[5];
             char *reg_ptr = reg_num;
-            while(x<end){
+            while (x < end) {
                 *reg_ptr++ = *x++;
             }
             *reg_ptr = '\0';
@@ -672,16 +582,22 @@ void parse_assembly(const char* assembly_code){
             char *offset_bin = get_immediate_binary(offset);
             char *r1_bin = get_register_binary(reg_num);
 
-            char bit11_5[8],bit4_0[6];
             char bit11_0[13];
-            get_substring(offset_bin,bit11_5,strlen(offset_bin)-12,7);
-            get_substring(offset_bin,bit4_0,strlen(offset_bin)-5,5);
-            // fsw rs2, offset(rs1)
-            //memory[x[rs1] + offset] = f[rs2];
-            snprintf(inst.binary_code,sizeof(inst.binary_code),"%s%s%s010%s0100111",bit11_5,rd_bin,r1_bin,bit4_0);
+            get_substring(offset_bin, bit11_0, strlen(offset_bin) - 12, 12);
+
+            snprintf(inst.binary_code, sizeof(inst.binary_code), "%s%s010%s%s", bit11_0, r1_bin, rd_bin, opcode_bin);
+        }
+        if(is_f_type(opcode)){
+            //printf("f_type\n");
+            //丸めモード: 最近傍
+            snprintf(inst.binary_code,sizeof(inst.binary_code),"%s%s%s000%s1010011",opcode_bin,r2_bin,r1_bin,rd_bin);
+            if(strcmp(opcode, "fadd") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
+            if(strcmp(opcode, "fsub") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000100%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
+            if(strcmp(opcode, "fmul") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0001000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
+            if(strcmp(opcode, "fdiv") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0001100%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
+            if(strcmp(opcode, "fsqrt") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"010110000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
 
         }
-        
         //printf("Binary Code: %s\n",inst.binary_code);
         ////printf("before");
         instruction_count++;
