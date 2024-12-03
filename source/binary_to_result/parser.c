@@ -258,6 +258,16 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 }
                 return pc_operand;
 
+            case 0x5: //lui
+                {
+                    //printf("u_type/n");
+                    uint32_t rd = (instruction >> 4) & 0x3F;
+                    uint32_t bit31_12 = (insttruction >> 12) & 0xFFFFF;
+                    uint32_t value = bit31_12 << 12;
+                    set_register(rd,value);
+                }
+                return pc_operand;
+
             case 0x6:  // J形式命令 (例: "jal")
                 {
                     //printf("%x\n",instruction);
