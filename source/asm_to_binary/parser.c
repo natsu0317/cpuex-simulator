@@ -598,6 +598,10 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "fsqrt") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"010110000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
 
         }
+        if(is_c_type(opcode)){
+            if(strcmp(opcode, "csrr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000100010100001010");
+            if(strcmp(opcode, "csrw") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000010100000000010000001010");
+        }
         //printf("Binary Code: %s\n",inst.binary_code);
         ////printf("before");
         instruction_count++;
