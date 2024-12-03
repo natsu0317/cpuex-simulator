@@ -5,9 +5,9 @@
 #include <string.h>
 #include <math.h>
 #include "../float/math/math_functions.h"
+#include "../asm_to_binary/asm_to_binary.h"
 
-#define NUM_REGISTERS 32
-#define MAX_INSTRUCTIONS 100 //読み取る最大行数
+#define NUM_REGISTERS 64
 #define INSTRUCTION_LENGTH 33 //32bit + 終端文字
 #define MEMORY_SIZE 1024
 #define STACK_SIZE 1024
@@ -16,8 +16,7 @@ int memory[MEMORY_SIZE];
 int sp = MEMORY_SIZE - 1; //スタックポインタ
 
 // registerのsimulation
-int registers[NUM_REGISTERS] = {0};  // 32個のレジスタを初期化
-float float_registers[NUM_REGISTERS];
+double registers[NUM_REGISTERS] = {0};  // 64個のレジスタを初期化 0-31は整数　32-63はfloat
 
 typedef struct{
     int pc;
@@ -27,7 +26,7 @@ typedef struct{
     int operand3;
 }Pc_operand;
 
-// レジスタの値を設定する
+// レジスタの値を設定するreg_numは0 ~ 31
 void set_register(int reg_num, int value) {
     registers[0] = 0; //x0は常に0
     if (reg_num >= 1 && reg_num < NUM_REGISTERS) {
@@ -35,7 +34,15 @@ void set_register(int reg_num, int value) {
     }
 }
 
-// レジスタの値を取得する
+//レジスタにfloatの値を格納する　reg_numは32 ~ 63
+void set_float_register(int reg_num, double value){
+    registers[0] = 0; //x0は常に0
+    if (reg_num >= 1 && reg_num < NUM_REGISTERS) {
+        registers[reg_num] = value;
+    }
+}
+
+// レジスタの値を取得する reg_num = 0~31
 int get_register(int reg_num) {
     registers[0] = 0; //x0は常に0
     if (reg_num >= 1 && reg_num < NUM_REGISTERS) {
@@ -44,39 +51,14 @@ int get_register(int reg_num) {
     //printf("reg[%d] = %d\n",reg_num,registers[reg_num]);
     return 0;
 }
-void set_float_register(int reg_num, int value) {
-    float_registers[0] = 0; //x0は常に0
+// reg_num = 32 ~ 63
+double get_float_register(int reg_num) {
+    registers[0] = 0; //x0は常に0
     if (reg_num >= 1 && reg_num < NUM_REGISTERS) {
-        float_registers[reg_num] = value;
+        return registers[reg_num];
     }
-}
-// 小数が格納されているレジスタの値を取得する
-float get_float_register(int reg_num){
-    if(reg_num >= 0 && reg_num < NUM_REGISTERS){
-        // uint32_t bits;
-        // memcpy(&bits, &float_registers[reg_num],sizeof(bits));
-        // //printf("%d: bits = %x\n",reg_num,bits);
-
-        // //符号ビット
-        // uint32_t sign = (bits >> 31) & 0x1;
-        // //printf("sign:%x\n",sign);
-        // //指数部
-        // uint32_t exponent = (bits >> 23) & 0xFF;
-        // //printf("exp:%x\n",exponent);
-        // //仮数部
-        // uint32_t mantissa = bits & 0x7FFFFF;
-        // //printf("man:%x\n",mantissa);
-
-        // // mantissa / (float)(1<<23) : 小数の値
-        // float actual_mantissa = 1.0f + (mantissa / (float)(1 << 23));
-        // int actual_exponent = exponent - 127;
-        // //float result = pow(-1,sign) * pow(2,actual_exponent) * actual_mantissa;
-
-        //printf("%.8f\n",result);
-        //return result;
-        float value = float_registers[reg_num];
-        return value;
-    }
+    //printf("reg[%d] = %d\n",reg_num,registers[reg_num]);
+    return 0;
 }
 
 // バイナリ命令をデコードして処理
@@ -359,12 +341,13 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         }
                     }
                     //printf("pc: 361: %d\n",pc);
+                    if(pc == 0){
+                        pc = 1;
+                    }
+                    pc_operand.pc = pc;
                 }
-                if(pc == 0){
-                    pc = 1;
-                }
-                pc_operand.pc = pc;
                 return pc_operand;
+
                   
 
             case 0x6F:  // J形式命令 (例: "jal")
@@ -396,9 +379,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     // PCの更新後に即座にreturn
                     pc = imm/4;
                     pc_operand.pc = pc;
-                    return pc_operand;
                 }
-                break;
+                return pc_operand;
             case 0x53:   //fadd,fsub,fmul,fdiv
                 {   
                     //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv
@@ -422,86 +404,87 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     if(func == 3){
                         result = fdiv(a1,a2);
                     }
-                    if(func == 11){
-                        result = fsqrt(a1,a2);
-                    }
+                    // if(func == 11){
+                    //     result = fsqrt(a1,a2);
+                    // }
 
                     // rdにresultを格納
-                    set_float_register(rd, result);
-                //     uint32_t r1_bits;
-                //     uint32_t r2_bits;
-                //     memcpy(&r1_bits,&float_registers[r1],sizeof(r1_bits));
-                //     memcpy(&r2_bits,&float_registers[r2],sizeof(r2_bits));
-                //     uint32_t r1_sign = (r1_bits >> 31) & 0x1;
-                //     uint32_t r2_sign = (r2_bits >> 31) & 0x1;
-                //     uint32_t r1_exp = (r1_bits >> 23) & 0xFF;
-                //     uint32_t r2_exp = (r2_bits >> 23) & 0xFF;
-                //     uint32_t r1_man = r1_bits & 0x7FFFFF;
-                //     uint32_t r2_man = r2_bits & 0x7FFFFF;
-                //     uint32_t result_sign,result_exp,result_man;
+                    set_flaot_register(rd, result);
+                    pc_operand.pc = pc;
                 }
-                break;
-            case 0x07: //flw
-                {
-                   //printf("f形式");
-                    uint32_t rd = (instruction >> 7) & 0x7F;
-                    uint32_t rs1 = (instruction >> 15) & 0x1F;
-                    uint32_t imm = (instruction >> 20) & 0xFFF;
-                    float a1 = get_float_register(r1);
-                    int lw = 0; //setする値
-                    pc_operand.opcode = 1;
-                    pc_operand.operand1 = rd;
-                    pc_operand.operand2 = rs1;
-                    if(lw_offset && 0x800 == 1){//負の値
-                        uint32_t mask = (1<<12) - 1;
-                        lw_offset = ~lw_offset & mask;
-                        lw_offset = lw_offset + 1;
-                        lw = memory[get_float_register(rs1) - lw_offset];
-                       //printf("lw: x%d, -%d(x%d)\n", rd, lw_offset, rs1);
-                    }else{
-                        lw = memory[get_float_register(rs1) + lw_offset];
-                       //printf("lw: x%d, %d(x%d)\n", rd, lw_offset, rs1);
-                    }
-                    //printf("memory%dの中に格納されている値:%d\n",get_register(rs1) + lw_offset,lw);
-                    set_register(rd,lw);
-                }   
                 return pc_operand;
-            case 0x27: //fsw
-                {
-                   //printf("f形式");
-                    uint32_t rd = (instruction >> 7) & 0x7F;
-                    uint32_t rs1 = (instruction >> 15) & 0x1F;
-                    uint32_t rs2 = (instruction >> 20) & 0x1F;
-                    uint32_t imm11_5 = (instruction >> 25) & 0x7F;
-                    uint32_t imm4_0 = (instruction >> 7) & 0x1F;
-                    uint32_t imm = 0;
-                    pc_operand.opcode = 1;
-                    pc_operand.operand2 = rs1;
-                    pc_operand.operand3 = rs2;
-                    imm |= (imm11_5 << 5);
-                    imm |= (imm4_0);
-                    if(imm && 0x800 == 1){//負の値
-                        uint32_t mask = (1<<12) - 1;
-                        imm = ~imm & mask;
-                        imm = imm + 1;
-                        memory[get_float_register(rs1) - imm] = get_float_register(rs2);
-                       //printf("sw: x%d, -%d(x%d)\n", rs2, imm, rs1);
-                       //printf("memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
-                    }else{
-                        memory[get_float_register(rs1) + imm] = get_float_register(rs2);
-                       //printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
-                       //printf("memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
-                    }    
-                } 
-                return pc_operand;
-
+            // case 0x07: //flw
+            //     {
+            //        //printf("f形式");
+            //         uint32_t rd = (instruction >> 7) & 0x7F;
+            //         uint32_t rs1 = (instruction >> 15) & 0x1F;
+            //         uint32_t imm = (instruction >> 20) & 0xFFF;
+            //         float a1 = get_float_register(r1);
+            //         int lw = 0; //setする値
+            //         pc_operand.opcode = 1;
+            //         pc_operand.operand1 = rd;
+            //         pc_operand.operand2 = rs1;
+            //         if(lw_offset && 0x800 == 1){//負の値
+            //             uint32_t mask = (1<<12) - 1;
+            //             lw_offset = ~lw_offset & mask;
+            //             lw_offset = lw_offset + 1;
+            //             lw = memory[get_float_register(rs1) - lw_offset];
+            //            //printf("lw: x%d, -%d(x%d)\n", rd, lw_offset, rs1);
+            //         }else{
+            //             lw = memory[get_float_register(rs1) + lw_offset];
+            //            //printf("lw: x%d, %d(x%d)\n", rd, lw_offset, rs1);
+            //         }
+            //         //printf("memory%dの中に格納されている値:%d\n",get_register(rs1) + lw_offset,lw);
+            //         set_register(rd,lw);
+            //     }   
+            //     return pc_operand;
+            // case 0x27: //fsw
+            //     {
+            //        //printf("f形式");
+            //         uint32_t rd = (instruction >> 7) & 0x7F;
+            //         uint32_t rs1 = (instruction >> 15) & 0x1F;
+            //         uint32_t rs2 = (instruction >> 20) & 0x1F;
+            //         uint32_t imm11_5 = (instruction >> 25) & 0x7F;
+            //         uint32_t imm4_0 = (instruction >> 7) & 0x1F;
+            //         uint32_t imm = 0;
+            //         pc_operand.opcode = 1;
+            //         pc_operand.operand2 = rs1;
+            //         pc_operand.operand3 = rs2;
+            //         imm |= (imm11_5 << 5);
+            //         imm |= (imm4_0);
+            //         if(imm && 0x800 == 1){//負の値
+            //             uint32_t mask = (1<<12) - 1;
+            //             imm = ~imm & mask;
+            //             imm = imm + 1;
+            //             memory[get_float_register(rs1 + 32) - imm] = get_float_register(rs2 + 32);
+            //            //printf("sw: x%d, -%d(x%d)\n", rs2, imm, rs1);
+            //            //printf("memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
+            //         }else{
+            //             memory[get_float_register(rs1 + 32) + imm] = get_float_register(rs2 + 32);
+            //            //printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
+            //            //printf("memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
+            //         }    
+            //     } 
+                // return pc_operand;
+            case 0x43:
+            {   // la x10 l.8
+                //この場合float_registerの10番目つまりregister[42]に格納する。
+                // offset_bin(12) | rd_bin(5) | 010 | 00000 | 1000011
+                printf("la\n");
+                uint32_t rs1 = (instruction >> 15) & 0x1F;
+                uint32_t offset_bin = (instruction >> 20) & 0xFFF;
+                // float_memory[offset_bin] の値を x(10 + 32)に格納
+                set_float_register( rs1 + 32, float_memory[offset_bin] );
+                pc_operand.pc = 1;
+            } 
+            return pc_operand;
         }
     }
 
 }
 
 void print_register(FILE* output_file){
-    for(int i=0;i<32;i++){
+    for(int i=0;i<NUM_REGISTERS;i++){
         fprintf(output_file, "x%d = %d\n", i, get_register(i));
     }
 }
@@ -509,8 +492,14 @@ void print_register(FILE* output_file){
 void print_register_transition(FILE *transition_file, int pc){
     fprintf(transition_file, "| ");
     fprintf(transition_file, "%2d行|",pc);
-    for (int i = 0; i < NUM_REGISTERS; i++) {
+    float reg42_before = get_float_register(42);
+    //整数レジスタ出力
+    for (int i = 0; i < 32; i++) {
         fprintf(transition_file, "%3d | ", get_register(i));
+    }
+    //floatのレジスタ出力
+    for(int i = 0; i< 32; i++) {
+        fprintf(transition_file, "%3f | ", get_float_register(i+32));
     }
     fprintf(transition_file, "\n");
 }
