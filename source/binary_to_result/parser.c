@@ -409,7 +409,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     // }
 
                     // rdにresultを格納
-                    set_flaot_register(rd, result);
+                    set_float_register(rd, result);
                     pc_operand.pc = pc;
                 }
                 return pc_operand;
