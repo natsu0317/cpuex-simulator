@@ -599,8 +599,10 @@ void parse_assembly(const char* assembly_code){
 
         }
         if(is_c_type(opcode)){
-            if(strcmp(opcode, "csrr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000100010101010");
+            //x10の値をファイルに書き込む
             if(strcmp(opcode, "csrw") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000101000000000010000001010");
+            //sldファイルの値をx10に書き込む
+            if(strcmp(opcode, "csrr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000100010101010");
         }
         //printf("Binary Code: %s\n",inst.binary_code);
         ////printf("before");

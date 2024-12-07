@@ -416,13 +416,16 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 }
                 return pc_operand;
                 
-            case 0x10:  // csrr, csrw
+            case 0xa:  // csrr, csrw
                 {
+                    // printf("csrr/csrw\n");
                     uint32_t func = (instruction >> 10) & 0x7;
+                    //csrw
                     if(func == 1){ // x10の値をファイルに書きこむ
                         double value = get_register(10);
                         fprintf(sld_result_file, "%lf\n", value);
                     }
+                    //csrr
                     if(func == 2){ // x10にsldファイルの内容を書きこむ
                         //sldの中身はとりあえずdoubleと仮定
                         double value = read_next_value_from_file(sld_file);
