@@ -81,9 +81,10 @@ void print_stall(FILE* pipeline_file, int stall_cycle, int total_cycle){
 // 行数 - 1
 int instruction_count = 0;
 
-void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int instruction_length, FILE* transition_file, FILE* pipeline_file) {
+void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int instruction_length, FILE* transition_file, FILE* pipeline_file, FILE* sld_file, FILE* sld_result_file) {
     int current_line = 1; // assembly codeの行数に対応
     int total_cycles = 1;
+
     while (current_line < instruction_length) {   
         printf("pipeline start\n");
         printf("行数：%d\n",current_line); 
@@ -94,7 +95,7 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         }
         int pc = 0;
         Pc_operand pc_opcode_operand1;
-        pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, 1, current_line - 1);
+        pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, 1, current_line - 1, sld_file, sld_result_file);
         pc = pc_opcode_operand1.pc;
         int opcode = pc_opcode_operand1.opcode;//1 = sw / lw, 2 = 分岐命令
         int operand2 = pc_opcode_operand1.operand2;
@@ -235,10 +236,24 @@ int main(){
         perror("Error opening transition file");
         return 1;
     }
+
+    FILE *sld_file = fopen("../cpuex-v1.6/server/formatted_sld_data.txt","r");
+    if (sld_file == NULL) {
+        perror("Error opening sld file");
+        return 1;
+    }
+
+    //x10の値が格納
+    FILE *sld_result_file = fopen("sld_result.txt","w");
+    if (sld_result_file == NULL) {
+        perror("Error opening sld_result file");
+        return 1;
+    }
     
-    execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, pipeline_file);
+    execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, pipeline_file, sld_file, sld_result_file);
     
     fclose(transition_file);
+    fclose(sld_file);
 
     return 0;
 }
