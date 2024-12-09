@@ -131,6 +131,26 @@ char* get_register_binary(const char* reg) {
     return binary;
 }
 
+
+char* get_float_register_binary(const char* reg) {
+    char* binary = (char*)malloc(6*sizeof(char));
+    if(binary == NULL){
+        return NULL;
+    } 
+    int reg_num;
+    if (sscanf(reg, "f%d", &reg_num) != 1 || reg_num < 0 || reg_num > 31) {
+        free(binary);
+        return "00000"; 
+    }
+    // 2進数に変換する
+    for (int i = 4; i >= 0; --i) {
+        binary[i] = (reg_num % 2) + '0';
+        reg_num /= 2;
+    }
+    binary[5] = '\0'; // 終端文字を追加
+    return binary;
+}
+
 // intをbinaryに
 char* int_to_binary(int value){
     ////printf("value: %d\n",value);
@@ -488,7 +508,7 @@ void parse_assembly(const char* assembly_code){
             snprintf(inst.binary_code, sizeof(inst.binary_code), "%s%s%s010%s%s", bit11_5, rd_bin, r1_bin, bit4_0, opcode_bin);
         }
         if(is_b_type(opcode)){
-            //printf("b_type\n");
+            printf("b_type\n");
             //offsetを求める
             int current_line = instruction_count;
             const char* label_name = operand3;
@@ -603,9 +623,10 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "csrw") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000101000000000010000001010");
             //sldファイルの値をx10に書き込む
             if(strcmp(opcode, "csrr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000100010101010");
+
         }
         //printf("Binary Code: %s\n",inst.binary_code);
-        ////printf("before");
+        // printf("before");
         instruction_count++;
         ////printf("after_instruction_count");
         binary_instructions[binary_instruction_count++] = inst;
