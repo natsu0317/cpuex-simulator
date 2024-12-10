@@ -162,6 +162,7 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         printf("current_line:159 %d\n",current_line);
         total_cycles++;
     }
+    printf("%d\n",total_cycles);
 }
 
 void print_pipeline_state(char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int current_line){
@@ -177,7 +178,7 @@ int main(){
     char assembly_code[MAX_ASSEMBLY_SIZE];
     char assembly_instructions[MAX_INSTRUCTIONS][MAX_INSTRUCTION_LENGTH];
 
-    file = fopen("assembly.txt","r");
+    file = fopen("./document/assembly.txt","r");
     if(file == NULL){
         perror("Error opening file");
         return 1;
@@ -191,7 +192,7 @@ int main(){
     }
     assembly_code[read_size] = '\0';
     fclose(file);
-    printf("assmbly_code:%s\n",assembly_code);
+    // printf("assmbly_code:%s\n",assembly_code);
 
     //assmblyをbinaryに変換
     remove_comments(assembly_code);
@@ -208,7 +209,7 @@ int main(){
     printf("count:%d\n",instruction_count);
 
     //binary codeはbinary.txtにoutput
-    FILE *output_file = fopen("binary.txt","w");    
+    FILE *output_file = fopen("./document/binary.txt","w");    
     if (output_file == NULL) {
         perror("Error opening file");
         return 1;
@@ -221,7 +222,7 @@ int main(){
     //printf("assembly_code:%20s",assembly_instructions[assembly_count]);
 
     //register遷移
-    FILE *transition_file = fopen("transition.md", "w");
+    FILE *transition_file = fopen("./document/transition.md", "w");
     if (transition_file == NULL) {
         perror("Error opening transition file");
         return 1;
@@ -231,7 +232,7 @@ int main(){
 
     //pipeline
     //binary codeを受け取ってpipelineにする
-    FILE *pipeline_file = fopen("pipeline.txt","w");
+    FILE *pipeline_file = fopen("./document/pipeline.txt","w");
     if (pipeline_file == NULL) {
         perror("Error opening transition file");
         return 1;
@@ -244,7 +245,7 @@ int main(){
     }
 
     //x10の値が格納
-    FILE *sld_result_file = fopen("sld_result.txt","w");
+    FILE *sld_result_file = fopen("./document/sld_result.txt","w");
     if (sld_result_file == NULL) {
         perror("Error opening sld_result file");
         return 1;
