@@ -383,10 +383,10 @@ void parse_assembly(const char* assembly_code){
         memset(operand1, 0, sizeof(operand1));
         memset(operand2, 0, sizeof(operand2));
         memset(operand3, 0, sizeof(operand3));
-        //printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
+        // printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
         // カンマと空白を区切り文字として扱う
         sscanf(token, "%s %[^,], %[^,], %s", opcode, operand1, operand2, operand3);
-        //printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
+        // printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
 
         // 疑似命令に対応(mv, li, ret, j)
         if(strcmp(opcode, "mv") == 0){
@@ -415,12 +415,12 @@ void parse_assembly(const char* assembly_code){
         convert_registerset_to_x(operand1);
         convert_registerset_to_x(operand2);
         convert_registerset_to_x(operand3);
-        //printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);     
+        // printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);     
 
         const char* opcode_bin = get_opcode_binary(opcode);//opcodeを生成 add -> r_type -> 0001
         char* rd_bin = get_register_binary(operand1); 
         int not_rd_free = 0;
-        if(strchr(operand1, '(')){
+        if(!strchr(operand1, 'x')){
             //0ならfree
             not_rd_free = 1;
         }
@@ -545,14 +545,14 @@ void parse_assembly(const char* assembly_code){
             //printf("end");
         }
         if(is_j_type(opcode)){
-           //printf("j_type\n");
+           printf("j_type\n");
             //offsetを求める
             int current_line = instruction_count;
-            const char* label_name = operand2;
-            //print("label_name 528 : %s\n",label_name);
+            const char* label_name = operand1;
+            // printf("label_name 528 : %s\n",label_name);
            //printf("label: %s\n",label_name);
             int offset = calculate_offset(assembly_code,label_name,current_line);
-           //printf("offset 325  %d\n",offset);
+        //    printf("offset 325  %d\n",offset);
             char offset_str[20];
             snprintf(offset_str,sizeof(offset_str),"%d",offset);
             r1_bin = get_immediate_binary(offset_str);
