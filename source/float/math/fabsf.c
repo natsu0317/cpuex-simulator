@@ -5,6 +5,6 @@
 #include <math.h>
 #include <float.h>
 
-float abs(float x){
-    return fsgnjs(x,x);
+float fabsf(float x){
+    return fsgnjx(x,x);
 }
