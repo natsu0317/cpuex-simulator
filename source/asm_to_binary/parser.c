@@ -26,7 +26,7 @@ double float_memory[256]; //メモリに浮動小数点の値を格納
 // ret = jalr x0, x1, 0
 
 const char* r_type_opcodes[] = {"add", "sub", "and", "or", "xor", NULL};
-const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori", NULL};
+const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori", "slli", NULL};
 const char* s_type_opcodes[] = {"sw", NULL};
 const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL};
 const char* u_type_opcodes[] = {"lui", NULL};
@@ -514,6 +514,7 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "andi") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s111%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
             if(strcmp(opcode, "ori") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s110%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
             if(strcmp(opcode, "xori") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s100%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
+            if(strcmp(opcode, "slli") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code), "%s0%s001%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
         }
         if (is_s_type(opcode)) {
             const char *op_start = operand2; //x0(0)

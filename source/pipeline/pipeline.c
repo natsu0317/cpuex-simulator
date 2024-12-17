@@ -185,7 +185,7 @@ void print_instruction_count(FILE* instruction_statics_file) {
 
     // I型命令のカウント
     fprintf( instruction_statics_file, "\nI-type Instruction Counts:\n");
-    fprintf( instruction_statics_file, "addi: %d, andi: %d, ori: %d, xori: %d\n",
+    fprintf( instruction_statics_file, "addi: %d, andi: %d, ori: %d, xori: %d, slli:%d\n",
            counter.i_type[0], counter.i_type[1], counter.i_type[2], counter.i_type[3]);
 
     // S型命令のカウント

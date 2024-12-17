@@ -164,6 +164,10 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                             set_register(rd, get_register(rs1) ^ imm);
                             counter.i_type[3]++;
                            printf("xori: x%d, x%d, %d\n", rd, rs1, imm);
+                        } else if (funct3 == 0x1){ // rd = rs1 << imm
+                            counter.i_type[4]++;
+                            set_register(rd, get_register(rs1) << imm);
+                           printf("slli: x%d, x%d, %d\n", rd, rs1, imm);
                         }
                     }else if(minus == 1){
                         if (funct3 == 0) {  // addi命令

@@ -10,7 +10,7 @@ typedef struct{
 }Pc_operand;
 typedef struct{
     int r_type[5]; // R型命令: {"add", "sub", "and", "or", "xor"}
-    int i_type[4]; // I型命令: {"addi", "andi", "ori", "xori"}
+    int i_type[5]; // I型命令: {"addi", "andi", "ori", "xori", "slli"}
     int s_type[1]; // S型命令: {"sw"}
     int b_type[6]; // B型命令: {"beq", "bne", "blt", "bge", "bltu", "bgeu"}
     int u_type[1]; // U型命令: {"lui"}
