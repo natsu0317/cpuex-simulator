@@ -66,6 +66,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
     Pc_operand pc_operand;
     pc_operand.opcode = 0;
     pc_operand.pc = 1;
+    printf("current_line:%d",current_line);
     for(int pc=0; pc<num_instructions; pc++){
         // pcは常に0
 
@@ -287,7 +288,16 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 }
                 return pc_operand;
 
-            case 0x6:  // J形式命令 (例: "jal")
+            case 0x6: //auipc {upimm, 12'b0} + pc
+                {
+                    uint32_t rd = (instruction >> 4) & 0x3F;
+                    uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
+                    uint32_t value = bit31_12 << 12;
+                    value = value + current_line;
+                    set_register(rd,value);
+                }
+
+            case 0x7:  // J形式命令 (例: "jal")
                 {
                     //printf("%x\n",instruction);
                     uint32_t bit20 = (instruction >> 31) & 0x1;
@@ -320,7 +330,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 }
                 return pc_operand;
                 
-            case 0x7:  // I形式命令 ("jalr")
+            case 0x8:  // I形式命令 ("jalr")
                 {   
                    //printf("i_type (jalr)");
                     uint32_t rd = (instruction >> 4) & 0x3F;
@@ -361,7 +371,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 pc_operand.pc = pc;
                 return pc_operand;
 
-            case 0x8:  // lw  x[rd] = mem[x[r1] + offset]
+            case 0x9:  // lw  x[rd] = mem[x[r1] + offset]
                 {
                    //printf("lw");
                     uint32_t rs1 = (instruction >> 13) & 0x3F;
@@ -386,7 +396,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 }   
                 return pc_operand;
             
-            case 0x9:   //fadd,fsub,fmul,fdiv
+            case 0xa:   //fadd,fsub,fmul,fdiv
                 {   
                     //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv, 10:finv, 11: fsqrt
                    //printf("f形式");
@@ -422,7 +432,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 }
                 return pc_operand;
                 
-            case 0xa:  // csrr, csrw
+            case 0xb:  // csrr, csrw
                 {
                      printf("csrr/csrw\n");
                     uint32_t func = (instruction >> 10) & 0x7;
