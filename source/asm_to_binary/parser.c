@@ -357,46 +357,46 @@ void parse_assembly(const char* assembly_code){
 
     while (token != NULL){
         printf("token:%s\n",token);
-        if (strstr(token, "l.") != NULL && strchr(token, ':') != NULL){
-            // "l.x:" の形式からインデックスを取得
-            char* label_start = strstr(token, "l.") + 2;  // "l."の後を指す
-            int index = 0;
-            while (*label_start >= '0' && *label_start <= '9') {
-                index = index * 10 + (*label_start - '0');
-                label_start++;
-            }
-            printf("Parsed index: %d\n", index);
-            // 次の2行の.longを処理
-            uint32_t long_values[2] = {0};
-            for (int i = 0; i < 2; i++) {
-                token = strtok(NULL, delimiter);
-                if (token == NULL || strstr(token, ".long") == NULL) {
-                    printf("Missing .long value.\n");
-                    break;
-                }
-                char *long_str = strstr(token, ".long");
-                if (long_str) {
-                    long_str += 5; // ".long"の後の部分に移動
-                    while (*long_str == ' ' || *long_str == '\t') {
-                        long_str++; // 空白やタブをスキップ
-                    }
-                    long_values[i] = strtoul(long_str, NULL, 0);
-                    printf("Parsed .long value: 0x%x\n", long_values[i]);
-                }
-            }
+        // if (strstr(token, "l.") != NULL && strchr(token, ':') != NULL){
+        //     // "l.x:" の形式からインデックスを取得
+        //     char* label_start = strstr(token, "l.") + 2;  // "l."の後を指す
+        //     int index = 0;
+        //     while (*label_start >= '0' && *label_start <= '9') {
+        //         index = index * 10 + (*label_start - '0');
+        //         label_start++;
+        //     }
+        //     printf("Parsed index: %d\n", index);
+        //     // 次の2行の.longを処理
+        //     uint32_t long_values[2] = {0};
+        //     for (int i = 0; i < 2; i++) {
+        //         token = strtok(NULL, delimiter);
+        //         if (token == NULL || strstr(token, ".long") == NULL) {
+        //             printf("Missing .long value.\n");
+        //             break;
+        //         }
+        //         char *long_str = strstr(token, ".long");
+        //         if (long_str) {
+        //             long_str += 5; // ".long"の後の部分に移動
+        //             while (*long_str == ' ' || *long_str == '\t') {
+        //                 long_str++; // 空白やタブをスキップ
+        //             }
+        //             long_values[i] = strtoul(long_str, NULL, 0);
+        //             printf("Parsed .long value: 0x%x\n", long_values[i]);
+        //         }
+        //     }
 
-            // 2つのuint32_tを1つのuint64_tに結合
-            uint64_t combined_value = ((uint64_t)long_values[1] << 32) | long_values[0];
-            printf("Combined uint64_t value: 0x%llx\n", (unsigned long long)combined_value);
+        //     // 2つのuint32_tを1つのuint64_tに結合
+        //     uint64_t combined_value = ((uint64_t)long_values[1] << 32) | long_values[0];
+        //     printf("Combined uint64_t value: 0x%llx\n", (unsigned long long)combined_value);
 
-            // 64bitの値をdoubleに変換
-            double result;
-            memcpy(&result, &combined_value, sizeof(double));
-            float_memory[index] = result;
-            printf("Stored %f in memory[%d]\n", float_memory[index],index);
-            token = strtok(NULL, delimiter);
-            continue;
-        }
+        //     // 64bitの値をdoubleに変換
+        //     double result;
+        //     memcpy(&result, &combined_value, sizeof(double));
+        //     float_memory[index] = result;
+        //     printf("Stored %f in memory[%d]\n", float_memory[index],index);
+        //     token = strtok(NULL, delimiter);
+        //     continue;
+        // }
         //labelの部分は0000...0で出力するようになっている
         if (strchr(token, ':') != NULL ||
             strstr(token, ".globl") != NULL){
