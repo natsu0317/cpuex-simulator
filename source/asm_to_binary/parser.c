@@ -506,7 +506,7 @@ void parse_assembly(const char* assembly_code){
             get_substring(offset_bin, bit11_5, strlen(offset_bin) - 12, 7);
             get_substring(offset_bin, bit4_0, strlen(offset_bin) - 5, 5);
 
-            snprintf(inst.binary_code, sizeof(inst.binary_code), "%s0%s%s010%s%s", bit11_5, rd_bin, r1_bin, bit4_0, opcode_bin);
+            snprintf(inst.binary_code, sizeof(inst.binary_code), "%s%s%s0100%s%s", bit11_5, rd_bin, r1_bin, bit4_0, opcode_bin);
         }
         if(is_b_type(opcode)){
             printf("b_type\n");
@@ -531,12 +531,12 @@ void parse_assembly(const char* assembly_code){
             get_substring(r2_bin,bit11,strlen(r2_bin)-12,1);
             snprintf(imm_2, 6, "%s%s", bit4_1, bit11); // 4:
 
-            if(strcmp(opcode, "beq") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s%s000%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
-            if(strcmp(opcode, "bne") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s%s001%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
-            if(strcmp(opcode, "blt") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s%s100%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
-            if(strcmp(opcode, "bge") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s%s101%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
-            if(strcmp(opcode, "bltu") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s%s110%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
-            if(strcmp(opcode, "bgeu") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s%s111%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
+            if(strcmp(opcode, "beq") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s0000%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
+            if(strcmp(opcode, "bne") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s0010%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
+            if(strcmp(opcode, "blt") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s1000%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
+            if(strcmp(opcode, "bge") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s1010%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
+            if(strcmp(opcode, "bltu") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s1100%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
+            if(strcmp(opcode, "bgeu") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s%s%s1110%s%s", imm_1, r1_bin, rd_bin, imm_2, opcode_bin);
             //printf("end");
         }
         if(is_u_type(opcode)){

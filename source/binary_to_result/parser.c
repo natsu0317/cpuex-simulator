@@ -165,8 +165,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
 
             case 0x3:{   // sw mem[x[r1] + offset] = x[r2]
                     //printf("sw");
-                    uint32_t rs1 = (instruction >> 12) & 0x3F;
-                    uint32_t rs2 = (instruction >> 18) & 0x3F;
+                    uint32_t rs1 = (instruction >> 13) & 0x3F;
+                    uint32_t rs2 = (instruction >> 19) & 0x3F;
                     uint32_t sw_offset_11_5 = (instruction >> 25) & 0x8F;
                     uint32_t sw_offset_4_0 = (instruction >> 4) & 0x1F;
                     uint32_t imm = 0;
@@ -193,9 +193,9 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
             case 0x4:  // B形式命令 (例: "beq", "bne", "blt", "bge")
                 {
                     printf("b_type\n");
-                    uint32_t funct3 = (instruction >> 9) & 0x7;
-                    uint32_t rs1 = (instruction >> 12) & 0x3F;
-                    uint32_t rs2 = (instruction >> 18) & 0x3F;
+                    uint32_t funct3 = (instruction >> 10) & 0x7;
+                    uint32_t rs1 = (instruction >> 13) & 0x3F;
+                    uint32_t rs2 = (instruction >> 19) & 0x3F;
                     uint32_t bit12 = (instruction >> 31) & 0x1;
                     uint32_t bit10_5 = (instruction >> 25) & 0x3F;
                     uint32_t bit4_1 = (instruction >> 5) & 0xF;
