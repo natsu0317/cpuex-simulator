@@ -196,11 +196,11 @@ bool is_float(const char* str){
 
 // 即値をバイナリに変換
 char* get_immediate_binary(const char* imm) {
-    printf("get_immediate_binary\n");
+    // printf("get_immediate_binary\n");
     
     // "0x"で始まるかどうかを確認
     if (strncmp(imm, "0x", 2) == 0) {
-        printf("imm: %s\n", imm);
+        // printf("imm: %s\n", imm);
         unsigned int number = (unsigned int)strtol(imm, NULL, 16);
 
         // 最上位2ビットをクリアして"01"に設定
@@ -210,7 +210,7 @@ char* get_immediate_binary(const char* imm) {
         // バイナリ文字列への変換
         char *binary_str = malloc(33); // 32ビット + 終端文字
         if (!binary_str) {
-            fprintf(stderr, "Memory allocation failed\n");
+            // fprintf(stderr, "Memory allocation failed\n");
             exit(1);
         }
 
@@ -219,10 +219,10 @@ char* get_immediate_binary(const char* imm) {
         }
         binary_str[32] = '\0'; // 終端文字を追加
 
-        printf("binary_str: %s\n", binary_str);
+        // printf("binary_str: %s\n", binary_str);
         return binary_str;
     }
-    printf("imm: %s\n",imm);
+    // printf("imm: %s\n",imm);
     if (is_float(imm)){
         float imm_value = atof(imm);
         return float_to_binary(imm_value);
@@ -357,46 +357,6 @@ void parse_assembly(const char* assembly_code){
 
     while (token != NULL){
         printf("token:%s\n",token);
-        // if (strstr(token, "l.") != NULL && strchr(token, ':') != NULL){
-        //     // "l.x:" の形式からインデックスを取得
-        //     char* label_start = strstr(token, "l.") + 2;  // "l."の後を指す
-        //     int index = 0;
-        //     while (*label_start >= '0' && *label_start <= '9') {
-        //         index = index * 10 + (*label_start - '0');
-        //         label_start++;
-        //     }
-        //     printf("Parsed index: %d\n", index);
-        //     // 次の2行の.longを処理
-        //     uint32_t long_values[2] = {0};
-        //     for (int i = 0; i < 2; i++) {
-        //         token = strtok(NULL, delimiter);
-        //         if (token == NULL || strstr(token, ".long") == NULL) {
-        //             printf("Missing .long value.\n");
-        //             break;
-        //         }
-        //         char *long_str = strstr(token, ".long");
-        //         if (long_str) {
-        //             long_str += 5; // ".long"の後の部分に移動
-        //             while (*long_str == ' ' || *long_str == '\t') {
-        //                 long_str++; // 空白やタブをスキップ
-        //             }
-        //             long_values[i] = strtoul(long_str, NULL, 0);
-        //             printf("Parsed .long value: 0x%x\n", long_values[i]);
-        //         }
-        //     }
-
-        //     // 2つのuint32_tを1つのuint64_tに結合
-        //     uint64_t combined_value = ((uint64_t)long_values[1] << 32) | long_values[0];
-        //     printf("Combined uint64_t value: 0x%llx\n", (unsigned long long)combined_value);
-
-        //     // 64bitの値をdoubleに変換
-        //     double result;
-        //     memcpy(&result, &combined_value, sizeof(double));
-        //     float_memory[index] = result;
-        //     printf("Stored %f in memory[%d]\n", float_memory[index],index);
-        //     token = strtok(NULL, delimiter);
-        //     continue;
-        // }
         //labelの部分は0000...0で出力するようになっている
         if (strchr(token, ':') != NULL ||
             strstr(token, ".globl") != NULL){
@@ -496,6 +456,32 @@ void parse_assembly(const char* assembly_code){
         //printf("%d,%d,%d,%d\n",need_free_imm_1,need_free_imm_2,need_free_reg_1,need_free_reg_2);
 
         BinaryInstruction inst;
+
+        if(strcmp(opcode, "la") == 0){
+            printf("aerw\n");
+            // la rd, symbolを変換すると下2行に対応
+            // auipc rd, symbol(31:12)
+            // addi rd, rd, symbol(11:0)
+            int current_line = instruction_count;
+            const char* label_name = operand2;
+            int offset = calculate_offset(assembly_code,label_name,current_line);
+            printf("offset:%d\n",offset);
+            char offset_str[32];
+            // printf("offset:%d\n",offset);
+            snprintf(offset_str,sizeof(offset_str),"%d",offset);
+            r1_bin = get_immediate_binary(offset_str);
+            char bit31_12[21];
+            get_substring(r1_bin, bit31_12, strlen(r1_bin)-32, 20);
+            printf("bit31_12:%s\n",bit31_12);
+            printf("%s00%s0110\n", bit31_12, rd_bin);
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0110", bit31_12, rd_bin);
+            instruction_count++;
+            binary_instructions[binary_instruction_count++] = inst;
+            char bit11_0[13];
+            get_substring(r1_bin, bit11_0, strlen(r1_bin)-12, 12);
+            printf("bit11_0:%s\n",bit11_0);
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s0010", bit11_0, rd_bin, rd_bin);
+        }
 
         if(is_r_type(opcode)){
             //printf("r_type\n");
