@@ -283,7 +283,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     //printf("u_type/n");
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
-                    uint32_t value = bit31_12 << 12;
+                    uint32_t value = bit31_12 << 12; //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
                     set_register(rd,value);
                 }
                 return pc_operand;
@@ -292,8 +292,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 {
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
-                    uint32_t value = bit31_12 << 12;
-                    value = value + current_line;
+                    uint32_t value = bit31_12 << 12; //これも4で割るべきかも？ それか下のcurrent_lineを4倍する
+                    value = value + current_line; 
                     set_register(rd,value);
                 }
 
