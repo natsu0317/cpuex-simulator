@@ -588,7 +588,7 @@ void parse_assembly(const char* assembly_code){
         if(is_aui_type(opcode)){
             //auipc
             char bit31_12[21];
-            get_substring(r2_bin, bit31_12, strlen(r2_bin)-32, 20);
+            get_substring(r1_bin, bit31_12, strlen(r1_bin)-32, 20);
             if(strcmp(opcode, "auipc") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s%s", bit31_12, rd_bin, opcode_bin);
         }
         if(is_j_type(opcode)){
