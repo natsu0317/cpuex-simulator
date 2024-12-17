@@ -315,7 +315,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
                     uint32_t value = bit31_12 << 12; //これも4で割るべきかも？ それか下のcurrent_lineを4倍する
-                    value = value + current_line; 
+                    value = value + current_line * 4; 
                     set_register(rd,value);
                     counter.aui_type[0]++;
                 }
