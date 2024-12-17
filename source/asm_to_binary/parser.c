@@ -196,7 +196,33 @@ bool is_float(const char* str){
 
 // 即値をバイナリに変換
 char* get_immediate_binary(const char* imm) {
-    //printf("imm: %s\n",imm);
+    printf("get_immediate_binary\n");
+    
+    // "0x"で始まるかどうかを確認
+    if (strncmp(imm, "0x", 2) == 0) {
+        printf("imm: %s\n", imm);
+        unsigned int number = (unsigned int)strtol(imm, NULL, 16);
+
+        // 最上位2ビットをクリアして"01"に設定
+        number &= ~(3 << 30); // 最上位2ビットをクリア
+        number |= (1 << 30);  // 最上位2ビットを"01"に設定
+
+        // バイナリ文字列への変換
+        char *binary_str = malloc(33); // 32ビット + 終端文字
+        if (!binary_str) {
+            fprintf(stderr, "Memory allocation failed\n");
+            exit(1);
+        }
+
+        for (int i = 31; i >= 0; i--) {
+            binary_str[31 - i] = (number & (1 << i)) ? '1' : '0';
+        }
+        binary_str[32] = '\0'; // 終端文字を追加
+
+        printf("binary_str: %s\n", binary_str);
+        return binary_str;
+    }
+    printf("imm: %s\n",imm);
     if (is_float(imm)){
         float imm_value = atof(imm);
         return float_to_binary(imm_value);
@@ -284,6 +310,10 @@ void change(char *operand, const char *register_name, const char *x_register_nam
     }
 }
 void convert_registerset_to_x(char *operand){
+    // "0x"で始まるかどうかを確認
+    if (strncmp(operand, "0x", 2) == 0) {
+        return; // "0x"で始まる場合は何もせずに戻る
+    }
     change(operand, "%eax", "x10");
     change(operand, "%ebx", "x19");
     change(operand, "%ecx", "x11");
@@ -313,7 +343,7 @@ void convert_registerset_to_x(char *operand){
         char reg_name[4];
         char x_reg_name[4];
         sprintf(reg_name, "f%d", i);
-        sprintf(x_reg_name, "x%d", 32 + i);
+        sprintf(x_reg_name, "x%d", 31 + i);
         change(operand, reg_name, x_reg_name);
     } 
 }
@@ -385,7 +415,7 @@ void parse_assembly(const char* assembly_code){
             token = strtok(NULL,delimiter);
             continue;
         }
-        char opcode[16],operand1[32],operand2[32],operand3[32];
+        char opcode[16],operand1[32],operand2[64],operand3[32];
         memset(opcode, 0, sizeof(opcode));
         memset(operand1, 0, sizeof(operand1));
         memset(operand2, 0, sizeof(operand2));
@@ -422,7 +452,7 @@ void parse_assembly(const char* assembly_code){
         convert_registerset_to_x(operand1);
         convert_registerset_to_x(operand2);
         convert_registerset_to_x(operand3);
-        // printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);     
+        printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);     
 
         const char* opcode_bin = get_opcode_binary(opcode);//opcodeを生成 add -> r_type -> 0001
         char* rd_bin = get_register_binary(operand1); 
@@ -439,9 +469,10 @@ void parse_assembly(const char* assembly_code){
             r1_bin = get_register_binary(operand2);
             need_free_reg_1 = 1;
         }else if(operand2[0] != '\0'){
+            printf("operand2:%s\n",operand2);
             if(strcmp(opcode, "sw") == 0 || strcmp(opcode, "lw") == 0){
             } else {
-                //printf("need_free_imm_1\n");
+                // printf("need_free_imm_1\n");
                 r1_bin = get_immediate_binary(operand2);
                 need_free_imm_1 = 1;
             }
@@ -546,10 +577,11 @@ void parse_assembly(const char* assembly_code){
             //printf("end");
         }
         if(is_u_type(opcode)){
-            //printf("u_type\n");
+            printf("u_type\n");
             //lui rd upimm
+            printf("r1_bin:%s\n",r1_bin);
             char bit31_12[21];
-            get_substring(r2_bin, bit31_12, strlen(r2_bin)-32, 20);
+            get_substring(r1_bin, bit31_12, strlen(r1_bin)-32, 20);
             if(strcmp(opcode, "lui") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s%s", bit31_12, rd_bin, opcode_bin);
             //printf("end");
         }
@@ -645,7 +677,7 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "csrr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000100010101011");
 
         }
-        //printf("Binary Code: %s\n",inst.binary_code);
+        printf("Binary Code: %s\n",inst.binary_code);
         // printf("before");
         instruction_count++;
         ////printf("after_instruction_count");
