@@ -30,6 +30,7 @@ const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori", NULL};
 const char* s_type_opcodes[] = {"sw", NULL};
 const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL};
 const char* u_type_opcodes[] = {"lui", NULL};
+const char* aui_type_opcodes[] = {"auipc", NULL};
 const char* j_type_opcodes[] = {"jal", NULL};
 const char* jalr_type_opcodes[] = {"jalr", NULL};
 const char* lw_type_opcodes[] = {"lw", NULL};
@@ -61,6 +62,9 @@ int is_b_type(const char* opcode){
 }
 int is_u_type(const char* opcode){
     return is_opcode_type(opcode,u_type_opcodes);
+}
+int is_aui_type(const char* opcode){
+    return is_opcode_type(opcode,aui_type_opcodes);
 }
 int is_j_type(const char* opcode){
     return is_opcode_type(opcode,j_type_opcodes);
@@ -96,18 +100,20 @@ const char* get_opcode_binary(const char* opcode){
     //U
     //imm[31:12] | rd | opcode
     if(is_u_type(opcode)) return "0101";
+    //AUIPC
+    if(is_aui_type(opcode)) return "0110";
     //J : JAL
     //imm[20|10:1|11|19:12] | rd | opcode
-    if(is_j_type(opcode)) return "0110";
+    if(is_j_type(opcode)) return "0111";
     //JALR: jalr
-    if(is_jalr_type(opcode)) return "0111";
+    if(is_jalr_type(opcode)) return "1000";
     //lw
-    if(is_lw_type(opcode)) return "1000";
+    if(is_lw_type(opcode)) return "1001";
     //F
     // opcode | rs2 | rs1 | rm | rd | 1010011
-    if(is_f_type(opcode)) return "1001";
+    if(is_f_type(opcode)) return "1010";
     //c
-    if(is_c_type(opcode)) return "1010";
+    if(is_c_type(opcode)) return "1011";
     //FINISH
     if(strcmp(opcode,"finish") == 0) return "1111111";
 }
@@ -546,6 +552,12 @@ void parse_assembly(const char* assembly_code){
             get_substring(r2_bin, bit31_12, strlen(r2_bin)-32, 20);
             if(strcmp(opcode, "lui") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s%s", bit31_12, rd_bin, opcode_bin);
             //printf("end");
+        }
+        if(is_aui_type(opcode)){
+            //auipc
+            char bit31_12[21];
+            get_substring(r2_bin, bit31_12, strlen(r2_bin)-32, 20);
+            if(strcmp(opcode, "auipc") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s%s", bit31_12, rd_bin, opcode_bin);
         }
         if(is_j_type(opcode)){
            printf("j_type\n");
