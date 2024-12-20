@@ -162,6 +162,7 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         printf("current_line:159 %d\n",current_line);
         total_cycles++;
     }
+    printf("合計命令数: %d\n",total_cycles);
 }
 
 void print_pipeline_state(char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int current_line){
@@ -171,13 +172,71 @@ void print_pipeline_state(char assembly_instructions[][MAX_INSTRUCTION_LENGTH], 
     int total_cycles = current_line + PIPELINE_STAGES;
 }
 
+InstructionCounter counter = {0};
+
+void print_instruction_count(FILE* instruction_statics_file) {
+    fprintf( instruction_statics_file, "\n=== Instruction Counts ===\n");
+
+    // R型命令のカウント
+    fprintf( instruction_statics_file, "\nR-type Instruction Counts:\n");
+    fprintf( instruction_statics_file, "add: %d, sub: %d, and: %d, or: %d, xor: %d\n",
+           counter.r_type[0], counter.r_type[1], counter.r_type[2],
+           counter.r_type[3], counter.r_type[4]);
+
+    // I型命令のカウント
+    fprintf( instruction_statics_file, "\nI-type Instruction Counts:\n");
+    fprintf( instruction_statics_file, "addi: %d, andi: %d, ori: %d, xori: %d, slli:%d\n",
+           counter.i_type[0], counter.i_type[1], counter.i_type[2], counter.i_type[3]);
+
+    // S型命令のカウント
+    fprintf( instruction_statics_file, "\nS-type Instruction Counts:\n");
+    fprintf( instruction_statics_file, "sw: %d\n", counter.s_type[0]);
+
+    // B型命令のカウント
+    fprintf( instruction_statics_file, "\nB-type Instruction Counts:\n");
+    fprintf( instruction_statics_file, "beq: %d, bne: %d, blt: %d, bge: %d, bltu: %d, bgeu: %d\n",
+           counter.b_type[0], counter.b_type[1], counter.b_type[2],
+           counter.b_type[3], counter.b_type[4], counter.b_type[5]);
+
+    // U型命令のカウント
+    fprintf( instruction_statics_file, "\nU-type Instruction Counts:\n");
+    fprintf( instruction_statics_file, "lui: %d\n", counter.u_type[0]);
+
+    // AUIPC命令のカウント
+    fprintf( instruction_statics_file, "\nAUIPC Instruction Counts:\n");
+    fprintf( instruction_statics_file, "auipc: %d\n", counter.aui_type[0]);
+
+    // J型命令のカウント
+    fprintf( instruction_statics_file, "\nJ-type Instruction Counts:\n");
+    fprintf( instruction_statics_file, "jal: %d\n", counter.j_type[0]);
+
+    // JALR命令のカウント
+    fprintf( instruction_statics_file, "\nJALR Instruction Counts:\n");
+    fprintf( instruction_statics_file, "jalr: %d\n", counter.jalr_type[0]);
+
+    // LW命令のカウント
+    fprintf( instruction_statics_file, "\nLW Instruction Counts:\n");
+    fprintf( instruction_statics_file, "lw: %d\n", counter.lw_type[0]);
+
+    // 浮動小数点命令のカウント
+    fprintf( instruction_statics_file, "\nFloating-point Instruction Counts:\n");
+    fprintf( instruction_statics_file, "fadd: %d, fsub: %d, fmul: %d, fdiv: %d\n",
+           counter.f_type[0], counter.f_type[1], counter.f_type[2], counter.f_type[3]);
+
+    // CSR命令のカウント
+    fprintf( instruction_statics_file, "\nCSR Instruction Counts:\n");
+    fprintf( instruction_statics_file, "csrr: %d, csrw: %d\n", counter.c_type[0], counter.c_type[1]);
+
+    fprintf( instruction_statics_file, "\n===========================\n");
+}
+
 int main(){
     //ファイルからassembly取得
     FILE *file;
     char assembly_code[MAX_ASSEMBLY_SIZE];
     char assembly_instructions[MAX_INSTRUCTIONS][MAX_INSTRUCTION_LENGTH];
 
-    file = fopen("assembly.txt","r");
+    file = fopen("./document/assembly.txt","r");
     if(file == NULL){
         perror("Error opening file");
         return 1;
@@ -191,7 +250,7 @@ int main(){
     }
     assembly_code[read_size] = '\0';
     fclose(file);
-    printf("assmbly_code:%s\n",assembly_code);
+    // printf("assmbly_code:%s\n",assembly_code);
 
     //assmblyをbinaryに変換
     remove_comments(assembly_code);
@@ -208,7 +267,7 @@ int main(){
     printf("count:%d\n",instruction_count);
 
     //binary codeはbinary.txtにoutput
-    FILE *output_file = fopen("binary.txt","w");    
+    FILE *output_file = fopen("./document/binary.txt","w");    
     if (output_file == NULL) {
         perror("Error opening file");
         return 1;
@@ -221,7 +280,7 @@ int main(){
     //printf("assembly_code:%20s",assembly_instructions[assembly_count]);
 
     //register遷移
-    FILE *transition_file = fopen("transition.md", "w");
+    FILE *transition_file = fopen("./document/transition.md", "w");
     if (transition_file == NULL) {
         perror("Error opening transition file");
         return 1;
@@ -231,20 +290,20 @@ int main(){
 
     //pipeline
     //binary codeを受け取ってpipelineにする
-    FILE *pipeline_file = fopen("pipeline.txt","w");
+    FILE *pipeline_file = fopen("./document/pipeline.txt","w");
     if (pipeline_file == NULL) {
         perror("Error opening transition file");
         return 1;
     }
 
-    FILE *sld_file = fopen("../cpuex-v1.6/server/formatted_sld_data.txt","r");
+    FILE *sld_file = fopen("../../cpuex-v1.6/server/formatted_sld_data.txt","r");
     if (sld_file == NULL) {
         perror("Error opening sld file");
         return 1;
     }
 
     //x10の値が格納
-    FILE *sld_result_file = fopen("sld_result.txt","w");
+    FILE *sld_result_file = fopen("./document/sld_result.txt","w");
     if (sld_result_file == NULL) {
         perror("Error opening sld_result file");
         return 1;
@@ -252,6 +311,14 @@ int main(){
     
     execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, pipeline_file, sld_file, sld_result_file);
     
+    FILE *instruction_statics_file = fopen("./document/instruction_statics.txt","w");
+    if (instruction_statics_file == NULL) {
+        perror("Error opening sld_result file");
+        return 1;
+    }
+
+    print_instruction_count(instruction_statics_file);
+
     fclose(transition_file);
     fclose(sld_file);
 
