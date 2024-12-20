@@ -458,7 +458,6 @@ void parse_assembly(const char* assembly_code){
         BinaryInstruction inst;
 
         if(strcmp(opcode, "la") == 0){
-            printf("aerw\n");
             // la rd, symbolを変換すると下2行に対応
             // auipc rd, symbol(31:12)
             // addi rd, rd, symbol(11:0)
