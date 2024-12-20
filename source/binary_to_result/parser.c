@@ -316,6 +316,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
 
             case 0x6: //auipc {upimm, 12'b0} + pc
                 {
+                    printf("auipc");
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
                     uint32_t value = bit31_12 << 12; //これも4で割るべきかも？ それか下のcurrent_lineを4倍する
@@ -323,6 +324,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     set_register(rd,value);
                     counter.aui_type[0]++;
                 }
+                return pc_operand;
 
             case 0x7:  // J形式命令 (例: "jal")
                 {
@@ -343,7 +345,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         imm |= 0xFFE00000;  // 負の値の場合、上位ビットを1で埋める
                     }
                     int next_line = current_line + imm/4;
-                    //printf("imm: %d\n",imm);
+                    printf("imm: %d\n",imm);
                     //printf("jal: x%d, %d\n", rd, imm);
                     printf("jal x%d, %d (PC: %d -> %d)\n", rd, imm, current_line +1, next_line +1);
                     counter.j_type[0]++;
@@ -458,7 +460,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         counter.f_type[4]++;
                     }
                     if(func == 11){
-                        result = fsqrt(a1,a2);
+                        result = fsqrt(a1);
                         counter.f_type[5]++;
                     }
 
