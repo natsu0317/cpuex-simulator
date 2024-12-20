@@ -52,7 +52,7 @@ float fdiv(float a, float b){
     printf("s2: %x, e2: %x, m2: %x\n",s2, e2, m2);
 
     // 片方でも0なら0を返す
-    if ((e1 == 0 && m1 == 0) || (e2 == 0 && m2 == 0)) {
+    if (e1 == 0 && m1 == 0 || e2 == 0 && m2 == 0) {
         return 0.0f;
     }
 
@@ -66,7 +66,7 @@ float fdiv(float a, float b){
     uint32_t e_m = 0x7F;
     init_ab();
     printf("m2_&0x4FFFFF: %x\n",m2 & 0x7FFFFF);
-    uint32_t m2_for_inv_bits = (0 << 31) | (e_m << 23) | (m2 & 0x7FFFFF);
+    uint32_t m2_for_inv_bits = (0 << 31) | (e_m << 23) | m2 & 0x7FFFFF;
     printf("m2_for_inv_bits: %x\n",m2_for_inv_bits);
     float m2_for_inv;
     memcpy(&m2_for_inv, &m2_for_inv_bits, sizeof(m2_for_inv));
@@ -77,8 +77,8 @@ float fdiv(float a, float b){
     memcpy(&m2_inv_bits, &m2_inv, sizeof(m2_inv));
     printf("m2_inv: %f\n",m2_inv);
 
-    uint32_t m1_m = (s1 << 31) | (e_m << 23) | (m1 & 0x7FFFFF);
-    uint32_t m2_m = (s2 << 31) | (e_m << 23) | (m2_inv_bits & 0x7FFFFF);
+    uint32_t m1_m = (s1 << 31) | (e_m << 23) | m1 & 0x7FFFFF;
+    uint32_t m2_m = (s2 << 31) | (e_m << 23) | m2_inv_bits & 0x7FFFFF;
     float m1_m_f, m2_m_f;
     memcpy(&m1_m_f, &m1_m, sizeof(m1_m_f));
     memcpy(&m2_m_f, &m2_m, sizeof(m2_m_f));

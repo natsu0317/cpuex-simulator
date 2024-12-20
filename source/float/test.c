@@ -3,7 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
-#include "math/math_functions.h"
+#include "math/math_function.h"
 
 float fadd(float a, float b);
 float fsub(float a, float b);

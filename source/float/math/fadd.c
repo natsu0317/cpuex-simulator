@@ -23,15 +23,10 @@ float fadd(float a, float b){
 
     //aとbの絶対値の大きさ比較
     int flag; // 0: a>b, 1: b>a
-    int diff_e = 0;// 指数部の差
+    int diff_e = 0; // 指数部の差
 
     uint32_t expand_m(uint32_t m, uint32_t e) {
-        // 非正規化数（指数部が0）の場合はそのまま返す
-        if (e == 0) {
-            return m;
-        }
-        // 正規化数の場合は暗黙の1ビットを追加
-        return m | 0x800000; // 23ビット目に1を追加
+        return (e == 0) ? m : (m | 0x800000);
     }
 
     m1 = expand_m(m1, e1) << 1; //計算で桁数が増減することを考慮(主に引き算)

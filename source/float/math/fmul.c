@@ -17,7 +17,7 @@ float fmul(float a, float b){
     uint32_t m1 = a_bits & 0x7FFFFF;
     uint32_t m2 = b_bits & 0x7FFFFF;
 
-    if((e1 == 0 && m1 == 0) || (e2 == 0 && m2 == 0)){
+    if(e1 == 0 && m1 == 0 || e2 == 0 && m2 == 0){
         return 0.0f;
     }
 

@@ -5,6 +5,8 @@
 #include <math.h>
 #include <float.h>
 
+float fadd(float a, float b);
+
 extern float fsub(float a, float b){
-    return fadd(a, -b);
+    fadd(a, -b);
 }
