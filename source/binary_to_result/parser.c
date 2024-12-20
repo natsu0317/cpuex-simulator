@@ -319,10 +319,20 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     printf("auipc");
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
-                    uint32_t value = bit31_12 << 12; //これも4で割るべきかも？ それか下のcurrent_lineを4倍する
-                    value = value + current_line * 4; 
+                    printf("%x\n",bit31_12);
+                    uint32_t value = (bit31_12 << 12); //これも4で割るべきかも？ それか下のcurrent_lineを4倍する
+                    if(bit31_12 & 0x80000){
+                        //負の値
+                        uint32_t mask = (1 << 32) - 1;
+                        value = ~value & mask;
+                        value = value + 1;
+                    }
+                    printf("value:%d\n",value);
+                    value = value / 4;
+                    value = value + current_line; 
                     set_register(rd,value);
                     counter.aui_type[0]++;
+                    printf("auipc x%d ,%d\n",rd,bit31_12);
                 }
                 return pc_operand;
 
