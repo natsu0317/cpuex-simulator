@@ -305,10 +305,10 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
 
             case 0x5: //lui
                 {
-                    //printf("u_type/n");
+                    printf("u_type/n");
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
-                    uint32_t value = bit31_12 << 12; //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
+                    uint32_t value = bit31_12 << 12 / 4; //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
                     set_register(rd,value);
                     counter.u_type[0]++;
                 }
@@ -446,8 +446,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t r1 = (instruction >> 13) & 0x3F;
                     uint32_t r2 = (instruction >> 19) & 0x3F;
-                    float a1 = get_register(r1);
-                    float a2 = get_register(r2);
+                    float a1 = get_float_register(r1);
+                    float a2 = get_float_register(r2);
                     float result;
                     if(func == 0){
                         result = fadd(a1,a2);
