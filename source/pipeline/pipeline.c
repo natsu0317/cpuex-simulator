@@ -81,7 +81,7 @@ void print_stall(FILE* pipeline_file, int stall_cycle, int total_cycle){
 // 行数 - 1
 int instruction_count = 0;
 
-void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int instruction_length, FILE* transition_file, FILE* float_transition_file, FILE* pipeline_file, FILE* sld_file, FILE* sld_result_file) {
+void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int instruction_length, FILE* transition_file, FILE* float_transition_file, FILE* pipeline_file, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
     int current_line = 1; // assembly codeの行数に対応
     int total_cycles = 1;
 
@@ -95,12 +95,12 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         }
         int pc = 0;
         Pc_operand pc_opcode_operand1;
-        pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, 1, current_line - 1, sld_file, sld_result_file);
+        pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, 1, current_line - 1, sld_file, sld_result_file, memory_file);
         pc = pc_opcode_operand1.pc;
         int opcode = pc_opcode_operand1.opcode;//1 = sw / lw, 2 = 分岐命令
         int operand2 = pc_opcode_operand1.operand2;
         int operand3 = pc_opcode_operand1.operand3;
-        // printf("pc:%d\n",pc);
+        printf("pc:%d\n",pc);
         // printf("operand1:%d\n",pc_opcode_operand1.operand1);
         // printf("opcode:%d\n",pc_opcode_operand1.opcode);//1 = sw / lw, 2 = 分岐命令
 
@@ -159,7 +159,7 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         } else {
             current_line += pc;
         }
-        printf("current_line:159 %d\n",current_line);
+        printf("current_line: %d\n",current_line);
         total_cycles++;
     }
     printf("合計命令数: %d\n",total_cycles);
@@ -185,8 +185,8 @@ void print_instruction_count(FILE* instruction_statics_file) {
 
     // I型命令のカウント
     fprintf( instruction_statics_file, "\nI-type Instruction Counts:\n");
-    fprintf( instruction_statics_file, "addi: %d, andi: %d, ori: %d, xori: %d, slli:%d\n",
-           counter.i_type[0], counter.i_type[1], counter.i_type[2], counter.i_type[3]);
+    fprintf( instruction_statics_file, "addi: %d, andi: %d, ori: %d, xori: %d, slli: %d\n",
+           counter.i_type[0], counter.i_type[1], counter.i_type[2], counter.i_type[3], counter.i_type[4]);
 
     // S型命令のカウント
     fprintf( instruction_statics_file, "\nS-type Instruction Counts:\n");
@@ -310,6 +310,13 @@ int main(){
         return 1;
     }
 
+    //memoryの値の遷移を表示
+    FILE *memory_file = fopen("../../cpuex-v1.6/server/memory_transition.txt","w");
+    if (memory_file == NULL) {
+        perror("Error opening memory file");
+        return 1;
+    }
+
     //x10の値が格納
     FILE *sld_result_file = fopen("./document/sld_result.txt","w");
     if (sld_result_file == NULL) {
@@ -317,7 +324,7 @@ int main(){
         return 1;
     }
     
-    execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, float_transition_file, pipeline_file, sld_file, sld_result_file);
+    execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, float_transition_file, pipeline_file, sld_file, sld_result_file, memory_file);
     
     FILE *instruction_statics_file = fopen("./document/instruction_statics.txt","w");
     if (instruction_statics_file == NULL) {

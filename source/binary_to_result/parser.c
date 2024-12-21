@@ -30,9 +30,12 @@ extern InstructionCounter counter;
 
 // レジスタの値を設定するreg_numは0 ~ 63
 void set_register(int reg_num, double value) {
+    printf("reg_num:%d\n",reg_num);
+    printf("value:%lf\n",value);
     registers[0] = 0; //x0は常に0
     if (reg_num >= 1 && reg_num < NUM_REGISTERS) {
         registers[reg_num] = value;
+        printf("reg_num:x%d = %lf\n",reg_num, value);
     }
 }
 
@@ -64,7 +67,7 @@ uint32_t read_next_value_from_file(FILE *file) {
 }
 
 // バイナリ命令をデコードして処理
-Pc_operand execute_binary_instruction(const char binary_instruction[][33], int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file) {
+Pc_operand execute_binary_instruction(const char binary_instruction[][33], int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
     Pc_operand pc_operand;
     pc_operand.opcode = 0;
     pc_operand.pc = 1;
@@ -201,10 +204,12 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         memory[get_register(rs1) - imm] = get_register(rs2);
                        printf("sw: x%d, -%d(x%d)\n", rs2, imm, rs1);
                        printf("memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
+                       fprintf(memory_file,"memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
                     }else{
                         memory[get_register(rs1) + imm] = get_register(rs2);
                        printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
                        printf("memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
+                       fprintf(memory_file,"memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
                     }    
                 } 
                 return pc_operand;
@@ -396,18 +401,23 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     //printf("funct3:%x\n,opcode:%x\n",funct3,opcode);
 
                     if(minus == 0){//immは正
+                        printf("immが正");
                         printf("jalr: x%d, x%d, %d\n", rd, rs1, imm);
                         pc = get_register(rs1) + imm/4 - current_line - 1;
-                        set_register(rd, pc+1);
-                        //printf("rs1:%d\n",get_register(rs1));
-                        //printf("pc:%d\n",pc);
+                        set_register(rd, get_register(rs1) + imm/4);
+                        printf("rs1:%d\n",get_register(rs1));
+                        printf("pc:%d\n",pc);
+                        printf("rd:x%d = %d\n",rd,get_register(rd));
                     }else if(minus == 1){
                         printf("jalr: x%d, x%d, -%d\n", rd, rs1, imm);
                         pc = get_register(rs1) - imm/4 - current_line - 1;
-                        set_register(rd, pc+1);
+                        set_register(rd, get_register(rs1) - imm/4);
+                        printf("rs1:%d\n",get_register(rs1));
+                        printf("pc:%d\n",pc);
                     }
+                    printf("x1 = %d\n",get_register(1));
                 }
-               //printf("pc:%d\n",pc);
+               printf("pc:%d\n",pc);
                 if(pc == 0){
                     pc = 1;
                 }
@@ -439,6 +449,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                        printf("lw: x%d, %d(x%d)\n", rd, lw_offset, rs1);
                     }
                     printf("memory%dの中に格納されている値:%d\n",get_register(rs1) + lw_offset,lw);
+                    fprintf(memory_file,"memory%dの中に格納されている値:%d\n",get_register(rs1) + lw_offset,lw);
                     set_register(rd,lw);
                 }   
                 return pc_operand;
@@ -515,7 +526,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         set_register(10, value);
                         counter.c_type[0]++;
                     }
-                }   
+                }
                 return pc_operand;
         }
     }

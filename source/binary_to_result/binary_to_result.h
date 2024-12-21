@@ -21,7 +21,7 @@ typedef struct{
     int f_type[4]; // 浮動小数点命令: {"fadd", "fsub", "fmul", "fdiv"}
     int c_type[2]; // CSR命令: {"csrr", "csrw"}
 } InstructionCounter;
-Pc_operand execute_binary_instruction(const char binary_instruction[][33], int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file );
+Pc_operand execute_binary_instruction(const char binary_instruction[][33], int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file, FILE* memory_file );
 extern InstructionCounter counter;
 int result_main();
 void print_register_transition(FILE *transition_file, FILE *float_transition_file, int pc);
