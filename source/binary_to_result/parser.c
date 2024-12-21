@@ -440,6 +440,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
             
             case 0xa:   //fadd,fsub,fmul,fdiv
                 {   
+                    pc_operand.pc = 1;
                     //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv, 10:finv, 11: fsqrt
                    //printf("f形式");
                     uint32_t func = (instruction >> 27) & 0x1F;
@@ -454,32 +455,39 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         printf("result:%f\n",result);
                         printf("fadd x%d x%d\n",r1,r2);
                         printf("result %f + %f = %f\n",a1,a2,result);
+                        set_register(rd, result);
                         counter.f_type[0]++;
                     }
                     if(func == 1){
                         result = fsub(a1,a2);
+                        printf("fsub x%d = x%d - x%d\n",rd, r1,r2);
+                        printf("result %f - %f = %f\n",a1,a2,result);
+                        set_register(rd, result);
                         counter.f_type[1]++;
                     }
                     if(func == 2){
                         result = fmul(a1,a2);
+                        set_register(rd, result);
                         counter.f_type[2]++;
                     }
                     if(func == 3){
                         result = fdiv(a1,a2);
+                        set_register(rd, result);
                         counter.f_type[3]++;
                     }
                     if(func == 10){
                         result = finv(a1,a2);
+                        set_register(rd, result);
                         counter.f_type[4]++;
                     }
                     if(func == 11){
                         result = fsqrt(a1);
+                        set_register(rd, result);
                         counter.f_type[5]++;
                     }
 
                     // rdにresultを格納
                     set_register(rd, result);
-                    pc_operand.pc = pc;
                 }
                 return pc_operand;
                 
@@ -532,7 +540,7 @@ void for_markdown(FILE *transition_file){
     // Markdownの表ヘッダーを出力
     fprintf(transition_file, "| ");
     fprintf(transition_file, "実行命令|");
-    for (int i = 0; i < NUM_REGISTERS; i++) {
+    for (int i = 0; i < 32; i++) {
         fprintf(transition_file, "x%-2d | ", i);
     }
     fprintf(transition_file, "\n|");
