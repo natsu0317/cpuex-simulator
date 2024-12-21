@@ -451,6 +451,9 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     float result;
                     if(func == 0){
                         result = fadd(a1,a2);
+                        printf("result:%f\n",result);
+                        printf("fadd x%d x%d\n",r1,r2);
+                        printf("result %f + %f = %f\n",a1,a2,result);
                         counter.f_type[0]++;
                     }
                     if(func == 1){
@@ -510,16 +513,19 @@ void print_register(FILE* output_file){
     }
 }
 
-void print_register_transition(FILE *transition_file, int pc){
+void print_register_transition(FILE *transition_file, FILE *float_transition_file, int pc){
     fprintf(transition_file, "| ");
-    fprintf(transition_file, "%2d行|",pc);
+    fprintf(transition_file, "%2d行|",pc);    
+    fprintf(float_transition_file, "| ");
+    fprintf(float_transition_file, "%2d行|",pc);
     for(int i = 0; i< 32; i++) {
         fprintf(transition_file, "%3d | ", get_register(i));
     }    
-    // for(int i = 32; i< NUM_REGISTERS; i++) {
-    //     fprintf(transition_file, "%3f | ", get_float_register(i));
-    // }
+    for(int i = 32; i< NUM_REGISTERS; i++) {
+        fprintf(float_transition_file, "%3f | ", get_float_register(i));
+    }
     fprintf(transition_file, "\n");
+    fprintf(float_transition_file, "\n");
 }
 
 void for_markdown(FILE *transition_file){
@@ -581,7 +587,7 @@ int result_main() {
         // pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line], 1, current_line);
         pc = pc_opcode_operand1.pc;
 
-        print_register_transition(transition_file, current_line);
+        // print_register_transition(transition_file, float_transition_file, current_line);
         fflush(transition_file);
         
         if (pc == 1) {
