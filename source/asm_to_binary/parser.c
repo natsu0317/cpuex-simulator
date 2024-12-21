@@ -323,7 +323,7 @@ void convert_registerset_to_x(char *operand){
         char reg_name[4];
         char x_reg_name[4];
         sprintf(reg_name, "f%d", i);
-        sprintf(x_reg_name, "x%d", 31 + i);
+        sprintf(x_reg_name, "x%d", 32 + i);
         change(operand, reg_name, x_reg_name);
     } 
 }
@@ -642,7 +642,7 @@ void parse_assembly(const char* assembly_code){
             snprintf(inst.binary_code, sizeof(inst.binary_code), "%s0%s010%s%s", bit11_0, r1_bin, rd_bin, opcode_bin);
         }
         if(is_f_type(opcode)){
-            //printf("f_type\n");
+            printf("f_type\n");
             //丸めモード: 最近傍
             snprintf(inst.binary_code,sizeof(inst.binary_code),"%s%s%s000%s1010011",opcode_bin,r2_bin,r1_bin,rd_bin);
             if(strcmp(opcode, "fadd") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
