@@ -89,6 +89,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 return pc_operand;
             case 0x1:  // R形式命令 (例:"add", "sub", "and", "or", "xor",)
                 {
+                    printf("r_type\n");
                     uint32_t funct3 = (instruction >>10) & 0x7;
                     uint32_t funct7 = (instruction >> 25) & 0x7F;
                     uint32_t rd = (instruction >> 4) & 0x3F;
@@ -125,7 +126,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
 
             case 0x2:  // I形式命令 (例: "addi", "andi", "ori", "xori")
                 {   
-                   printf("i_type");
+                   printf("i_type\n");
                     uint32_t funct3 = (instruction >> 10) & 0x7;
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t rs1 = (instruction >> 13) & 0x3F;
@@ -181,7 +182,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 return pc_operand;
 
             case 0x3:{   // sw mem[x[r1] + offset] = x[r2]
-                    //printf("sw");
+                    printf("sw\n");
                     counter.s_type[0]++;
                     uint32_t rs1 = (instruction >> 13) & 0x3F;
                     uint32_t rs2 = (instruction >> 19) & 0x3F;
@@ -305,7 +306,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
 
             case 0x5: //lui
                 {
-                    printf("u_type/n");
+                    printf("u_type\n");
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
                     uint32_t value = bit31_12 << 12 / 4; //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
@@ -316,7 +317,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
 
             case 0x6: //auipc {upimm, 12'b0} + pc
                 {
-                    printf("auipc");
+                    printf("auipc\n");
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
                     printf("%x\n",bit31_12);
@@ -338,6 +339,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
 
             case 0x7:  // J形式命令 (例: "jal")
                 {
+                    printf("jal\n");
                     //printf("%x\n",instruction);
                     uint32_t bit20 = (instruction >> 31) & 0x1;
                     uint32_t bit10_1 = (instruction >> 21) & 0x3FF;
@@ -372,7 +374,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 
             case 0x8:  // I形式命令 ("jalr")
                 {   
-                   //printf("i_type (jalr)");
+                   printf("i_type (jalr)\n");
                    counter.jalr_type[0]++;
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t rs1 = (instruction >> 13) & 0x3F;
@@ -414,11 +416,12 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
 
             case 0x9:  // lw  x[rd] = mem[x[r1] + offset]
                 {
-                   //printf("lw");
+                   printf("lw\n");
                    counter.lw_type[0]++;
                     uint32_t rs1 = (instruction >> 13) & 0x3F;
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t lw_offset = (instruction >> 20) & 0xFFF;
+                    printf("rs1:x%d,rd;x%d,lw_offset:%d\n",rs1,rd,lw_offset);
                     int lw = 0; //setする値
                     pc_operand.opcode = 1;
                     pc_operand.operand1 = rd;
@@ -428,10 +431,12 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         lw_offset = ~lw_offset & mask;
                         lw_offset = lw_offset + 1;
                         lw = memory[get_register(rs1) - lw_offset];
-                       //printf("lw: x%d, -%d(x%d)\n", rd, lw_offset, rs1);
+                       printf("lw: x%d, -%d(x%d)\n", rd, lw_offset, rs1);
                     }else{
+                        printf("正\n");
+                        printf("address:%d + %d\n",get_register(rs1),lw_offset);
                         lw = memory[get_register(rs1) + lw_offset];
-                       //printf("lw: x%d, %d(x%d)\n", rd, lw_offset, rs1);
+                       printf("lw: x%d, %d(x%d)\n", rd, lw_offset, rs1);
                     }
                     printf("memory%dの中に格納されている値:%d\n",get_register(rs1) + lw_offset,lw);
                     set_register(rd,lw);
@@ -440,6 +445,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
             
             case 0xa:   //fadd,fsub,fmul,fdiv
                 {   
+                    printf("f_type\n");
                     pc_operand.pc = 1;
                     //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv, 10:finv, 11: fsqrt
                    //printf("f形式");
