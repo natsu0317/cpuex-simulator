@@ -365,7 +365,7 @@ void parse_assembly(const char* assembly_code){
         sscanf(token, "%s %[^,], %[^,], %s", opcode, operand1, operand2, operand3);
         // printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
 
-        // 疑似命令に対応(mv, li, ret, j)
+        // 疑似命令に対応(mv, li, ret, j, fsw, flw)
         if(strcmp(opcode, "mv") == 0){
             strcpy(opcode, "add");
             strcpy(operand3, operand2);
@@ -386,6 +386,12 @@ void parse_assembly(const char* assembly_code){
             strcpy(opcode, "jal");
             strcpy(operand2,operand1);
             strcpy(operand1, "x0");
+        }
+        if(strcmp(opcode, "flw") == 0){
+            strcpy(opcode, "lw");
+        }
+        if(strcmp(opcode, "fsw") == 0){
+            strcpy(opcode, "sw");
         }
 
         //レジスタセットに対応
