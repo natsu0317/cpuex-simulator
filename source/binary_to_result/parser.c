@@ -199,11 +199,11 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         imm = ~imm & mask;
                         imm = imm + 1;
                         memory[get_register(rs1) - imm] = get_register(rs2);
-                       //printf("sw: x%d, -%d(x%d)\n", rs2, imm, rs1);
+                       printf("sw: x%d, -%d(x%d)\n", rs2, imm, rs1);
                        printf("memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
                     }else{
                         memory[get_register(rs1) + imm] = get_register(rs2);
-                       //printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
+                       printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
                        printf("memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
                     }    
                 } 
@@ -397,14 +397,14 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
 
                     if(minus == 0){//immは正
                         printf("jalr: x%d, x%d, %d\n", rd, rs1, imm);
-                        set_register(rd, pc+1);
                         pc = get_register(rs1) + imm/4 - current_line - 1;
+                        set_register(rd, pc+1);
                         //printf("rs1:%d\n",get_register(rs1));
                         //printf("pc:%d\n",pc);
                     }else if(minus == 1){
                         printf("jalr: x%d, x%d, -%d\n", rd, rs1, imm);
-                        set_register(rd, pc+1);
                         pc = get_register(rs1) - imm/4 - current_line - 1;
+                        set_register(rd, pc+1);
                     }
                 }
                //printf("pc:%d\n",pc);
@@ -504,7 +504,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     //csrw
                     if(func == 1){ // x10の値をファイルに書きこむ
                         double value = get_register(10);
-                        fprintf(sld_result_file, "%lf\n", value);
+                        printf("%fの値をファイルに書き込む",value);
+                        fprintf(sld_result_file, "%f\n", value);
                         counter.c_type[1]++;
                     }
                     //csrr
