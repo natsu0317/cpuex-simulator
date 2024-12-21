@@ -311,7 +311,7 @@ int main(){
     }
 
     //memoryの値の遷移を表示
-    FILE *memory_file = fopen("../../cpuex-v1.6/server/memory_transition.txt","w");
+    FILE *memory_file = fopen("./document/memory_transition.txt","w");
     if (memory_file == NULL) {
         perror("Error opening memory file");
         return 1;
