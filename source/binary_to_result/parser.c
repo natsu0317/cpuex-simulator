@@ -10,7 +10,7 @@
 
 #define NUM_REGISTERS 64
 #define INSTRUCTION_LENGTH 33 //32bit + 終端文字
-#define MEMORY_SIZE 4096
+#define MEMORY_SIZE 8388608
 #define STACK_SIZE 4096
 
 int memory[MEMORY_SIZE];
