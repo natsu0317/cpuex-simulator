@@ -180,17 +180,17 @@ char* get_immediate_binary(const char* imm) {
     
     // "0x"で始まるかどうかを確認
     if (strncmp(imm, "0x", 2) == 0) {
-        // printf("imm: %s\n", imm);
+        printf("imm: %s\n", imm);
         unsigned int number = (unsigned int)strtol(imm, NULL, 16);
 
         // 最上位2ビットをクリアして"01"に設定
-        number &= ~(3 << 30); // 最上位2ビットをクリア
-        number |= (1 << 30);  // 最上位2ビットを"01"に設定
+        // number &= ~(3 << 30); // 最上位2ビットをクリア
+        // number |= (1 << 30);  // 最上位2ビットを"01"に設定
 
         // バイナリ文字列への変換
         char *binary_str = malloc(33); // 32ビット + 終端文字
         if (!binary_str) {
-            // fprintf(stderr, "Memory allocation failed\n");
+            fprintf(stderr, "Memory allocation failed\n");
             exit(1);
         }
 
@@ -199,7 +199,7 @@ char* get_immediate_binary(const char* imm) {
         }
         binary_str[32] = '\0'; // 終端文字を追加
 
-        // printf("binary_str: %s\n", binary_str);
+        printf("binary_str: %s\n", binary_str);
         return binary_str;
     }
     // printf("imm: %s\n",imm);
@@ -561,9 +561,11 @@ void parse_assembly(const char* assembly_code){
         if(is_u_type(opcode)){
             printf("u_type\n");
             //lui rd upimm
+            printf("rd_bin:%s\n",rd_bin);
             printf("r1_bin:%s\n",r1_bin);
             char bit31_12[21];
             get_substring(r1_bin, bit31_12, strlen(r1_bin)-32, 20);
+            printf("bit31_12:%s\n",bit31_12);
             if(strcmp(opcode, "lui") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s%s", bit31_12, rd_bin, opcode_bin);
             //printf("end");
         }
