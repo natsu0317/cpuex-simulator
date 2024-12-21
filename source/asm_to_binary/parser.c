@@ -443,7 +443,7 @@ void parse_assembly(const char* assembly_code){
             const char* label_name = operand2;
             int offset = calculate_offset(assembly_code,label_name,current_line);
             printf("offset:%d\n",offset);
-            int address = offset / 4 + current_line;
+            int address = offset / 4 + current_line + 1;
             printf("address: %d\n",address);
             char address_bin[32];
             snprintf(address_bin,sizeof(address_bin),"%d",address);
