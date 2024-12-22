@@ -498,13 +498,14 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv, 8:fabs, 9:fneg, 10:finv, 11: fsqrt, 4:fsgnjn/fsgnjx, 20: feq/flt, 24: fcvtws, 26: fcvtsw
                     //printf("f形式");
                     uint32_t func7 = (instruction >> 27) & 0x1F;
-                    uint32_t func3 = (instruction >> 10) & 0x8;
+                    uint32_t func3 = (instruction >> 10) & 0x7;
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t r1 = (instruction >> 13) & 0x3F;
                     uint32_t r2 = (instruction >> 19) & 0x3F;
                     float a1 = get_float_register(r1);
                     float a2 = get_float_register(r2);
                     printf("a1:%f\n",a1);
+                    printf("funct3: %x\n",func3);
                     float result;
                     if(func7 == 0){
                         result = fadd(a1,a2);
@@ -563,16 +564,23 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     }
                     if(func7 == 20){
                         if(func3 == 1){//flt
-                            result = flt(a1,a2);
+                            printf("flt x%d, x%d, x%d\n", rd, r1, r2);
+                            bool comparison_result = flt(a1, a2);
+                            result = (double)comparison_result; // boolをdoubleに変換
+                            printf("result: %f\n", result); // %fを使用してdoubleを表示
                             set_register(rd, result);
                         }
                         if(func3 == 2){//feq
-                            result = feq(a1,a2);
+                            bool comparison_result = feq(a1, a2);
+                            result = (double)comparison_result; // boolをdoubleに変換
+                            printf("result: %f\n", result); // %fを使用してdoubleを表示
                             set_register(rd, result);
                         }
                     }
                     if(func7 == 24){
-                        result = fcvtws(a1);
+                        int32_t int_result = fcvtws(a1); // int32_t 型で結果を受け取る
+                        result = (double)int_result;     // double 型にキャスト
+                        printf("result: %f\n", result);  // %f を使用して double を表示
                         set_register(rd, result);
                     }
                     if(func7 == 26){
