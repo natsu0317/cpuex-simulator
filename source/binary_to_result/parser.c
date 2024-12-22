@@ -54,7 +54,7 @@ double get_float_register(int reg_num) {
     if (reg_num >= 32 && reg_num < NUM_REGISTERS) {
         return registers[reg_num];
     }
-    //printf("reg[%d] = %d\n",reg_num,registers[reg_num]);
+    printf("reg[%d] = %f\n",reg_num,registers[reg_num]);
     return 0;
 }
 
@@ -101,14 +101,29 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     pc_operand.operand1 = rd;
                     pc_operand.operand2 = rs1;
                     pc_operand.operand3 = rs2;
+                    double rs1_value;
+                    double rs2_value;
+                    if(0 <= rs1 & rs1 < 32){
+                        //整数レジスタ
+                        rs1_value = get_register(rs1);
+                    } else {
+                        rs1_value = get_float_register(rs1);
+                    }
+                    if(0 <= rs2 & rs2 < 32){
+                        //整数レジスタ
+                        rs2_value = get_register(rs2);
+                    } else {
+                        rs2_value = get_float_register(rs2);
+                    }
 
                     if (funct3 == 0 && funct7 == 0) {  // add命令
-                        set_register(rd, get_register(rs1) + get_register(rs2));
+                        
+                        set_register(rd, rs1_value + rs2_value);
                         counter.r_type[0]++;
-                       printf("add: x%d, x%d, x%d\n", rd, rs1, rs2);
+                        printf("add: x%d, x%d, x%d\n", rd, rs1, rs2);
                         //printf("result:%d\n",get_register(rd));
                     } else if (funct3 == 0 && funct7 == 0x20) {  // sub命令
-                        set_register(rd, get_register(rs1) - get_register(rs2));
+                        set_register(rd, rs1_value - rs2_value);
                         counter.r_type[1]++;
                        printf("sub: x%d, x%d, x%d\n", rd, rs1, rs2);
                     } else if (funct3 == 0x7 && funct7 == 0){  // and
@@ -145,9 +160,9 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         imm = ~imm & mask;//反転
                         imm = imm+1;
                         minus = 1;
-                       //printf("minus%d\n",minus);
+                       printf("minus%d\n",minus);
                     }
-                   //printf("after_imm:%x\n",imm);
+                   printf("after_imm:%x\n",imm);
                     printf("funct3:%x\n,opcode:%x\n",funct3,opcode);
 
                     if(minus == 0){//immは正
@@ -175,10 +190,12 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         }
                     }else if(minus == 1){
                         if (funct3 == 0) {  // addi命令
+                            printf("rs1 = %d\n",get_register(rs1));
+                            printf("imm = %d\n", imm);
                             set_register(rd, get_register(rs1) - imm);
                             counter.i_type[0]++;
                             printf("addi: x%d, x%d, -%d\n", rd, rs1, imm);
-                            //printf("result:%d\n",get_register(rd));
+                            printf("result:%d\n",get_register(rd));
                         }
                     }
                 }
@@ -201,16 +218,32 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         uint32_t mask = (1<<12) - 1;
                         imm = ~imm & mask;
                         imm = imm + 1;
-                        memory[get_register(rs1) - imm] = get_register(rs2);
-                       printf("sw: x%d, -%d(x%d)\n", rs2, imm, rs1);
-                       printf("memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
-                       fprintf(memory_file,"memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
+                        if(0 <= rs2 && rs2 < 32){
+                            // 整数レジスタ
+                            memory[get_register(rs1) - imm] = get_register(rs2);
+                            printf("sw: x%d, -%d(x%d)\n", rs2, imm, rs1);
+                            printf("memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
+                            fprintf(memory_file,"memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
+                        } else {
+                            // 小数レジスタ
+                            memory[get_register(rs1) - imm] = get_float_register(rs2);
+                            printf("sw: x%d, -%d(x%d)\n", rs2, imm, rs1);
+                            printf("memory%dの中に%lfが格納される\n",get_register(rs1)-imm,get_float_register(rs2));
+                            fprintf(memory_file,"memory%dの中に%lfが格納される\n",get_register(rs1)-imm,get_float_register(rs2));
+                        }
                     }else{
-                        memory[get_register(rs1) + imm] = get_register(rs2);
-                       printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
-                       printf("memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
-                       fprintf(memory_file,"memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
-                    }    
+                        if( 0 <= rs2 && rs2 < 32 ){
+                            memory[get_register(rs1) + imm] = get_register(rs2);
+                            printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
+                            printf("memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
+                            fprintf(memory_file,"memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
+                        } else {
+                            memory[get_register(rs1) + imm] = get_float_register(rs2);
+                            printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
+                            printf("memory%dの中に%lfが格納される\n",get_register(rs1)+imm,get_float_register(rs2));
+                            fprintf(memory_file,"memory%dの中に%lfが格納される\n",get_register(rs1)+imm,get_float_register(rs2));
+                        }
+                    }     
                 } 
                 return pc_operand;
 
@@ -311,10 +344,14 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
 
             case 0x5: //lui
                 {
+                    //lui rd 0xa だったらrdにa * 16 * 16 * 16を格納
                     printf("u_type\n");
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
-                    uint32_t value = bit31_12 << 12 / 4; //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
+                    printf("value:%x\n",bit31_12);
+                    uint32_t value = (bit31_12 << 12) / 4 ; //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
+                    printf("value:%x\n",value);
+                    printf("lui x%d, %d", rd, value);
                     set_register(rd,value);
                     counter.u_type[0]++;
                 }
@@ -458,16 +495,18 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                 {   
                     printf("f_type\n");
                     pc_operand.pc = 1;
-                    //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv, 10:finv, 11: fsqrt
-                   //printf("f形式");
-                    uint32_t func = (instruction >> 27) & 0x1F;
+                    //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv, 8:fabs, 9:fneg, 10:finv, 11: fsqrt, 4:fsgnjn/fsgnjx, 20: feq/flt, 24: fcvtws, 26: fcvtsw
+                    //printf("f形式");
+                    uint32_t func7 = (instruction >> 27) & 0x1F;
+                    uint32_t func3 = (instruction >> 10) & 0x8;
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t r1 = (instruction >> 13) & 0x3F;
                     uint32_t r2 = (instruction >> 19) & 0x3F;
                     float a1 = get_float_register(r1);
                     float a2 = get_float_register(r2);
+                    printf("a1:%f\n",a1);
                     float result;
-                    if(func == 0){
+                    if(func7 == 0){
                         result = fadd(a1,a2);
                         printf("result:%f\n",result);
                         printf("fadd x%d x%d\n",r1,r2);
@@ -475,32 +514,70 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         set_register(rd, result);
                         counter.f_type[0]++;
                     }
-                    if(func == 1){
+                    if(func7 == 1){
                         result = fsub(a1,a2);
                         printf("fsub x%d = x%d - x%d\n",rd, r1,r2);
                         printf("result %f - %f = %f\n",a1,a2,result);
                         set_register(rd, result);
                         counter.f_type[1]++;
                     }
-                    if(func == 2){
+                    if(func7 == 2){
                         result = fmul(a1,a2);
+                        printf("fmul x%d = x%d * x%d\n",rd, r1,r2);
+                        printf("result %f * %f = %f\n",a1,a2,result);
                         set_register(rd, result);
                         counter.f_type[2]++;
                     }
-                    if(func == 3){
+                    if(func7 == 3){
                         result = fdiv(a1,a2);
                         set_register(rd, result);
                         counter.f_type[3]++;
                     }
-                    if(func == 10){
+                    if(func7 == 4){
+                        if(func3 == 1){// fsgnjn
+                            result = fsgnjn(a1,a2);
+                            set_register(rd, result);
+                        }
+                        if(func3 == 2){// fsgnjx
+                            result = fsgnjx(a1,a2);
+                            set_register(rd, result);
+                        }
+                    }
+                    if(func7 == 8){
+                        result = fabsf(a1);
+                        set_register(rd, result);
+                    }
+                    if(func7 == 9){
+                        result = fneg(a1);
+                        set_register(rd, result);
+                    }
+                    if(func7 == 10){
                         result = finv(a1,a2);
                         set_register(rd, result);
                         counter.f_type[4]++;
                     }
-                    if(func == 11){
+                    if(func7 == 11){
                         result = fsqrt(a1);
                         set_register(rd, result);
                         counter.f_type[5]++;
+                    }
+                    if(func7 == 20){
+                        if(func3 == 1){//flt
+                            result = flt(a1,a2);
+                            set_register(rd, result);
+                        }
+                        if(func3 == 2){//feq
+                            result = feq(a1,a2);
+                            set_register(rd, result);
+                        }
+                    }
+                    if(func7 == 24){
+                        result = fcvtws(a1);
+                        set_register(rd, result);
+                    }
+                    if(func7 == 26){
+                        result = fcvtsw(a1);
+                        set_register(rd, result);
                     }
 
                     // rdにresultを格納
