@@ -368,8 +368,7 @@ void parse_assembly(const char* assembly_code){
         // 疑似命令に対応(mv, li, ret, j, fsw, flw)
         if(strcmp(opcode, "mv") == 0){
             strcpy(opcode, "addi");
-            strcpy(operand3, operand2);
-            strcpy(operand2, "x0");
+            strcpy(operand3, "0");
         }
         if(strcmp(opcode, "li") == 0){
             strcpy(opcode, "addi");
