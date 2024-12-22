@@ -570,7 +570,7 @@ void parse_assembly(const char* assembly_code){
             printf("rd_bin:%s\n",rd_bin);
             printf("r1_bin:%s\n",r1_bin);
             char bit31_12[21];
-            get_substring(r1_bin, bit31_12, strlen(r1_bin)-32, 20);
+            get_substring(r1_bin, bit31_12, strlen(r1_bin)-20, 20);
             printf("bit31_12:%s\n",bit31_12);
             if(strcmp(opcode, "lui") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s%s", bit31_12, rd_bin, opcode_bin);
             //printf("end");
