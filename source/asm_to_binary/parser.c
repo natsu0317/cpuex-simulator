@@ -34,7 +34,7 @@ const char* aui_type_opcodes[] = {"auipc", NULL};
 const char* j_type_opcodes[] = {"jal", NULL};
 const char* jalr_type_opcodes[] = {"jalr", NULL};
 const char* lw_type_opcodes[] = {"lw", NULL};
-const char* f_type_opcodes[] = {"fadd", "fsub", "fmul", "fdiv", NULL};
+const char* f_type_opcodes[] = {"fadd", "fsub", "fmul", "fdiv", "fabs", "fneg", "finv", "fsqrt", "fsgnjn", "fsgnjx", "feq", "flt", "fcvtws", "fcvtsw", NULL};
 const char* c_type_opcodes[] = {"csrr", "csrw", NULL};
 
 int is_opcode_type(const char* opcode,const char** type_opcodes){
