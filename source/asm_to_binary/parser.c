@@ -670,8 +670,8 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "fsgnjx") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0010000%s%s010%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "feq") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"1010000%s%s010%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "flt") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"1010000%s%s001%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
-            if(strcmp(opcode, "fcvtws") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"1100000000000%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
-            if(strcmp(opcode, "fcvtsw") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"1101000000000%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
+            if(strcmp(opcode, "fcvtws") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"1100000000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
+            if(strcmp(opcode, "fcvtsw") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"1101000000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
 
         }
         if(is_c_type(opcode)){
