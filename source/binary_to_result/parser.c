@@ -30,8 +30,8 @@ extern InstructionCounter counter;
 
 // レジスタの値を設定するreg_numは0 ~ 63
 void set_register(int reg_num, double value) {
-    printf("reg_num:%d\n",reg_num);
-    printf("value:%lf\n",value);
+    // printf("reg_num:%d\n",reg_num);
+    // printf("value:%lf\n",value);
     registers[0] = 0; //x0は常に0
     if (reg_num >= 1 && reg_num < NUM_REGISTERS) {
         registers[reg_num] = value;
@@ -162,15 +162,28 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         minus = 1;
                        printf("minus%d\n",minus);
                     }
-                   printf("after_imm:%x\n",imm);
+                    printf("after_imm:%x\n",imm);
                     printf("funct3:%x\n,opcode:%x\n",funct3,opcode);
 
                     if(minus == 0){//immは正
                         if (funct3 == 0) {  // addi命令
-                            set_register(rd, get_register(rs1) + imm);
-                            counter.i_type[0]++;
-                           printf("addi: x%d, x%d, %d\n", rd, rs1, imm);
-                           //printf("result:%d\n",get_register(rd));
+                            if(0 <= rd & rd < 32){
+                                set_register(rd, get_register(rs1) + imm);
+                                counter.i_type[0]++;
+                                printf("addi: x%d, x%d, %d\n", rd, rs1, imm);
+                                //printf("result:%d\n",get_register(rd));
+                            } else {
+                                // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
+                                // rs1に格納されている整数値を取得
+                                int32_t int_value = get_register(rs1) + imm;
+                                // 32ビットの整数を浮動小数点数に変換
+                                float float_value;
+                                memcpy(&float_value, &int_value, sizeof(float_value));
+                                // 変換された浮動小数点数を小数レジスタに格納
+                                set_register(rd, float_value);
+                                // デバッグ用の出力
+                                printf("Converted integer 0x%x to float: %f\n", int_value, float_value);
+                            }
                         } else if (funct3 == 0x7){  // andi
                             set_register(rd, get_register(rs1) & imm);
                             counter.i_type[1]++;
@@ -190,12 +203,22 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         }
                     }else if(minus == 1){
                         if (funct3 == 0) {  // addi命令
-                            printf("rs1 = %d\n",get_register(rs1));
-                            printf("imm = %d\n", imm);
-                            set_register(rd, get_register(rs1) - imm);
-                            counter.i_type[0]++;
-                            printf("addi: x%d, x%d, -%d\n", rd, rs1, imm);
-                            printf("result:%d\n",get_register(rd));
+                            if(0 <= rd & rd < 32){
+                                set_register(rd, get_register(rs1) - imm);
+                                counter.i_type[0]++;
+                                printf("addi: x%d, x%d, -%d\n", rd, rs1, imm);
+                            } else {
+                                // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
+                                // rs1に格納されている整数値を取得
+                                int32_t int_value = get_register(rs1) - imm;
+                                // 32ビットの整数を浮動小数点数に変換
+                                float float_value;
+                                memcpy(&float_value, &int_value, sizeof(float_value));
+                                // 変換された浮動小数点数を小数レジスタに格納
+                                set_register(rd, float_value);
+                                // デバッグ用の出力
+                                printf("Converted integer 0x%x to float: %f\n", int_value, float_value);
+                            }
                         }
                     }
                 }
@@ -366,7 +389,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     uint32_t value = (bit31_12 << 12); //これも4で割るべきかも？ それか下のcurrent_lineを4倍する
                     if(bit31_12 & 0x80000){
                         //負の値
-                        uint32_t mask = (1 << 32) - 1;
+                        uint32_t mask = 0xFFFFFFFF;
                         value = ~value & mask;
                         value = value + 1;
                     }
