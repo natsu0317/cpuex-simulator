@@ -176,9 +176,11 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                                 // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
                                 // rs1に格納されている整数値を取得
                                 int32_t int_value = get_register(rs1) + imm;
+                                printf("int_value:%d\n",int_value);
                                 // 32ビットの整数を浮動小数点数に変換
                                 float float_value;
                                 memcpy(&float_value, &int_value, sizeof(float_value));
+                                printf("float_value:%lf\n",float_value);
                                 // 変換された浮動小数点数を小数レジスタに格納
                                 set_register(rd, float_value);
                                 // デバッグ用の出力
@@ -372,7 +374,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
                     printf("value:%x\n",bit31_12);
-                    uint32_t value = (bit31_12 << 12) / 4 ; //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
+                    uint32_t value = (bit31_12 << 12); //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
                     printf("value:%x\n",value);
                     printf("lui x%d, %d", rd, value);
                     set_register(rd,value);
