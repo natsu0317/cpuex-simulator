@@ -53,8 +53,10 @@
 
 ## Functions
 
-finish: Insert "finish" in your assembly code to terminate execution.
-break: Insert "break" to pause execution. Type continue to resume.
+1. **finish**:
+ Insert "finish" in your assembly code to terminate execution.
+2. **break**:
+ Insert "break" to pause execution. Type continue to resume.
 
 ## Cache Simulation
 
