@@ -355,6 +355,13 @@ void parse_assembly(const char* assembly_code){
             token = strtok(NULL,delimiter);
             continue;
         }
+        if (strstr(token, "break") != NULL){
+            instruction_count++;
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"11111111111111111111111111111110");
+            binary_instructions[binary_instruction_count++] = inst;
+            token = strtok(NULL,delimiter);
+            continue;
+        }
         char opcode[16],operand1[32],operand2[64],operand3[32];
         memset(opcode, 0, sizeof(opcode));
         memset(operand1, 0, sizeof(operand1));

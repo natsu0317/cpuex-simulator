@@ -93,6 +93,21 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         if(strcmp(binary_instructions[current_line - 1].binary_code,"11111111111111111111111111111111") == 0){
             break;
         }
+        //break命令
+        if(strcmp(binary_instructions[current_line - 1].binary_code,"11111111111111111111111111111110") == 0){
+            printf("Execution paused at line %d. Type 'continue' to resume execution.\n", current_line);
+            char command[256];
+            while(1){
+                printf(">");
+                fgets(command, sizeof(command), stdin);
+                command[strcspn(command, "\n")] = 0;  // fgetsは入力された文字列の末尾に\nを含む -> \0で置き換えて改行をremove
+                if(strcmp(command, "continue") == 0){
+                    break;
+                } else {
+                    printf("Unknown command. Please type 'continue' to resume execution.\n");
+                }
+            }
+        }
         int pc = 0;
         Pc_operand pc_opcode_operand1;
         pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, 1, current_line - 1, sld_file, sld_result_file, memory_file);
