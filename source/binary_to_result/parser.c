@@ -179,8 +179,9 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                                 int32_t int_value = get_register(rs1) + imm;
                                 printf("int_value:%d\n",int_value);
                                 // 32ビットの整数を浮動小数点数に変換
-                                float float_value = (float)int_value;
-                                // memcpy(&float_value, &int_value, sizeof(float_value));
+                                // float float_value = (float)int_value;
+                                float float_value;
+                                memcpy(&float_value, &int_value, sizeof(float_value));
                                 printf("float_value:%lf\n",float_value);
                                 // 変換された浮動小数点数を小数レジスタに格納
                                 set_register(rd, float_value);
