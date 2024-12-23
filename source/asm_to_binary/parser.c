@@ -661,8 +661,8 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "fsub") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000100%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "fmul") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0001000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "fdiv") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0001100%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
-            if(strcmp(opcode, "fabs") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0100000000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
-            if(strcmp(opcode, "fneg") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0100100000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
+            if(strcmp(opcode, "fabs") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0110000000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
+            if(strcmp(opcode, "fneg") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0110100000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "finv") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0101000000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "fsqrt") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0101100000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "fsgnjn") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0010000%s%s001%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
