@@ -12,8 +12,8 @@
    cd source/pipeline
    make
    ./pipeline
-   
-### Output
+
+3. **Output**:
 
 - **Binary Code**:
   - The binary representation of the assembly code will be saved in `./document/binary.txt`.
@@ -35,27 +35,31 @@
 
 
 
-SLD File Simulation
+###SLD File Simulation
 
-Configure Reader:
+1. **Configure Reader**:
+    Edit cpuex-v1.6/server/old/reader.py:
+    ```bash
+    file_name = '../raytracer/sld/temp.sld'
 
-Edit cpuex-v1.6/server/old/reader.py:
-file_name = '../raytracer/sld/temp.sld'
+2. **Run the Reader**:
+    ```bash
+    cd cpuex-v1.6/server/old
+    python3 reader.py
 
-Run the Reader:
+3. **Output**:
 
-cd cpuex-v1.6/server/old
-python3 reader.py
+    Formatted SLD data will be displayed in cpuex-v1.6/server/old/formatted_sld_data.
 
-Output:
-
-Formatted SLD data will be displayed in cpuex-v1.6/server/old/formatted_sld_data.
-
-Functions
+## Functions
 
 finish: Insert "finish" in your assembly code to terminate execution.
 break: Insert "break" to pause execution. Type continue to resume.
 
-Cache Simulation
+## Cache Simulation
 
-Compile and Run:
+1. **Compile and Run**:
+    ```bash
+    cd cahe
+    make
+    ./direct
