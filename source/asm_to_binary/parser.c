@@ -449,46 +449,63 @@ void parse_assembly(const char* assembly_code){
 
         BinaryInstruction inst;
 
+        // if(strcmp(opcode, "la") == 0){
+        //     //la rd, symbolをaddi rd, rd, symbolの絶対アドレスに変更すればいいのではないか
+        //     int current_line = instruction_count;
+        //     const char* label_name = operand2;
+        //     int offset = calculate_offset(assembly_code,label_name,current_line);
+        //     printf("offset:%d\n",offset);
+        //     int address = offset / 4 + current_line + 1;
+        //     printf("address: %d\n",address);
+        //     char address_bin[32];
+        //     snprintf(address_bin,sizeof(address_bin),"%d",address);
+        //     printf("adderss_bin:%s\n",get_immediate_binary(address_bin));
+        //     r2_bin = get_immediate_binary(address_bin);
+        //     char r2_bin_sub[13];//12bit + 終端文字
+        //     get_substring(r2_bin,r2_bin_sub,strlen(r2_bin)-12,12);
+        //     printf("%s\n",r2_bin_sub);
+        //     snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s0010", r2_bin_sub, rd_bin, rd_bin);
+        // }
         if(strcmp(opcode, "la") == 0){
-            //la rd, symbolをaddi rd, rd, symbolの絶対アドレスに変更すればいいのではないか
+            // la rd, symbolを変換すると下2行に対応
+            // auipc rd, symbol(31:12)
+            // addi rd, rd, symbol(11:0)
             int current_line = instruction_count;
             const char* label_name = operand2;
             int offset = calculate_offset(assembly_code,label_name,current_line);
             printf("offset:%d\n",offset);
-            int address = offset / 4 + current_line + 1;
-            printf("address: %d\n",address);
-            char address_bin[32];
-            snprintf(address_bin,sizeof(address_bin),"%d",address);
-            printf("adderss_bin:%s\n",get_immediate_binary(address_bin));
-            r2_bin = get_immediate_binary(address_bin);
-            char r2_bin_sub[13];//12bit + 終端文字
-            get_substring(r2_bin,r2_bin_sub,strlen(r2_bin)-12,12);
-            printf("%s\n",r2_bin_sub);
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s0010", r2_bin_sub, rd_bin, rd_bin);
+            // オフセットを32ビット符号付き整数として扱う
+            int32_t signed_offset = offset;
+            // 上位20ビットを取得 (符号付きで右シフト)
+            int32_t bit31_12 = (signed_offset + 0x800) >> 12; // 四捨五入のために0x800を加算
+            // 下位12ビットを取得
+            uint32_t bit11_0 = signed_offset & 0xFFF;
+            // 下位12ビットの符号拡張を確認
+            if (bit11_0 & 0x800) {
+                bit11_0 |= 0xFFFFF000; // 32ビットの符号拡張
+            }    
+            char bit31_12_bin[21] = {0};
+            char bit11_0_bin[13] = {0};
 
+            for (int i = 0; i < 20; i++) {
+                bit31_12_bin[19 - i] = (bit31_12 & (1 << i)) ? '1' : '0';
+            }
 
-            // la rd, symbolを変換すると下2行に対応
-            // auipc rd, symbol(31:12)
-            // addi rd, rd, symbol(11:0)
-            // int current_line = instruction_count;
-            // const char* label_name = operand2;
-            // int offset = calculate_offset(assembly_code,label_name,current_line);
-            // printf("offset:%d\n",offset);
-            // char offset_str[32];
-            // snprintf(offset_str,sizeof(offset_str),"%d",offset);
-            // r1_bin = get_immediate_binary(offset_str);
-            // char bit31_12[21];
-            // get_substring(r1_bin, bit31_12, strlen(r1_bin)-32, 20);
-            // printf("bit31_12:%s\n",bit31_12);
+            for (int i = 0; i < 12; i++) {
+                bit11_0_bin[11 - i] = (bit11_0 & (1 << i)) ? '1' : '0';
+            }
+
+            printf("bit31_12 (2進数): %s\n", bit31_12_bin);
+            printf("bit11_0 (2進数): %s\n", bit11_0_bin);
             // printf("%s00%s0110\n", bit31_12, rd_bin);
-            // snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0110", bit31_12, rd_bin);
-            // instruction_count++;
-            // binary_instructions[binary_instruction_count++] = inst;
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0110", bit31_12_bin, rd_bin);
+            instruction_count++;
+            binary_instructions[binary_instruction_count++] = inst;
             // char bit11_0[13];
             // get_substring(r1_bin, bit11_0, strlen(r1_bin)-12, 12);
             // printf("bit11_0:%s\n",bit11_0);
-            // snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s0010", bit11_0, rd_bin, rd_bin);
-        }
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s0010", bit11_0_bin, rd_bin, rd_bin);
+            }
 
         if(is_r_type(opcode)){
             //printf("r_type\n");

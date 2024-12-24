@@ -66,22 +66,25 @@ uint32_t read_next_value_from_file(FILE *file) {
     return 0; // ファイルの終わりやエラーの場合
 }
 
+uint32_t previous_instruction = 0;
 // バイナリ命令をデコードして処理
-Pc_operand execute_binary_instruction(const char binary_instruction[][33], int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
+Pc_operand execute_binary_instruction(const char binary_instruction[][33], const char previous_binary_instruction[][33], int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
     Pc_operand pc_operand;
     pc_operand.opcode = 0;
     pc_operand.pc = 1;
-    printf("current_line:%d",current_line);
+    printf("current_line:%d\n",current_line);
     for(int pc=0; pc<num_instructions; pc++){
-        // pcは常に0
 
         //printf("x1:%d\n",get_register(1));
         printf("instruction :%s\n",binary_instruction[pc]);
+        printf("previous_instruction :%s\n",previous_binary_instruction[pc]);
         uint32_t instruction = strtol(binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
+        uint32_t previous_instruction = strtol(previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
 
         // オペコードを取得
         //下4桁
         uint32_t opcode = instruction & 0xF;
+        uint32_t previous_opcode = previous_instruction & 0xF;
         printf("opcode:%x\n",opcode);
 
         switch (opcode) {
@@ -167,11 +170,15 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
 
                     if(minus == 0){//immは正
                         if (funct3 == 0) {  // addi命令
+                            if(previous_opcode == 0x6){
+                                //前の命令がauipcの時
+                                imm = imm / 4 + current_line;
+                            }
                             if(0 <= rd & rd < 32){
                                 set_register(rd, get_register(rs1) + imm);
                                 counter.i_type[0]++;
                                 printf("addi: x%d, x%d, %d\n", rd, rs1, imm);
-                                //printf("result:%d\n",get_register(rd));
+                                printf("result:%d\n",get_register(rd));
                             } else {
                                 printf("addi: x%d, x%d, %d\n", rd, rs1, imm);
                                 // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
@@ -207,6 +214,10 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                         }
                     }else if(minus == 1){
                         if (funct3 == 0) {  // addi命令
+                            if(previous_opcode == 0x6){
+                                //前の命令がauipcの時
+                                imm = imm / 4 - current_line;
+                            }
                             if(0 <= rd & rd < 32){
                                 set_register(rd, get_register(rs1) - imm);
                                 counter.i_type[0]++;
@@ -390,16 +401,22 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int n
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
                     printf("%x\n",bit31_12);
-                    uint32_t value = (bit31_12 << 12); //これも4で割るべきかも？ それか下のcurrent_lineを4倍する
-                    if(bit31_12 & 0x80000){
-                        //負の値
-                        uint32_t mask = 0xFFFFFFFF;
-                        value = ~value & mask;
-                        value = value + 1;
+                    // uint32_t value = (bit31_12 << 12); //これも4で割るべきかも？ それか下のcurrent_lineを4倍する
+                    // if(bit31_12 & 0x80000){
+                    //     //負の値
+                    //     uint32_t mask = 0xFFFFFFFF;
+                    //     value = ~value & mask;
+                    //     value = value + 1;
+                    // }
+                    // 符号拡張を行う
+                    if (bit31_12 & 0x80000) {
+                        // 負の値の場合
+                        bit31_12 |= 0xFFF00000; // 上位ビットを1で埋める
                     }
+                    int32_t value = (int32_t)(bit31_12 << 12); // 符号付きの32ビット整数としてシフト
                     printf("value:%d\n",value);
                     value = value / 4;
-                    value = value + current_line; 
+                    // value = value + current_line; 
                     set_register(rd,value);
                     counter.aui_type[0]++;
                     printf("auipc x%d ,%d\n",rd,bit31_12);
