@@ -111,10 +111,11 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         int pc = 0;
         Pc_operand pc_opcode_operand1;
         // 1個前の命令を記録するため
+        const char temporary_previous_instruction[1][33] = {"11111111111111111111111111111111"};
         if(current_line > 1){
             pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 2].binary_code, 1, current_line - 1, sld_file, sld_result_file, memory_file);
         } else {
-            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, "11111111111111111111111111111111", 1, current_line - 1, sld_file, sld_result_file, memory_file);
+            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, temporary_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
         }
         pc = pc_opcode_operand1.pc;
         int opcode = pc_opcode_operand1.opcode;//1 = sw / lw, 2 = 分岐命令
