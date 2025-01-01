@@ -61,7 +61,15 @@
 ## Cache Simulation
 
 1. **Compile and Run**:
+  ### Direct Mapped Cache
+  The direct mapped cache simulation can be complied and run as follows:
     ```bash
-    cd cahe
+    cd cache
     make
     ./direct
+  
+  ### Set Associative Cache
+    ```bash
+    cd cache
+    make
+    ./set_associative
