@@ -56,7 +56,7 @@
 1. **finish**:
  Insert "finish" in your assembly code to terminate execution.
 2. **break**:
- Insert "break" to pause execution. Type continue to resume.
+ Insert "break" to pause execution. Type c to resume.
 
 ## Cache Simulation
 
