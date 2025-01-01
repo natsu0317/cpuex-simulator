@@ -484,15 +484,17 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     if(minus == 0){//immは正
                         printf("immが正");
                         printf("jalr: x%d, x%d, %d\n", rd, rs1, imm);
+                        set_register(rd,current_line+1);
                         pc = get_register(rs1) + imm/4 - current_line - 1;
-                        set_register(rd, get_register(rs1) + imm/4);
+                        // set_register(rd, get_register(rs1) + imm/4);
                         printf("rs1:%d\n",get_register(rs1));
                         printf("pc:%d\n",pc);
                         printf("rd:x%d = %d\n",rd,get_register(rd));
                     }else if(minus == 1){
                         printf("jalr: x%d, x%d, -%d\n", rd, rs1, imm);
+                        set_register(rd,current_line+1);
                         pc = get_register(rs1) - imm/4 - current_line - 1;
-                        set_register(rd, get_register(rs1) - imm/4);
+                        // set_register(rd, get_register(rs1) - imm/4);
                         printf("rs1:%d\n",get_register(rs1));
                         printf("pc:%d\n",pc);
                     }
@@ -596,11 +598,11 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         result = fneg(a1);
                         set_register(rd, result);
                     }
-                    if(func7 == 10){
-                        result = finv(a1,a2);
-                        set_register(rd, result);
-                        counter.f_type[4]++;
-                    }
+                    // if(func7 == 10){
+                    //     result = finv(a1,a2);
+                    //     set_register(rd, result);
+                    //     counter.f_type[4]++;
+                    // }
                     if(func7 == 11){
                         result = fsqrt(a1);
                         set_register(rd, result);
