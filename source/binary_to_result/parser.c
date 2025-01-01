@@ -484,7 +484,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     if(minus == 0){//immは正
                         printf("immが正");
                         printf("jalr: x%d, x%d, %d\n", rd, rs1, imm);
-                        set_register(rd,current_line+1);
+                        set_register(rd,current_line+2);
                         pc = get_register(rs1) + imm/4 - current_line - 1;
                         // set_register(rd, get_register(rs1) + imm/4);
                         printf("rs1:%d\n",get_register(rs1));
@@ -492,7 +492,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         printf("rd:x%d = %d\n",rd,get_register(rd));
                     }else if(minus == 1){
                         printf("jalr: x%d, x%d, -%d\n", rd, rs1, imm);
-                        set_register(rd,current_line+1);
+                        set_register(rd,current_line+2);
                         pc = get_register(rs1) - imm/4 - current_line - 1;
                         // set_register(rd, get_register(rs1) - imm/4);
                         printf("rs1:%d\n",get_register(rs1));
