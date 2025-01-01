@@ -719,9 +719,15 @@ void parse_assembly(const char* assembly_code){
         if(need_free_reg_2 == 1 || need_free_imm_2 == 1){
             //free(r2_bin);
         }
-        ////printf("before_token:%s\n",token);
+        printf("before_token:%s\n",token);
+        char* before_token = token;
         token = strtok(NULL,delimiter);
-        ////printf("after_token:%s\n",token);
+        printf("after_token:%s\n",token);
+        // laはauipcとaddiの2命令に分かれるから調節
+        if(strstr(before_token, "la") != NULL && strstr(token, "la") != NULL){
+            token = strtok(NULL,delimiter);
+            printf("after_token:%s\n",token);
+        }
     }
     free(code_copy);
 }
