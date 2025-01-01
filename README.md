@@ -59,17 +59,19 @@
  Insert "break" to pause execution. Type c to resume.
 
 ## Cache Simulation
-
-1. **Compile and Run**:
   ### Direct Mapped Cache
   The direct mapped cache simulation can be complied and run as follows:
-    ```bash
-    cd cache
-    make
-    ./direct
-  
+  ```bash
+  cd cache
+  make
+  ./direct
+  ```
+
   ### Set Associative Cache
-    ```bash
-    cd cache
-    make
-    ./set_associative
+  ```bash
+  cd cache
+  make
+  ./set_associative [ways]
+  ```
+  The set associative cache simulation allows for flexibility in cache configuration. You can specify the number of ways as a command-line argument. If no argument is provided, the default is 4-way set associative.
+  ・[ways]: Optional. Specify the number of ways for the set associative cache. For example, ./set_associative 8 runs the simulation with 8-way associativity. If ommited, the default is 4-way.

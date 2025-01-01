@@ -122,7 +122,16 @@ void random_access_test(int num_accesses) {
 }
 
 // メイン関数
-int main() {
+int main(int argc, char* argv[]) {
+    if(argc > 1){
+        WAYS = atoi(argv[1]);
+        if(WAYS <= 0 || WAYS > CACHE_LINES){
+            fprintf(stderr, "Invalid number of ways. Must be between 1 and %d.\n", CACHE_LINES);
+            return EXIT_FAILURE;
+        }
+    } else {
+        WAYS = 4; // default = 4
+    }
     srand(time(NULL));
 
     // 初期化
