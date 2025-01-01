@@ -73,6 +73,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
     pc_operand.opcode = 0;
     pc_operand.pc = 1;
     printf("current_line:%d\n",current_line);
+    fflush(memory_file);
     for(int pc=0; pc<num_instructions; pc++){
 
         //printf("x1:%d\n",get_register(1));
@@ -261,25 +262,25 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                             memory[get_register(rs1) - imm] = get_register(rs2);
                             printf("sw: x%d, -%d(x%d)\n", rs2, imm, rs1);
                             printf("memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
-                            fprintf(memory_file,"memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
+                            fprintf(memory_file,"%d行目 memory%dの中に%dが格納される\n",current_line+1, get_register(rs1)-imm, get_register(rs2));
                         } else {
                             // 小数レジスタ
                             memory[get_register(rs1) - imm] = get_float_register(rs2);
                             printf("sw: x%d, -%d(x%d)\n", rs2, imm, rs1);
                             printf("memory%dの中に%lfが格納される\n",get_register(rs1)-imm,get_float_register(rs2));
-                            fprintf(memory_file,"memory%dの中に%lfが格納される\n",get_register(rs1)-imm,get_float_register(rs2));
+                            fprintf(memory_file,"%d行目 memory%dの中に%lfが格納される\n",current_line+1, get_register(rs1)-imm, get_float_register(rs2));
                         }
                     }else{
                         if( 0 <= rs2 && rs2 < 32 ){
                             memory[get_register(rs1) + imm] = get_register(rs2);
                             printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
                             printf("memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
-                            fprintf(memory_file,"memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
+                            fprintf(memory_file,"%d行目 memory%dの中に%dが格納される\n",current_line+1, get_register(rs1)+imm, get_register(rs2));
                         } else {
                             memory[get_register(rs1) + imm] = get_float_register(rs2);
                             printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
                             printf("memory%dの中に%lfが格納される\n",get_register(rs1)+imm,get_float_register(rs2));
-                            fprintf(memory_file,"memory%dの中に%lfが格納される\n",get_register(rs1)+imm,get_float_register(rs2));
+                            fprintf(memory_file,"%d行目 memory%dの中に%lfが格納される\n",current_line+1, get_register(rs1)+imm, get_float_register(rs2));
                         }
                     }     
                 } 
@@ -532,7 +533,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                        printf("lw: x%d, %d(x%d)\n", rd, lw_offset, rs1);
                     }
                     printf("memory%dの中に格納されている値:%d\n",get_register(rs1) + lw_offset,lw);
-                    fprintf(memory_file,"memory%dの中に格納されている値:%d\n",get_register(rs1) + lw_offset,lw);
+                    fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%d\n",current_line+1, get_register(rs1) + lw_offset,lw);
                     set_register(rd,lw);
                 }   
                 return pc_operand;
