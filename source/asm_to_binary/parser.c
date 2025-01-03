@@ -327,6 +327,18 @@ void convert_registerset_to_x(char *operand){
         change(operand, reg_name, x_reg_name);
     } 
 }
+// 使用したregister
+int use_register[64] = {0};
+
+void using_register(char* operand){
+    if(strncmp(operand,"x",1) ==  0){
+        printf("using %s\n",operand);
+        int reg_number = atoi(operand+1); //"x"の後の数字を取得
+        if(reg_number >= 0 && reg_number < 64){
+            use_register[reg_number]++;
+        }
+    }
+}
 
 
 void parse_assembly(const char* assembly_code){
@@ -405,6 +417,9 @@ void parse_assembly(const char* assembly_code){
         convert_registerset_to_x(operand2);
         convert_registerset_to_x(operand3);
         printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);     
+        using_register(operand1);
+        using_register(operand2);
+        using_register(operand3);
 
         const char* opcode_bin = get_opcode_binary(opcode);//opcodeを生成 add -> r_type -> 0001
         char* rd_bin = get_register_binary(operand1); 

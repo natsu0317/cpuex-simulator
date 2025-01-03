@@ -15,5 +15,6 @@ extern double float_memory[];
 void remove_comments(char *code);
 void parse_assembly(const char* assembly_code);
 int print_binary_instructions(FILE* output_file);
+extern int use_register[64];
 
 #endif
