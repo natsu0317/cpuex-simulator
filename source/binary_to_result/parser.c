@@ -671,36 +671,76 @@ void print_register(FILE* output_file){
     }
 }
 
-void print_register_transition(FILE *transition_file, FILE *float_transition_file, int pc){
+// void print_register_transition(FILE *transition_file, FILE *float_transition_file, int pc){
+//     fprintf(transition_file, "| ");
+//     fprintf(transition_file, "%2d行|",pc);    
+//     fprintf(float_transition_file, "| ");
+//     fprintf(float_transition_file, "%2d行|",pc);
+//     for(int i = 0; i< 32; i++) {
+//         fprintf(transition_file, "%3d | ", get_register(i));
+//     }    
+//     for(int i = 32; i< NUM_REGISTERS; i++) {
+//         fprintf(float_transition_file, "%3f | ", get_float_register(i));
+//     }
+//     fprintf(transition_file, "\n");
+//     fprintf(float_transition_file, "\n");
+// }
+
+void print_use_register_transition(FILE *transition_file, FILE *float_transition_file, int pc, int use_register[64]){
     fprintf(transition_file, "| ");
     fprintf(transition_file, "%2d行|",pc);    
     fprintf(float_transition_file, "| ");
     fprintf(float_transition_file, "%2d行|",pc);
     for(int i = 0; i< 32; i++) {
-        fprintf(transition_file, "%3d | ", get_register(i));
+        if(use_register[i] > 0){
+            fprintf(transition_file, "%3d | ", get_register(i));
+        }
+        // fprintf(transition_file, "%3d | ", get_register(i));
     }    
     for(int i = 32; i< NUM_REGISTERS; i++) {
-        fprintf(float_transition_file, "%3f | ", get_float_register(i));
+        if(use_register[i] > 0){
+            fprintf(float_transition_file, "%3f | ", get_float_register(i));
+        }
+        // fprintf(float_transition_file, "%3f | ", get_float_register(i));
     }
     fprintf(transition_file, "\n");
     fprintf(float_transition_file, "\n");
 }
 
-void for_markdown(FILE *transition_file){
+void for_markdown(FILE *transition_file, FILE *float_transition_file, int use_regiser[64]){
     // Markdownの表ヘッダーを出力
     fprintf(transition_file, "| ");
     fprintf(transition_file, "実行命令|");
+    fprintf(float_transition_file, "| ");
+    fprintf(float_transition_file, "実行命令|");
+    int int_count = 0;
+    int float_count = 0;
     for (int i = 0; i < 32; i++) {
-        fprintf(transition_file, "x%-2d | ", i);
+        if(use_register[i] > 0){
+            int_count++;
+            fprintf(transition_file, "x%-2d | ", i);
+        }
+    }    
+    for (int i = 0; i < 32; i++) {
+        if(use_register[i] > 0){
+            float_count++;
+            fprintf(float_transition_file, "x%-2d | ", i);
+        }
     }
     fprintf(transition_file, "\n|");
+    fprintf(float_transition_file, "\n|");
 
     // 区切り線を出力
-    for (int i = 0; i < NUM_REGISTERS+1; i++) {
+    for (int i = 0; i < int_count+1; i++) {
         fprintf(transition_file, "---:|");
+    }    
+    for (int i = 0; i < float_count+1; i++) {
+        fprintf(float_transition_file, "---:|");
     }
     fprintf(transition_file, "\n");
     fflush(transition_file);
+    fprintf(float_transition_file, "\n");
+    fflush(float_transition_file);
 }
 
 int result_main() {
@@ -734,7 +774,7 @@ int result_main() {
         return 1;
     }
 
-    for_markdown(transition_file);
+    // for_markdown(transition_file);
 
     while (current_line < index) {    
         int pc = 0;
