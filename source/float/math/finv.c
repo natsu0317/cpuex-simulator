@@ -24,6 +24,7 @@ void init_ab() {
 }
 
 float finv(float a) {
+    init_ab();
     uint32_t a_bits;
     memcpy(&a_bits, &a, sizeof(a_bits));
 
