@@ -44,3 +44,35 @@ float fcvtsw(int32_t x) {
 
     return result;
 }
+
+// void test_fcvtsw() {
+//     // テストする整数値
+//     int32_t test_values[] = {
+//         0, 1, -1, 123, -456, INT32_MAX, INT32_MIN, 
+//         999999, -999999, 1000000000, -1000000000
+//     };
+//     int num_tests = sizeof(test_values) / sizeof(test_values[0]);
+
+//     // 各テスト値に対して結果を確認
+//     for (int i = 0; i < num_tests; i++) {
+//         int32_t x = test_values[i];
+//         float result = fcvtsw(x);
+
+//         // 結果を表示
+//         printf("fcvtsw(%d) = %.7g\n", x, result);
+
+//         // 精度をチェック
+//         float diff = fabs(result - (float)x);
+//         if (diff > FLT_EPSILON) {
+//             printf("Test failed for x = %d: |%.7g - %.7g| = %.7g\n",
+//                    x, result, (float)x, diff);
+//         }
+//     }
+// }
+
+// // メイン関数
+// int main() {
+//     printf("Testing fcvtsw:\n");
+//     test_fcvtsw();
+//     return 0;
+// }
