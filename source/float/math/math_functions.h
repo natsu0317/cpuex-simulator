@@ -8,7 +8,7 @@ float fsub(float a, float b);
 float fmul(float a, float b);
 float fdiv(float a, float b);
 float fsqrt(float a);
-float finv(float a, float b);
+float finv(float a);
 float fabsf(float a);
 float fcvtsw(int32_t x);
 int32_t fcvtws(float x);
