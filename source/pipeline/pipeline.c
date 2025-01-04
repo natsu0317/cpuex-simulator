@@ -81,7 +81,7 @@ void print_stall(FILE* pipeline_file, int stall_cycle, int total_cycle){
 // 行数 - 1
 int instruction_count = 0;
 
-void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int instruction_length, FILE* transition_file, FILE* float_transition_file, FILE* pipeline_file, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
+void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int instruction_length, FILE* transition_file, FILE* float_transition_file, FILE* pipeline_file, FILE* sld_file, FILE* sld_result_file, FILE* memory_file, int use_register[64]) {
     int current_line = 1; // assembly codeの行数に対応
     int total_cycles = 1;
 
@@ -130,7 +130,8 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         save_operand[1] = pc_opcode_operand1.operand1;// 現在のoperand1の値
 
         //register遷移の出力
-        print_register_transition(transition_file, float_transition_file, current_line);
+        // print_register_transition(transition_file, float_transition_file, current_line);
+        print_use_register_transition(transition_file, float_transition_file, current_line, use_register);
         fflush(transition_file); 
         printf("binary_insturcinos[current_line]:%s\n",binary_instructions[current_line - 1].binary_code);
         printf("assembly_code:%20s\n",assembly_instructions[current_line+assembly_count]);
@@ -275,8 +276,13 @@ int main(){
 
     //assmblyをbinaryに変換
     remove_comments(assembly_code);
-
     parse_assembly(assembly_code);
+
+    for(int i=0; i<64; i++){
+        if(use_register[i] > 0){
+            printf("x%d\n",i);
+        }
+    }
 
     char* token = strtok((char*)assembly_code, "\n");
     while (token != NULL && instruction_count < MAX_INSTRUCTIONS) {
@@ -307,7 +313,7 @@ int main(){
         return 1;
     }
 
-    for_markdown(transition_file);
+    // for_markdown(transition_file, use_register);
 
     FILE *float_transition_file = fopen("./document/float_transition.md", "w");
     if (float_transition_file == NULL) {
@@ -315,7 +321,7 @@ int main(){
         return 1;
     }
 
-    for_markdown(float_transition_file);
+    for_markdown(transition_file, float_transition_file, use_register);
 
     //pipeline
     //binary codeを受け取ってpipelineにする
@@ -345,7 +351,7 @@ int main(){
         return 1;
     }
     
-    execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, float_transition_file, pipeline_file, sld_file, sld_result_file, memory_file);
+    execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, float_transition_file, pipeline_file, sld_file, sld_result_file, memory_file, use_register);
     
     FILE *instruction_statics_file = fopen("./document/instruction_statics.txt","w");
     if (instruction_statics_file == NULL) {
