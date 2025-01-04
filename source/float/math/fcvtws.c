@@ -5,45 +5,63 @@
 #include <math.h>
 #include <float.h>
 
+// 浮動小数点数を 32 ビット整数に変換する関数
 int32_t fcvtws(float x) {
-    // 特殊ケース：入力が0の場合
+    // 特殊ケース処理（0.0 の場合）
     if (x == 0.0f) {
         return 0;
     }
 
+    // 浮動小数点数をビット列に変換
     uint32_t x_bits;
     memcpy(&x_bits, &x, sizeof(x_bits));
 
-    uint32_t sign = (x_bits >> 31) & 0x1;
-    uint32_t exponent = (x_bits >> 23) & 0xFF;
-    uint32_t mantissa = x_bits & 0x7FFFFF;
+    // 符号（S）、指数部（E）、仮数部（M）の抽出
+    uint32_t sign = (x_bits >> 31) & 0x1;         // 符号ビット
+    int32_t exponent = ((x_bits >> 23) & 0xFF) - 127; // 指数部 - バイアス
+    uint32_t mantissa = x_bits & 0x7FFFFF;       // 仮数部
 
-    // ケチビットを追加して31ビットに拡張
-    uint32_t m = (mantissa | 0x800000) << 8;
+    // 仮数部の MSB に「隠れた1」を補う（ケチビット）
+    uint32_t extended_mantissa = (1 << 23) | mantissa;
 
-    // 指数部のバイアスを考慮
-    int32_t e = (int32_t)exponent - 127;
-
-    if (e < 0) {
-        // 指数が負の場合、整数部分は0
-        return 0;
-    } else if (e > 31) {
-        // オーバーフロー
+    // 指数部の値に基づいて仮数をシフト
+    if (exponent >= 31) {
+        // 範囲外（オーバーフロー）
         return sign ? INT32_MIN : INT32_MAX;
+    } else if (exponent < 0) {
+        // 範囲外（切り捨て）
+        return 0;
     }
 
-    // ビットシフト
-    uint32_t result = m >> (23 - e);
+    // ビットシフトで整数部分を取得
+    uint32_t integer_part;
+    if (exponent >= 23) {
+        integer_part = extended_mantissa << (exponent - 23);
+    } else {
+        uint32_t fractional_part = extended_mantissa & ((1 << (23 - exponent)) - 1);
+        integer_part = extended_mantissa >> (23 - exponent);
 
-    // 丸め処理
-    if (m & (1 << (22 - e))) {
-        result++;
+        // 0捨1入による丸め
+        if (fractional_part >= (1U << (22 - exponent))) {
+            integer_part += 1;
+        }
     }
 
-    // 符号の復元
-    if (sign) {
-        result = -result;
-    }
+    // 符号ビットの処理（負数の場合は 2 の補数に変換）
+    int32_t result = sign ? -(int32_t)integer_part : (int32_t)integer_part;
 
-    return (int32_t)result;
+    return result;
 }
+
+// int main() {
+//     float test_values[] = {0.0f, 1.5f, -2.5f, 123456.78f, -98765.43f, 1.999f, -0.999f};
+//     int num_tests = sizeof(test_values) / sizeof(test_values[0]);
+
+//     for (int i = 0; i < num_tests; i++) {
+//         float x = test_values[i];
+//         int32_t result = fcvtws(x);
+//         printf("fcvtws(%f) = %d\n", x, result);
+//     }
+
+//     return 0;
+// }
