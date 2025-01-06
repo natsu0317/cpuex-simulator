@@ -9,6 +9,7 @@ float fadd(float a, float b);
 float fsub(float a, float b);
 float fmul(float a, float b);
 float fdiv(float a, float b);
+float finv(float a);
 
 int compare_floats(float a, float b) {
     // 両方がNaNの場合は等しいとみなす
@@ -32,6 +33,8 @@ void execute_and_write_result(const char* operation, float a, float b, FILE* out
         result = fmul(a, b);
     } else if (strcmp(operation, "fdiv") == 0) {
         result = fdiv(a, b);
+    } else if (strcmp(operation, "finv") == 0){
+        result = finv(a);
     } else {
         fprintf(stderr, "Unknown operation: %s\n", operation);
         return;
