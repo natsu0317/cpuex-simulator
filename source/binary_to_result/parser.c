@@ -286,7 +286,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                 } 
                 return pc_operand;
 
-            case 0x4:  // B形式命令 (例: "beq", "bne", "blt", "bge")
+            case 0x4:  // B形式命令 (例: "beq", "bne", "blt", "bge", "bgt")
                 {
                     printf("b_type\n");
                     uint32_t funct3 = (instruction >> 10) & 0x7;
@@ -340,6 +340,12 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                                counter.b_type[3]++;
                                 pc -= imm/4;
                             }
+                        } else if(funct3 == 0x6){  // bgt
+                            if(get_register(rs1) > get_register(rs2)){
+                               printf("bgt: x%d, x%d, -%d\n", rs1, rs2, imm);
+                               counter.b_type[3]++;
+                                pc -= imm/4;
+                            }
                         }  else {
                             pc = 1;
                         }
@@ -370,6 +376,14 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         counter.b_type[3]++;
                         if(get_register(rs1) >= get_register(rs2)){
                            printf("bge: x%d, x%d, %d\n", rs1, rs2, imm);
+                            pc += imm/4;
+                        }
+                    } else if(funct3 == 0x6){  // bgt
+                        printf("bgt");
+                        printf("rs1: %d, rs2: %d\n",get_register(rs1),get_register(rs2));
+                        counter.b_type[3]++;
+                        if(get_register(rs1) > get_register(rs2)){
+                           printf("bgt: x%d, x%d, %d\n", rs1, rs2, imm);
                             pc += imm/4;
                         }
                     }
