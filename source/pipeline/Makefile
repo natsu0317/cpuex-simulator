@@ -1,11 +1,16 @@
+# Makefile
+
+# コンパイラとフラグ
 CC = gcc
 CFLAGS = -I../asm_to_binary -I../binary_to_result
+LDFLAGS = -lm
 
 all: pipeline
 
 pipeline: pipeline.o asm_parser.o binary_parser.o fadd.o fsub.o fmul.o fdiv.o finv.o fsqrt.o fabsf.o fcvtsw.o fcvtws.o feq.o flt.o fneg.o fsgnjn.o fsgnjx.o
-	$(CC) -o pipeline pipeline.o asm_parser.o binary_parser.o fadd.o fsub.o fmul.o fdiv.o finv.o fsqrt.o fabsf.o fcvtsw.o fcvtws.o feq.o flt.o fneg.o fsgnjn.o fsgnjx.o
+	$(CC) -o pipeline pipeline.o asm_parser.o binary_parser.o fadd.o fsub.o fmul.o fdiv.o finv.o fsqrt.o fabsf.o fcvtsw.o fcvtws.o feq.o flt.o fneg.o fsgnjn.o fsgnjx.o $(LDFLAGS)
 
+# 各オブジェクトファイルのコンパイルルール（変更なし）
 pipeline.o: pipeline.c
 	$(CC) $(CFLAGS) -c pipeline.c
 
