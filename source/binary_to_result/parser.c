@@ -642,14 +642,22 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                 
             case 0xb:  // csrr, csrw
                 {
-                     printf("csrr/csrw\n");
+                    printf("csrr/csrw\n");
+                    uint32_t rd = (instruction >> 19) & 0x3F;
                     uint32_t func = (instruction >> 10) & 0x7;
                     //csrw
                     if(func == 1){ // x10の値をファイルに書きこむ
-                        double value = get_register(10);
-                        printf("%fの値をファイルに書き込む",value);
-                        fprintf(sld_result_file, "%f\n", value);
-                        counter.c_type[1]++;
+                        if( 0 <= rd && rd < 32){
+                            double value = get_register(rd);
+                            printf("x%dの中身%fの値をファイルに書き込む",rd,value);
+                            fprintf(sld_result_file, "%f\n", value);
+                            counter.c_type[1]++;
+                        } else {
+                            double value = get_float_register(rd);
+                            printf("f%dの中身%fの値をファイルに書き込む",rd-32,value);
+                            fprintf(sld_result_file, "%f\n", value);
+                            counter.c_type[1]++;
+                        }
                     }
                     //csrr
                     if(func == 2){ // x10にsldファイルの内容を書きこむ
