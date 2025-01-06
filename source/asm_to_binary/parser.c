@@ -24,6 +24,7 @@ double float_memory[256]; //メモリに浮動小数点の値を格納
 // mv a b = add a, x0, b(a = b)
 // li a imm = addi a, x0, imm(a = imm)
 // ret = jalr x0, x1, 0
+// bgt a b = blt b a
 
 const char* r_type_opcodes[] = {"add", "sub", "and", "or", "xor", NULL};
 const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori", "slli", NULL};
@@ -384,7 +385,7 @@ void parse_assembly(const char* assembly_code){
         sscanf(token, "%s %[^,], %[^,], %s", opcode, operand1, operand2, operand3);
         // printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
 
-        // 疑似命令に対応(mv, li, ret, j, fsw, flw)
+        // 疑似命令に対応(mv, li, ret, j, fsw, flw, bgt)
         if(strcmp(opcode, "mv") == 0){
             strcpy(opcode, "addi");
             strcpy(operand3, "0");
@@ -410,6 +411,12 @@ void parse_assembly(const char* assembly_code){
         }
         if(strcmp(opcode, "fsw") == 0){
             strcpy(opcode, "sw");
+        }
+        if(strcmp(opcode, "bgt") == 0){
+            strcpy(opcode, "blt");
+            strcpy(operand3, operand1);
+            stcpy(operand1, operand2);
+            strcpy(operand2, operand3);
         }
 
         //レジスタセットに対応
