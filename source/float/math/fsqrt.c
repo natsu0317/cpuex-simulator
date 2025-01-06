@@ -5,18 +5,18 @@
 #include <math.h>
 
 // グローバル変数として定義
-float a_table[1024]; // 傾き
-float b_table[1024]; // y切片
+float a_table_sqrt[1024]; // 傾き
+float b_table_sqrt[1024]; // y切片
 
-void init_ab() {
+void init_ab_sqrt() {
     float e = 3.0f / 1024.0f;
     for (int i = 0; i < 1024; i++) {
         float x1 = 1.0f + i * e;
         float x2 = 1.0f + (i + 1) * e;
         float x3 = 1.0f + (i + 0.5f) * e;
-        a_table[i] = (sqrt(x2) - sqrt(x1)) / e; // 傾き
+        a_table_sqrt[i] = (sqrt(x2) - sqrt(x1)) / e; // 傾き
         float x4 = (sqrt(x1) + sqrt(x2)) / 2.0f; // 平均値
-        b_table[i] = x4 - a_table[i] * x3; // y切片
+        b_table_sqrt[i] = x4 - a_table_sqrt[i] * x3; // y切片
     }
 }
 
@@ -31,7 +31,7 @@ float fsqrt(float x) {
     // 初期化
     static int initialized = 0;
     if (!initialized) {
-        init_ab();
+        init_ab_sqrt();
         initialized = 1;
     }
 
@@ -46,8 +46,8 @@ float fsqrt(float x) {
     float x_prime = 1.0f + (m / (float)(1 << 23)); // [1.0, 2.0) に変換
     uint32_t index = (uint32_t)((x_prime - 1.0f) * 1024.0f); // テーブルのインデックス計算
 
-    float a_value = a_table[index];
-    float b_value = b_table[index];
+    float a_value = a_table_sqrt[index];
+    float b_value = b_table_sqrt[index];
 
     // 近似値
     float sqrt_x_prime = a_value * x_prime + b_value;
@@ -69,12 +69,12 @@ float fsqrt(float x) {
     return result;
 }
 
-int main() {
-    float a = 1.23f;
-    float b = 2.34f;
-    float result = fsqrt(a);
-    printf("Result of fsqrt(%f) = %f\n", a, result);
-    result = fsqrt(b);
-    printf("Result of fsqrt(%f) = %f\n", b, result);
-    return 0;
-}
+// int main() {
+//     float a = 1.23f;
+//     float b = 2.34f;
+//     float result = fsqrt(a);
+//     printf("Result of fsqrt(%f) = %f\n", a, result);
+//     result = fsqrt(b);
+//     printf("Result of fsqrt(%f) = %f\n", b, result);
+//     return 0;
+// }
