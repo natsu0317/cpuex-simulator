@@ -29,7 +29,7 @@ double float_memory[256]; //メモリに浮動小数点の値を格納
 const char* r_type_opcodes[] = {"add", "sub", "and", "or", "xor", NULL};
 const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori", "slli", NULL};
 const char* s_type_opcodes[] = {"sw", NULL};
-const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bgt", "bltu", "bgeu", NULL};
+const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL};
 const char* u_type_opcodes[] = {"lui", NULL};
 const char* aui_type_opcodes[] = {"auipc", NULL};
 const char* j_type_opcodes[] = {"jal", NULL};
@@ -753,7 +753,7 @@ void parse_assembly(const char* assembly_code){
         char* before_token = token;
         token = strtok(NULL,delimiter);
         printf("after_token:%s\n",token);
-        // laはauipcとaddiの2命令に分かれるから調節
+        // laとla_1はauipcとaddiの2命令に分かれるから調節
         if(strstr(before_token, "la") != NULL && strstr(token, "la") != NULL){
             token = strtok(NULL,delimiter);
             printf("after_token:%s\n",token);
