@@ -599,29 +599,33 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         if(func3 == 1){// fsgnjn
                             result = fsgnjn(a1,a2);
                             set_register(rd, result);
+                            counter.f_type[8]++;
                         }
                         if(func3 == 2){// fsgnjx
                             result = fsgnjx(a1,a2);
                             set_register(rd, result);
+                            counter.f_type[9]++;
                         }
                     }
                     if(func7 == 12){
                         result = fabsf(a1);
                         set_register(rd, result);
+                        counter.f_type[4]++;
                     }
                     if(func7 == 13){
                         result = fneg(a1);
                         set_register(rd, result);
+                        counter.f_type[5]++;
                     }
-                    // if(func7 == 10){
-                    //     result = finv(a1,a2);
-                    //     set_register(rd, result);
-                    //     counter.f_type[4]++;
-                    // }
+                    if(func7 == 10){
+                        result = finv(a1,a2);
+                        set_register(rd, result);
+                        counter.f_type[6]++;
+                    }
                     if(func7 == 11){
                         result = fsqrt(a1);
                         set_register(rd, result);
-                        counter.f_type[5]++;
+                        counter.f_type[7]++;
                     }
                     if(func7 == 20){
                         if(func3 == 1){//flt
@@ -630,12 +634,14 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                             result = (double)comparison_result; // boolをdoubleに変換
                             printf("result: %f\n", result); // %fを使用してdoubleを表示
                             set_register(rd, result);
+                            counter.f_type[11]++;
                         }
                         if(func3 == 2){//feq
                             bool comparison_result = feq(a1, a2);
                             result = (double)comparison_result; // boolをdoubleに変換
                             printf("result: %f\n", result); // %fを使用してdoubleを表示
                             set_register(rd, result);
+                            counter.f_type[10]++;
                         }
                     }
                     if(func7 == 24){
@@ -643,10 +649,12 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         result = (double)int_result;     // double 型にキャスト
                         printf("result: %f\n", result);  // %f を使用して double を表示
                         set_register(rd, result);
+                        counter.f_type[12]++;
                     }
                     if(func7 == 26){
                         result = fcvtsw(a1);
                         set_register(rd, result);
+                        counter.f_type[13]++;
                     }
 
                     // rdにresultを格納
