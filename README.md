@@ -7,13 +7,16 @@
 1. **Prepare Assembly Code**:
    - Place your assembly code in `source/pipeline/document/assembly.txt`.
 
-2. **Compile and Run**:
+2. **Prepare sld file**:
+   - Place sld file in 'source/pipeline/document/formatted_sld_data.txt'.
+
+3. **Compile and Run**:
    ```bash
    cd source/pipeline
    make
    ./pipeline
 
-3. **Output**:
+4. **Output**:
 
 - **Binary Code**:
   - The binary representation of the assembly code will be saved in `./document/binary.txt`.

@@ -331,7 +331,7 @@ int main(){
         return 1;
     }
 
-    FILE *sld_file = fopen("../../cpuex-v1.6/server/formatted_sld_data.txt","r");
+    FILE *sld_file = fopen("./document/formatted_sld_data.txt","r");
     if (sld_file == NULL) {
         perror("Error opening sld file");
         return 1;
