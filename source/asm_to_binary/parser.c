@@ -488,13 +488,16 @@ void parse_assembly(const char* assembly_code){
         //     printf("%s\n",r2_bin_sub);
         //     snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s0010", r2_bin_sub, rd_bin, rd_bin);
         // }
-        if(strcmp(opcode, "la") == 0){
+        if(strcmp(opcode, "la") == 0 || strcmp(opcode, "la_1") == 0){
             // la rd, symbolを変換すると下2行に対応
             // auipc rd, symbol(31:12)
             // addi rd, rd, symbol(11:0)
             int current_line = instruction_count;
             const char* label_name = operand2;
             int offset = calculate_offset(assembly_code,label_name,current_line);
+            if(strcmp(opcode, "la_1") == 0){
+                offset = offset + 3;
+            }
             printf("offset:%d\n",offset);
             // オフセットを32ビット符号付き整数として扱う
             int32_t signed_offset = offset;
