@@ -8,7 +8,7 @@
    - Place your assembly code in `source/pipeline/document/assembly.txt`.
 
 2. **Prepare sld file**:
-   - Place sld file in 'source/pipeline/document/formatted_sld_data.txt'.
+   - Place sld file in `source/pipeline/document/formatted_sld_data.txt`.
 
 3. **Compile and Run**:
    ```bash
