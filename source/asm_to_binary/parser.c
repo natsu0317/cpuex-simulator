@@ -414,9 +414,10 @@ void parse_assembly(const char* assembly_code){
         }
         if(strcmp(opcode, "bgt") == 0){
             strcpy(opcode, "blt");
-            strcpy(operand3, operand1);
+            char temp[10];
+            strcpy(temp, operand1);
             strcpy(operand1, operand2);
-            strcpy(operand2, operand3);
+            strcpy(operand2,temp);
         }
 
         //レジスタセットに対応
@@ -596,7 +597,7 @@ void parse_assembly(const char* assembly_code){
             const char* label_name = operand3;
             int offset = calculate_offset(assembly_code,label_name,current_line);
             char offset_str[20];
-            // printf("offset:%d\n",offset);
+            printf("offset:%d\n",offset);
             snprintf(offset_str,sizeof(offset_str),"%d",offset);
             r2_bin = get_immediate_binary(offset_str);
             printf("%s\n",r2_bin);
