@@ -415,7 +415,7 @@ void parse_assembly(const char* assembly_code){
         if(strcmp(opcode, "bgt") == 0){
             strcpy(opcode, "blt");
             strcpy(operand3, operand1);
-            stcpy(operand1, operand2);
+            strcpy(operand1, operand2);
             strcpy(operand2, operand3);
         }
 
