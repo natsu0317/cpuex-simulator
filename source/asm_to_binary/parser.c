@@ -503,7 +503,7 @@ void parse_assembly(const char* assembly_code){
                 offset = calculate_offset(assembly_code, label_name, current_line);
             }
             if (strcmp(opcode, "la_1") == 0) {
-                offset = operand2_num + 4;
+                offset = operand2_num + 8;
             }
             printf("offset:%d\n",offset);
             // オフセットを32ビット符号付き整数として扱う
