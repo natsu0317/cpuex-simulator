@@ -618,7 +618,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         counter.f_type[5]++;
                     }
                     if(func7 == 10){
-                        result = finv(a1,a2);
+                        result = finv(a1);
                         set_register(rd, result);
                         counter.f_type[6]++;
                     }
