@@ -494,12 +494,16 @@ void parse_assembly(const char* assembly_code){
             // auipc rd, symbol(31:12)
             // addi rd, rd, symbol(11:0)
             int current_line = instruction_count;
+            int operand2_num = atoi(operand2); // Assuming operand2 is a string that represents a number
+            printf("operand2:%d\n", operand2_num);
             const char* label_name = operand2;
-            int offset = calculate_offset(assembly_code,label_name,current_line);
-            printf("offset:%d\n",offset);
-            if(strcmp(opcode, "la_1") == 0){
-                printf("la_1\n");
-                offset = offset + 12;
+            printf("label_name:%s\n", label_name);
+            int offset = 0;
+            if (strcmp(opcode, "la") == 0) {
+                offset = calculate_offset(assembly_code, label_name, current_line);
+            }
+            if (strcmp(opcode, "la_1") == 0) {
+                offset = operand2_num + 4;
             }
             printf("offset:%d\n",offset);
             // オフセットを32ビット符号付き整数として扱う
