@@ -173,7 +173,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         if (funct3 == 0) {  // addi命令
                             if(previous_opcode == 0x6){
                                 //前の命令がauipcの時
-                                imm = imm / 4 + current_line;
+                                // imm = imm / 4 + current_line;
+                                imm = imm / 4;
                             }
                             if(0 <= rd & rd < 32){
                                 set_register(rd, get_register(rs1) + imm);
