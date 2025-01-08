@@ -121,7 +121,7 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         int opcode = pc_opcode_operand1.opcode;//1 = sw / lw, 2 = 分岐命令
         int operand2 = pc_opcode_operand1.operand2;
         int operand3 = pc_opcode_operand1.operand3;
-        printf("pc:%d\n",pc);
+        printf("pipeline_pc:%d\n",pc);
         // printf("operand1:%d\n",pc_opcode_operand1.operand1);
         // printf("opcode:%d\n",pc_opcode_operand1.opcode);//1 = sw / lw, 2 = 分岐命令
 
@@ -351,7 +351,7 @@ int main(){
         return 1;
     }
     
-    // execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, float_transition_file, pipeline_file, sld_file, sld_result_file, memory_file, use_register);
+    execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, float_transition_file, pipeline_file, sld_file, sld_result_file, memory_file, use_register);
     
     FILE *instruction_statics_file = fopen("./document/instruction_statics.txt","w");
     if (instruction_statics_file == NULL) {
