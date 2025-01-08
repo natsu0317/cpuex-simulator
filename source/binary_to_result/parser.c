@@ -502,6 +502,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         printf("jalr: x%d, x%d, %d\n", rd, rs1, imm);
                         set_register(rd,current_line+2);
                         pc = get_register(rs1) + imm/4 - current_line - 1;
+                        // pc = get_register(rs1) + imm/4;
                         // set_register(rd, get_register(rs1) + imm/4);
                         printf("rs1:%d\n",get_register(rs1));
                         printf("pc:%d\n",pc);
@@ -752,10 +753,10 @@ void for_markdown(FILE *transition_file, FILE *float_transition_file, int use_re
             fprintf(transition_file, "x%-2d | ", i);
         }
     }    
-    for (int i = 0; i < 32; i++) {
+    for (int i = 32; i < 64; i++) {
         if(use_register[i] > 0){
             float_count++;
-            fprintf(float_transition_file, "x%-2d | ", i);
+            fprintf(float_transition_file, "f%-2d | ", i-32);
         }
     }
     fprintf(transition_file, "\n|");
