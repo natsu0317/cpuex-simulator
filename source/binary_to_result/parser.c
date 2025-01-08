@@ -13,7 +13,7 @@
 #define MEMORY_SIZE 8388608
 #define STACK_SIZE 4096
 
-int memory[MEMORY_SIZE];
+float memory[MEMORY_SIZE];
 int sp = MEMORY_SIZE - 1; //スタックポインタ
 
 // registerのsimulation
@@ -532,7 +532,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t lw_offset = (instruction >> 20) & 0xFFF;
                     printf("rs1:x%d,rd;x%d,lw_offset:%d\n",rs1,rd,lw_offset);
-                    int lw = 0; //setする値
+                    float lw = 0; //setする値
                     pc_operand.opcode = 1;
                     pc_operand.operand1 = rd;
                     pc_operand.operand2 = rs1;
@@ -548,8 +548,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         lw = memory[get_register(rs1) + lw_offset];
                        printf("lw: x%d, %d(x%d)\n", rd, lw_offset, rs1);
                     }
-                    printf("memory%dの中に格納されている値:%d\n",get_register(rs1) + lw_offset,lw);
-                    fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%d\n",current_line+1, get_register(rs1) + lw_offset,lw);
+                    printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
+                    fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%f\n",current_line+1, get_register(rs1) + lw_offset,lw);
                     set_register(rd,lw);
                 }   
                 return pc_operand;
