@@ -8,8 +8,8 @@ extern int instruction_count;
 
 //アセンブリコードをバイナリコードにparse
 
-#define MAX_LENGTH 1000
-#define MAX_ASSEMBLY_SIZE 8192 //アセンブリコードの最大サイズ
+#define MAX_LENGTH 2000
+#define MAX_ASSEMBLY_SIZE 16382 //アセンブリコードの最大サイズ
 
 
 typedef struct{

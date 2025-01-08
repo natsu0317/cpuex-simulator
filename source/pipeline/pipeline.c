@@ -5,8 +5,8 @@
 #include "../asm_to_binary/asm_to_binary.h"
 #include "../binary_to_result/binary_to_result.h"
 
-#define MAX_ASSEMBLY_SIZE 8192  // アセンブリコードの最大サイズ
-#define MAX_INSTRUCTION_LENGTH 100
+#define MAX_ASSEMBLY_SIZE 16382  // アセンブリコードの最大サイズ
+#define MAX_INSTRUCTION_LENGTH 1000
 #define PIPELINE_STAGES 5
 #define INST_WIDTH 20
 #define CYCLE_WIDTH 5
@@ -351,7 +351,7 @@ int main(){
         return 1;
     }
     
-    execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, float_transition_file, pipeline_file, sld_file, sld_result_file, memory_file, use_register);
+    // execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, float_transition_file, pipeline_file, sld_file, sld_result_file, memory_file, use_register);
     
     FILE *instruction_statics_file = fopen("./document/instruction_statics.txt","w");
     if (instruction_statics_file == NULL) {
