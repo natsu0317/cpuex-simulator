@@ -131,7 +131,8 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
 
         //register遷移の出力
         // print_register_transition(transition_file, float_transition_file, current_line);
-        print_use_register_transition(transition_file, float_transition_file, current_line, use_register);
+        print_use_register_transition(transition_file, current_line, use_register);
+        print_use_float_register_transition(float_transition_file, current_line, use_register);
         fflush(transition_file); 
         printf("binary_insturcinos[current_line]:%s\n",binary_instructions[current_line - 1].binary_code);
         printf("assembly_code:%20s\n",assembly_instructions[current_line+assembly_count]);
