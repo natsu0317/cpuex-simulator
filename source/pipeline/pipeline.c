@@ -82,20 +82,20 @@ void print_stall(FILE* pipeline_file, int stall_cycle, int total_cycle){
 int instruction_count = 0;
 
 void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int instruction_length, FILE* transition_file, FILE* float_transition_file, FILE* pipeline_file, FILE* sld_file, FILE* sld_result_file, FILE* memory_file, int use_register[64]) {
-    int current_line = 1; // assembly codeの行数に対応
+    int current_line = 0; // assembly codeの行数に対応
     int total_cycles = 1;
 
     while (current_line < instruction_length) {   
         printf("pipeline start\n");
-        printf("行数：%d\n",current_line); 
-        printf("binary:%s\n",binary_instructions[current_line - 1].binary_code);
+        printf("行数：%d\n",current_line+1); 
+        printf("binary:%s\n",binary_instructions[current_line].binary_code);
         //finish命令
-        if(strcmp(binary_instructions[current_line - 1].binary_code,"11111111111111111111111111111111") == 0){
+        if(strcmp(binary_instructions[current_line].binary_code,"11111111111111111111111111111111") == 0){
             break;
         }
         //break命令
-        if(strcmp(binary_instructions[current_line - 1].binary_code,"11111111111111111111111111111110") == 0){
-            printf("Execution paused at line %d. Type 'c' to resume execution.\n", current_line);
+        if(strcmp(binary_instructions[current_line].binary_code,"11111111111111111111111111111110") == 0){
+            printf("Execution paused at line %d. Type 'c' to resume execution.\n", current_line+1);
             char command[256];
             while(1){
                 printf(">");
@@ -113,9 +113,9 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         // 1個前の命令を記録するため
         const char temporary_previous_instruction[1][33] = {"11111111111111111111111111111111"};
         if(current_line > 1){
-            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 2].binary_code, 1, current_line - 1, sld_file, sld_result_file, memory_file);
+            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line].binary_code, &binary_instructions[current_line - 1].binary_code, 1, current_line, sld_file, sld_result_file, memory_file);
         } else {
-            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, temporary_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
+            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line].binary_code, temporary_previous_instruction, 1, current_line, sld_file, sld_result_file, memory_file);
         }
         pc = pc_opcode_operand1.pc;
         int opcode = pc_opcode_operand1.opcode;//1 = sw / lw, 2 = 分岐命令
@@ -131,18 +131,18 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
 
         //register遷移の出力
         // print_register_transition(transition_file, float_transition_file, current_line);
-        print_use_register_transition(transition_file, float_transition_file, current_line, use_register);
+        print_use_register_transition(transition_file, float_transition_file, current_line+1, use_register);
         fflush(transition_file); 
-        printf("binary_insturcinos[current_line]:%s\n",binary_instructions[current_line - 1].binary_code);
+        printf("binary_insturcinos[current_line]:%s\n",binary_instructions[current_line].binary_code);
         printf("assembly_code:%20s\n",assembly_instructions[current_line+assembly_count]);
-        if(strcmp(binary_instructions[current_line - 1].binary_code,"00000000000000000000000000000000") == 0){
+        if(strcmp(binary_instructions[current_line].binary_code,"00000000000000000000000000000000") == 0){
             current_line++;
             printf("\n");
             continue;
         } else {      
             //pipeline 出力
 
-            print_pipeline(pipeline_file, assembly_instructions, current_line - 1, assembly_count, total_cycles);
+            print_pipeline(pipeline_file, assembly_instructions, current_line, assembly_count, total_cycles);
 
             //data hazard
             //現在のoperand2 or operand3 == n個前のoperand1 -> (4-n)サイクルstall
