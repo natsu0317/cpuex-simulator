@@ -350,6 +350,7 @@ void parse_assembly(const char* assembly_code){
 
     while (token != NULL){
         printf("token:%s\n",token);
+        printf("instruction_count:%d\n",instruction_count);
         //labelの部分は0000...0で出力するようになっている
         if (strchr(token, ':') != NULL ||
             strstr(token, ".globl") != NULL){
@@ -471,24 +472,6 @@ void parse_assembly(const char* assembly_code){
         //printf("%d,%d,%d,%d\n",need_free_imm_1,need_free_imm_2,need_free_reg_1,need_free_reg_2);
 
         BinaryInstruction inst;
-
-        // if(strcmp(opcode, "la") == 0){
-        //     //la rd, symbolをaddi rd, rd, symbolの絶対アドレスに変更すればいいのではないか
-        //     int current_line = instruction_count;
-        //     const char* label_name = operand2;
-        //     int offset = calculate_offset(assembly_code,label_name,current_line);
-        //     printf("offset:%d\n",offset);
-        //     int address = offset / 4 + current_line + 1;
-        //     printf("address: %d\n",address);
-        //     char address_bin[32];
-        //     snprintf(address_bin,sizeof(address_bin),"%d",address);
-        //     printf("adderss_bin:%s\n",get_immediate_binary(address_bin));
-        //     r2_bin = get_immediate_binary(address_bin);
-        //     char r2_bin_sub[13];//12bit + 終端文字
-        //     get_substring(r2_bin,r2_bin_sub,strlen(r2_bin)-12,12);
-        //     printf("%s\n",r2_bin_sub);
-        //     snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s0010", r2_bin_sub, rd_bin, rd_bin);
-        // }
         if(strcmp(opcode, "la") == 0 || strcmp(opcode, "la_1") == 0){
             printf("opcode:%s\n",opcode);
             // la rd, symbolを変換すると下2行に対応
