@@ -718,24 +718,29 @@ void print_register(FILE* output_file){
 //     fprintf(float_transition_file, "\n");
 // }
 
-void print_use_register_transition(FILE *transition_file, FILE *float_transition_file, int pc, int use_register[64]){
+void print_use_register_transition(FILE *transition_file, int pc, int use_register[64]){
     fprintf(transition_file, "| ");
     fprintf(transition_file, "%2d行|",pc);    
-    fprintf(float_transition_file, "| ");
-    fprintf(float_transition_file, "%2d行|",pc);
     for(int i = 0; i< 32; i++) {
         if(use_register[i] > 0){
             fprintf(transition_file, "%3d | ", get_register(i));
         }
         // fprintf(transition_file, "%3d | ", get_register(i));
     }    
+    fprintf(transition_file, "\n");
+}
+
+void print_use_float_register_transition(FILE *float_transition_file, int pc, int use_register[64]){ 
+    fprintf(float_transition_file, "| ");
+    fprintf(float_transition_file, "%2d行|",pc);
+    fflush(float_transition_file);
+    printf("current_line:%d\n",pc);
     for(int i = 32; i< NUM_REGISTERS; i++) {
         if(use_register[i] > 0){
             fprintf(float_transition_file, "%3f | ", get_float_register(i));
         }
         // fprintf(float_transition_file, "%3f | ", get_float_register(i));
     }
-    fprintf(transition_file, "\n");
     fprintf(float_transition_file, "\n");
 }
 

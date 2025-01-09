@@ -25,7 +25,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
 extern InstructionCounter counter;
 int result_main();
 // void print_register_transition(FILE *transition_file, FILE *float_transition_file, int pc);
-void print_use_register_transition(FILE *transition_file, FILE *float_transition_file, int pc, int use_register[64]);
+void print_use_register_transition(FILE *transition_file, int pc, int use_register[64]);
+void print_use_float_register_transition(FILE *float_transition_file, int pc, int use_register[64]);
 void for_markdown(FILE *transition_file, FILE *float_transition_file, int use_register[64]);
 
 #endif
