@@ -520,14 +520,6 @@ void parse_assembly(const char* assembly_code){
             printf("bit11_0 (2進数): %s\n", bit11_0_bin);
             // printf("%s00%s0110\n", bit31_12, rd_bin);
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0110", bit31_12_bin, rd_bin);
-
-            
-            //nop(addi x0,x0,0)追加
-            instruction_count++;
-            binary_instructions[binary_instruction_count++] = inst;
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000000000000010");
-
-
             instruction_count++;
             binary_instructions[binary_instruction_count++] = inst;
             // char bit11_0[13];
@@ -627,11 +619,6 @@ void parse_assembly(const char* assembly_code){
             printf("bit31_12:%s\n",bit31_12);
             if(strcmp(opcode, "lui") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s%s", bit31_12, rd_bin, opcode_bin);
             //printf("end");
-            
-            //nop(addi x0,x0,0)追加
-            instruction_count++;
-            binary_instructions[binary_instruction_count++] = inst;
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000000000000010");
         }
         if(is_aui_type(opcode)){
             //auipc
@@ -672,21 +659,11 @@ void parse_assembly(const char* assembly_code){
             snprintf(imm, 21,"%s%s%s%s", bit20, bit10_1, bit11, bit19_12);
             
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s%s",imm, rd_bin, opcode_bin);
-
-            //nop(addi x0,x0,0)追加
-            instruction_count++;
-            binary_instructions[binary_instruction_count++] = inst;
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000000000000010");
         }
         if(is_jalr_type(opcode)){
             char r2_bin_sub[13];//12bit + 終端文字
             get_substring(r2_bin,r2_bin_sub,strlen(r2_bin)-12,12);
             if(strcmp(opcode, "jalr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
-            
-            //nop(addi x0,x0,0)追加
-            instruction_count++;
-            binary_instructions[binary_instruction_count++] = inst;
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000000000000010");
         }
         if (is_lw_type(opcode)) {
             const char *op_start = operand2; //x0(0)
