@@ -493,7 +493,7 @@ void parse_assembly(const char* assembly_code){
             if (strcmp(opcode, "la_1") == 0) {
                 offset = operand2_num + 8;
             }
-            offset = offset + current_line * 4 + 4;
+            offset = offset + current_line * 4 + 8; //laが3命令に分割する
             printf("offset:%d\n",offset);
             // オフセットを32ビット符号付き整数として扱う
             int32_t signed_offset = offset;
@@ -520,6 +520,12 @@ void parse_assembly(const char* assembly_code){
             printf("bit11_0 (2進数): %s\n", bit11_0_bin);
             // printf("%s00%s0110\n", bit31_12, rd_bin);
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0110", bit31_12_bin, rd_bin);
+
+            // nop(addi x0,x0,0)命令を追加
+            instruction_count++;
+            binary_instructions[binary_instruction_count++] = inst;
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000000000000010");
+
             instruction_count++;
             binary_instructions[binary_instruction_count++] = inst;
             // char bit11_0[13];
@@ -746,12 +752,16 @@ void parse_assembly(const char* assembly_code){
         char* before_token = token;
         token = strtok(NULL,delimiter);
         printf("after_token:%s\n",token);
-        // laとla_1はauipcとaddiの2命令に分かれるから調節
+        // laとla_1はauipcとaddiの3命令に分かれるから調節
         if(strstr(before_token, "la") != NULL && strstr(token, "la") != NULL){
+            token = strtok(NULL,delimiter);
+            printf("after_token:%s\n",token);
             token = strtok(NULL,delimiter);
             printf("after_token:%s\n",token);
         }
         if(strstr(before_token, "la_1") != NULL && strstr(token, "la_1") != NULL){
+            token = strtok(NULL,delimiter);
+            printf("after_token:%s\n",token);
             token = strtok(NULL,delimiter);
             printf("after_token:%s\n",token);
         }
