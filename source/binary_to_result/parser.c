@@ -68,7 +68,7 @@ uint32_t read_next_value_from_file(FILE *file) {
 
 uint32_t previous_instruction = 0;
 // バイナリ命令をデコードして処理
-Pc_operand execute_binary_instruction(const char binary_instruction[][33], const char previous_binary_instruction[][33], int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
+Pc_operand execute_binary_instruction(const char binary_instruction[][33], const char two_previous_binary_instruction[][33], int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
     Pc_operand pc_operand;
     pc_operand.opcode = 0;
     pc_operand.pc = 1;
@@ -78,14 +78,17 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
 
         //printf("x1:%d\n",get_register(1));
         printf("instruction :%s\n",binary_instruction[pc]);
-        printf("previous_instruction :%s\n",previous_binary_instruction[pc]);
+        // printf("previous_instruction :%s\n",previous_binary_instruction[pc]);
+        printf("two_previous_instruction :%s\n",two_previous_binary_instruction[pc]);
         uint32_t instruction = strtol(binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
-        uint32_t previous_instruction = strtol(previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
+        // uint32_t previous_instruction = strtol(previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
+        uint32_t two_previous_instruction = strtol(two_previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
 
         // オペコードを取得
         //下4桁
         uint32_t opcode = instruction & 0xF;
-        uint32_t previous_opcode = previous_instruction & 0xF;
+        // uint32_t previous_opcode = previous_instruction & 0xF;
+        uint32_t two_previous_opcode = two_previous_instruction & 0xF;
         printf("opcode:%x\n",opcode);
 
         switch (opcode) {
@@ -171,8 +174,9 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
 
                     if(minus == 0){//immは正
                         if (funct3 == 0) {  // addi命令
-                            if(previous_opcode == 0x6){
-                                //前の命令がauipcの時
+                            if(two_previous_opcode == 0x6){
+                                printf("laの3命令目のaddi(2個前の命令がauipc)");
+                                //2個前の命令がauipcの時
                                 // imm = imm / 4 + current_line;
                                 imm = imm / 4;
                             }
@@ -216,9 +220,10 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         }
                     }else if(minus == 1){
                         if (funct3 == 0) {  // addi命令
-                            if(previous_opcode == 0x6){
-                                //前の命令がauipcの時
-                                imm = imm / 4 - current_line;
+                            if(two_previous_opcode == 0x6){
+                                //2個前の命令がauipcの時
+                                // imm = imm / 4 - current_line;
+                                imm = imm / 4;
                             }
                             if(0 <= rd & rd < 32){
                                 set_register(rd, get_register(rs1) - imm);
