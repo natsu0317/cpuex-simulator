@@ -493,8 +493,8 @@ void parse_assembly(const char* assembly_code){
             if (strcmp(opcode, "la_1") == 0) {
                 offset = operand2_num + 8;
             }
-            // offset = offset + current_line * 4 + 8; //laが3命令に分割する
-            offset = offset + 8; //laが3命令に分割する
+            offset = offset + current_line * 4 + 8; //laが3命令に分割する
+            // offset = offset + 8; //laが3命令に分割する
             //printf("offset:%d\n",offset);
             // オフセットを32ビット符号付き整数として扱う
             int32_t signed_offset = offset;
@@ -520,7 +520,9 @@ void parse_assembly(const char* assembly_code){
             //printf("bit31_12 (2進数): %s\n", bit31_12_bin);
             //printf("bit11_0 (2進数): %s\n", bit11_0_bin);
             // //printf("%s00%s0110\n", bit31_12, rd_bin);
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0110", bit31_12_bin, rd_bin);
+            // snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0110", bit31_12_bin, rd_bin);
+            //auipcではなくluiに変更
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0101 ", bit31_12_bin, rd_bin);
 
             // nop(addi x0,x0,0)命令を追加
             instruction_count++;
