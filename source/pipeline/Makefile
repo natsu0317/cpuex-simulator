@@ -2,7 +2,7 @@
 
 # コンパイラとフラグ
 CC = gcc
-CFLAGS = -I../asm_to_binary -I../binary_to_result
+CFLAGS = -I../asm_to_binary -I../binary_to_result -O2
 LDFLAGS = -lm
 
 all: pipeline
