@@ -539,7 +539,7 @@ void parse_assembly(const char* assembly_code){
 
         if(strcmp(opcode, "li_1") == 0){
             // liの即値が32bit
-            printf("r1_bin:%s\n",r1_bin);
+            // printf("r1_bin:%s\n",r1_bin);
             // lui rd imm(31:12)
             // addi rd, rd, imm(11:0)
 
@@ -547,8 +547,8 @@ void parse_assembly(const char* assembly_code){
             char bit11_0[13];
             get_substring(r1_bin,bit31_12,strlen(r1_bin)-32,20);
             get_substring(r1_bin,bit11_0,strlen(r1_bin)-12,12);
-            printf("bit31_12:%s\n",bit31_12);
-            printf("bit11_0:%s\n",bit11_0);
+            // printf("bit31_12:%s\n",bit31_12);
+            // printf("bit11_0:%s\n",bit11_0);
 
             //lui rd imm(31:12)
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0101", bit31_12, rd_bin);
