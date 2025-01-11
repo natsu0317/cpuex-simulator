@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 #include "../asm_to_binary/asm_to_binary.h"
 #include "../binary_to_result/binary_to_result.h"
 
@@ -255,11 +256,13 @@ void print_instruction_count(FILE* instruction_statics_file) {
 }
 
 int main(){
+    clock_t start_time, end_time;
+    start_time = clock();
+
     //ファイルからassembly取得
     FILE *file;
     char assembly_code[MAX_ASSEMBLY_SIZE];
     char assembly_instructions[MAX_INSTRUCTIONS][MAX_INSTRUCTION_LENGTH];
-
     file = fopen("./document/assembly.txt","r");
     if(file == NULL){
         perror("Error opening file");
@@ -365,6 +368,10 @@ int main(){
 
     fclose(transition_file);
     fclose(sld_file);
+
+    end_time = clock();
+
+    printf("Execution Time = %lf [s]\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
 
     return 0;
 }
