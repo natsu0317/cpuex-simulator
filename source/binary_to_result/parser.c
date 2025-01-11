@@ -186,20 +186,24 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                                 printf("addi: x%d, x%d, %d\n", rd, rs1, imm);
                                 printf("result:%d\n",get_register(rd));
                             } else {
-                                printf("addi: x%d, x%d, %d\n", rd, rs1, imm);
-                                // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
-                                // rs1に格納されている整数値を取得
-                                int32_t int_value = get_register(rs1) + imm;
-                                printf("int_value:%d\n",int_value);
-                                // 32ビットの整数を浮動小数点数に変換
-                                // float float_value = (float)int_value;
-                                float float_value;
-                                memcpy(&float_value, &int_value, sizeof(float_value));
-                                printf("float_value:%lf\n",float_value);
-                                // 変換された浮動小数点数を小数レジスタに格納
-                                set_register(rd, float_value);
-                                // デバッグ用の出力
-                                printf("Converted integer 0x%x to float: %f\n", int_value, float_value);
+                                if(0 <= rs1 & rs1 < 32){
+                                    // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
+                                    // rs1に格納されている整数値を取得
+                                    int32_t int_value = get_register(rs1) + imm;
+                                    printf("int_value:%d\n",int_value);
+                                    // 32ビットの整数を浮動小数点数に変換
+                                    // float float_value = (float)int_value;
+                                    float float_value;
+                                    memcpy(&float_value, &int_value, sizeof(float_value));
+                                    printf("float_value:%lf\n",float_value);
+                                    // 変換された浮動小数点数を小数レジスタに格納
+                                    set_register(rd, float_value);
+                                    // デバッグ用の出力
+                                    printf("Converted integer 0x%x to float: %f\n", int_value, float_value);
+                                } else {
+                                    float float_value = get_float_register(rs1);
+                                    set_register(rd, float_value);
+                                }
                             }
                         } else if (funct3 == 0x7){  // andi
                             set_register(rd, get_register(rs1) & imm);
@@ -230,16 +234,24 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                                 counter.i_type[0]++;
                                 printf("addi: x%d, x%d, -%d\n", rd, rs1, imm);
                             } else {
-                                // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
-                                // rs1に格納されている整数値を取得
-                                int32_t int_value = get_register(rs1) - imm;
-                                // 32ビットの整数を浮動小数点数に変換
-                                float float_value;
-                                memcpy(&float_value, &int_value, sizeof(float_value));
-                                // 変換された浮動小数点数を小数レジスタに格納
-                                set_register(rd, float_value);
-                                // デバッグ用の出力
-                                printf("Converted integer 0x%x to float: %f\n", int_value, float_value);
+                                if(0 <= rs1 & rs1 < 32){
+                                    // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
+                                    // rs1に格納されている整数値を取得
+                                    int32_t int_value = get_register(rs1) + imm;
+                                    printf("int_value:%d\n",int_value);
+                                    // 32ビットの整数を浮動小数点数に変換
+                                    // float float_value = (float)int_value;
+                                    float float_value;
+                                    memcpy(&float_value, &int_value, sizeof(float_value));
+                                    printf("float_value:%lf\n",float_value);
+                                    // 変換された浮動小数点数を小数レジスタに格納
+                                    set_register(rd, float_value);
+                                    // デバッグ用の出力
+                                    printf("Converted integer 0x%x to float: %f\n", int_value, float_value);
+                                } else {
+                                    float float_value = get_float_register(rs1);
+                                    set_register(rd, float_value);
+                                }
                             }
                         }
                     }
@@ -725,7 +737,8 @@ void print_register(FILE* output_file){
 
 void print_use_register_transition(FILE *transition_file, int pc, int use_register[64]){
     fprintf(transition_file, "| ");
-    fprintf(transition_file, "%2d行|",pc);    
+    fprintf(transition_file, "%2d行|",pc);   
+    fflush(transition_file); 
     for(int i = 0; i< 32; i++) {
         if(use_register[i] > 0){
             fprintf(transition_file, "%3d | ", get_register(i));
