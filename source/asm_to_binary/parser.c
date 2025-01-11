@@ -537,6 +537,27 @@ void parse_assembly(const char* assembly_code){
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s0010", bit11_0_bin, rd_bin, rd_bin);
             }
 
+        if(strcmp(opcode, "li_1") == 0){
+            printf("r1_bin:%s\n",r1_bin);
+            // lui rd imm(31:12)
+            // addi rd, rd, imm(11:0)
+
+            char bit31_12[21];
+            char bit11_0[13];
+            get_substring(r1_bin,bit31_12,strlen(r1_bin)-32,20);
+            get_substring(r1_bin,bit11_0,strlen(r1_bin)-12,12);
+            printf("bit31_12:%s\n",bit31_12);
+            printf("bit11_0:%s\n",bit11_0);
+
+            //lui rd imm(31:12)
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0101", bit31_12, rd_bin);
+
+            instruction_count++;
+            binary_instructions[binary_instruction_count++] = inst;
+            // addi rd, rd, imm(11:0)
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s0010", bit11_0, rd_bin, rd_bin);
+        }
+
         if(is_r_type(opcode)){
             //printf("r_type\n");
             if(strcmp(opcode, "add") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
@@ -736,7 +757,7 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "csrr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000100010101011");
 
         }
-        //printf("Binary Code: %s\n",inst.binary_code);
+        printf("Binary Code: %s\n",inst.binary_code);
         // //printf("before");
         instruction_count++;
         ////printf("after_instruction_count");
@@ -754,7 +775,12 @@ void parse_assembly(const char* assembly_code){
         //printf("before_token:%s\n",token);
         char* before_token = token;
         token = strtok(NULL,delimiter);
-        //printf("after_token:%s\n",token);
+        // printf("after_token:%s\n",token);
+        //　li_1は2命令に分かれるから調節
+        if(strstr(before_token, "li_1") != NULL){
+            token = strtok(NULL,delimiter);
+            //printf("after_token:%s\n",token);
+        }
         // laとla_1はauipcとaddiの3命令に分かれるから調節
         if(strstr(before_token, "la") != NULL && strstr(token, "la") != NULL){
             token = strtok(NULL,delimiter);
