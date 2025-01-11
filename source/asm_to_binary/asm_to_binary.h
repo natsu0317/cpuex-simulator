@@ -1,7 +1,7 @@
 #ifndef ASMTOBI_H
 #define ASMTOBI_H
 
-#define MAX_INSTRUCTIONS 2000
+#define MAX_INSTRUCTIONS 20000
 #define INSTRUCTION_LENGTH 33  // 32ビット + null終端文字
 
 typedef struct {
