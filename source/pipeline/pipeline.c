@@ -112,18 +112,20 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         int pc = 0;
         Pc_operand pc_opcode_operand1;
         // 1個前の命令を記録するため
-        // const char temporary_previous_instruction[1][33] = {"11111111111111111111111111111111"};
+        const char temporary_previous_instruction[1][33] = {"11111111111111111111111111111111"};
         const char temporary_two_previous_instruction[1][33] = {"11111111111111111111111111111111"};
         if(current_line > 2){
-            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 3].binary_code, 1, current_line - 1, sld_file, sld_result_file, memory_file);
+            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 2].binary_code, &binary_instructions[current_line - 3].binary_code, 1, current_line - 1, sld_file, sld_result_file, memory_file);
+        } else if(current_line > 1) {
+            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 2].binary_code, temporary_two_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
         } else {
-            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, temporary_two_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
+            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, temporary_previous_instruction, temporary_two_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
         }
         pc = pc_opcode_operand1.pc;
         int opcode = pc_opcode_operand1.opcode;//1 = sw / lw, 2 = 分岐命令
         int operand2 = pc_opcode_operand1.operand2;
         int operand3 = pc_opcode_operand1.operand3;
-        printf("pipeline_pc:%d\n",pc);
+        // printf("pipeline_pc:%d\n",pc);
         // printf("operand1:%d\n",pc_opcode_operand1.operand1);
         // printf("opcode:%d\n",pc_opcode_operand1.opcode);//1 = sw / lw, 2 = 分岐命令
 
@@ -177,14 +179,14 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
                 total_cycles++;
             }
         }
-        printf("pc:%d\n",pc);
+        // printf("pc:%d\n",pc);
         
         if (pc == 1) {
             current_line++;
         } else {
             current_line += pc;
         }
-        printf("current_line: %d\n",current_line);
+        // printf("current_line: %d\n",current_line);
         total_cycles++;
     }
     printf("合計命令数: %d\n",total_cycles);

@@ -68,7 +68,7 @@ uint32_t read_next_value_from_file(FILE *file) {
 
 uint32_t previous_instruction = 0;
 // バイナリ命令をデコードして処理
-Pc_operand execute_binary_instruction(const char binary_instruction[][33], const char two_previous_binary_instruction[][33], int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
+Pc_operand execute_binary_instruction(const char binary_instruction[][33], const char previous_binary_instruction[][33],const char two_previous_binary_instruction[][33], int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
     Pc_operand pc_operand;
     pc_operand.opcode = 0;
     pc_operand.pc = 1;
@@ -78,16 +78,16 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
 
         //printf("x1:%d\n",get_register(1));
         //printf("instruction :%s\n",binary_instruction[pc]);
-        // //printf("previous_instruction :%s\n",previous_binary_instruction[pc]);
-        //printf("two_previous_instruction :%s\n",two_previous_binary_instruction[pc]);
+        // printf("previous_instruction :%s\n",previous_binary_instruction[pc]);
+        // printf("two_previous_instruction :%s\n",two_previous_binary_instruction[pc]);
         uint32_t instruction = strtol(binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
-        // uint32_t previous_instruction = strtol(previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
+        uint32_t previous_instruction = strtol(previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
         uint32_t two_previous_instruction = strtol(two_previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
 
         // オペコードを取得
         //下4桁
         uint32_t opcode = instruction & 0xF;
-        // uint32_t previous_opcode = previous_instruction & 0xF;
+        uint32_t previous_opcode = previous_instruction & 0xF;
         uint32_t two_previous_opcode = two_previous_instruction & 0xF;
         //printf("opcode:%x\n",opcode);
 
@@ -158,7 +158,35 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     int32_t imm = (instruction >> 20) & 0xFFF;
                     pc_operand.operand1 = rd;
                     pc_operand.operand2 = rs1;
-                   //printf("imm:%x\n",imm);
+                    if(previous_opcode == 0x5){
+                        //1個前の命令がluiの時(li_1)
+                        printf("1個前の命令がlui(li_1)");
+                        if(0 <= rd & rd < 32){
+                            set_register(rd, get_register(rs1) + imm);
+                            counter.i_type[0]++;
+                            //printf("addi: x%d, x%d, %d\n", rd, rs1, imm);
+                            //printf("result:%d\n",get_register(rd));
+                        } else {
+                            if(0 <= rs1 & rs1 < 32){
+                                // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
+                                // rs1に格納されている整数値を取得
+                                int32_t int_value = get_register(rs1) + imm;
+                                //printf("int_value:%d\n",int_value);
+                                // 32ビットの整数を浮動小数点数に変換
+                                // float float_value = (float)int_value;
+                                float float_value;
+                                memcpy(&float_value, &int_value, sizeof(float_value));
+                                //printf("float_value:%lf\n",float_value);
+                                // 変換された浮動小数点数を小数レジスタに格納
+                                set_register(rd, float_value);
+                                // デバッグ用の出力
+                                //printf("Converted integer 0x%x to float: %f\n", int_value, float_value);
+                            } else {
+                                float float_value = get_float_register(rs1);
+                                set_register(rd, float_value);
+                            }
+                        }
+                    }
                     int minus = 0;//immが負なら1
                     if(imm & 0x800){
                         //即値が負の値
@@ -222,7 +250,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                             set_register(rd, get_register(rs1) << imm);
                            //printf("slli: x%d, x%d, %d\n", rd, rs1, imm);
                         }
-                    }else if(minus == 1){
+                    }else if(minus == 1 && previous_opcode != 0x5){
                         if (funct3 == 0) {  // addi命令
                             if(two_previous_opcode == 0x5){
                                 // 2個前の命令がluiの時

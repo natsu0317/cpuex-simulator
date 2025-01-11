@@ -538,6 +538,7 @@ void parse_assembly(const char* assembly_code){
             }
 
         if(strcmp(opcode, "li_1") == 0){
+            // liの即値が32bit
             printf("r1_bin:%s\n",r1_bin);
             // lui rd imm(31:12)
             // addi rd, rd, imm(11:0)
