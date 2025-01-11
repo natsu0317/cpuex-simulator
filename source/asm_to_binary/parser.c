@@ -177,11 +177,11 @@ bool is_float(const char* str){
 
 // 即値をバイナリに変換
 char* get_immediate_binary(const char* imm) {
-    // printf("get_immediate_binary\n");
+    // //printf("get_immediate_binary\n");
     
     // "0x"で始まるかどうかを確認
     if (strncmp(imm, "0x", 2) == 0) {
-        printf("imm: %s\n", imm);
+        //printf("imm: %s\n", imm);
         unsigned int number = (unsigned int)strtol(imm, NULL, 16);
 
         // 最上位2ビットをクリアして"01"に設定
@@ -200,10 +200,10 @@ char* get_immediate_binary(const char* imm) {
         }
         binary_str[32] = '\0'; // 終端文字を追加
 
-        printf("binary_str: %s\n", binary_str);
+        //printf("binary_str: %s\n", binary_str);
         return binary_str;
     }
-    // printf("imm: %s\n",imm);
+    // //printf("imm: %s\n",imm);
     if (is_float(imm)){
         float imm_value = atof(imm);
         return float_to_binary(imm_value);
@@ -333,7 +333,7 @@ int use_register[64] = {0};
 
 void using_register(char* operand){
     if(strncmp(operand,"x",1) ==  0){
-        printf("using %s\n",operand);
+        //printf("using %s\n",operand);
         int reg_number = atoi(operand+1); //"x"の後の数字を取得
         if(reg_number >= 0 && reg_number < 64){
             use_register[reg_number]++;
@@ -349,8 +349,8 @@ void parse_assembly(const char* assembly_code){
     BinaryInstruction inst;
 
     while (token != NULL){
-        printf("token:%s\n",token);
-        printf("instruction_count:%d\n",instruction_count);
+        //printf("token:%s\n",token);
+        //printf("instruction_count:%d\n",instruction_count);
         //labelの部分は0000...0で出力するようになっている
         if (strchr(token, ':') != NULL ||
             strstr(token, ".globl") != NULL){
@@ -381,10 +381,10 @@ void parse_assembly(const char* assembly_code){
         memset(operand1, 0, sizeof(operand1));
         memset(operand2, 0, sizeof(operand2));
         memset(operand3, 0, sizeof(operand3));
-        // printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
+        // //printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
         // カンマと空白を区切り文字として扱う
         sscanf(token, "%s %[^,], %[^,], %s", opcode, operand1, operand2, operand3);
-        // printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
+        // //printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);
 
         // 疑似命令に対応(mv, li, ret, j, fsw, flw, bgt, fmv)
         if(strcmp(opcode, "mv") == 0){
@@ -429,7 +429,7 @@ void parse_assembly(const char* assembly_code){
         convert_registerset_to_x(operand1);
         convert_registerset_to_x(operand2);
         convert_registerset_to_x(operand3);
-        printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);     
+        //printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);     
         using_register(operand1);
         using_register(operand2);
         using_register(operand3);
@@ -449,10 +449,10 @@ void parse_assembly(const char* assembly_code){
             r1_bin = get_register_binary(operand2);
             need_free_reg_1 = 1;
         }else if(operand2[0] != '\0'){
-            printf("operand2:%s\n",operand2);
+            //printf("operand2:%s\n",operand2);
             if(strcmp(opcode, "sw") == 0 || strcmp(opcode, "lw") == 0){
             } else {
-                // printf("need_free_imm_1\n");
+                // //printf("need_free_imm_1\n");
                 r1_bin = get_immediate_binary(operand2);
                 need_free_imm_1 = 1;
             }
@@ -477,15 +477,15 @@ void parse_assembly(const char* assembly_code){
 
         BinaryInstruction inst;
         if(strcmp(opcode, "la") == 0 || strcmp(opcode, "la_1") == 0){
-            printf("opcode:%s\n",opcode);
+            //printf("opcode:%s\n",opcode);
             // la rd, symbolを変換すると下2行に対応
             // auipc rd, symbol(31:12)
             // addi rd, rd, symbol(11:0)
             int current_line = instruction_count;
             int operand2_num = atoi(operand2); // Assuming operand2 is a string that represents a number
-            printf("operand2:%d\n", operand2_num);
+            //printf("operand2:%d\n", operand2_num);
             const char* label_name = operand2;
-            printf("label_name:%s\n", label_name);
+            //printf("label_name:%s\n", label_name);
             int offset = 0;
             if (strcmp(opcode, "la") == 0) {
                 offset = calculate_offset(assembly_code, label_name, current_line);
@@ -493,8 +493,9 @@ void parse_assembly(const char* assembly_code){
             if (strcmp(opcode, "la_1") == 0) {
                 offset = operand2_num + 8;
             }
-            offset = offset + current_line * 4 + 8; //laが3命令に分割する
-            printf("offset:%d\n",offset);
+            // offset = offset + current_line * 4 + 8; //laが3命令に分割する
+            offset = offset + 8; //laが3命令に分割する
+            //printf("offset:%d\n",offset);
             // オフセットを32ビット符号付き整数として扱う
             int32_t signed_offset = offset;
             // 上位20ビットを取得 (符号付きで右シフト)
@@ -516,9 +517,9 @@ void parse_assembly(const char* assembly_code){
                 bit11_0_bin[11 - i] = (bit11_0 & (1 << i)) ? '1' : '0';
             }
 
-            printf("bit31_12 (2進数): %s\n", bit31_12_bin);
-            printf("bit11_0 (2進数): %s\n", bit11_0_bin);
-            // printf("%s00%s0110\n", bit31_12, rd_bin);
+            //printf("bit31_12 (2進数): %s\n", bit31_12_bin);
+            //printf("bit11_0 (2進数): %s\n", bit11_0_bin);
+            // //printf("%s00%s0110\n", bit31_12, rd_bin);
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0110", bit31_12_bin, rd_bin);
 
             // nop(addi x0,x0,0)命令を追加
@@ -530,7 +531,7 @@ void parse_assembly(const char* assembly_code){
             binary_instructions[binary_instruction_count++] = inst;
             // char bit11_0[13];
             // get_substring(r1_bin, bit11_0, strlen(r1_bin)-12, 12);
-            // printf("bit11_0:%s\n",bit11_0);
+            // //printf("bit11_0:%s\n",bit11_0);
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s0010", bit11_0_bin, rd_bin, rd_bin);
             }
 
@@ -584,16 +585,16 @@ void parse_assembly(const char* assembly_code){
             snprintf(inst.binary_code, sizeof(inst.binary_code), "%s%s%s0100%s%s", bit11_5, rd_bin, r1_bin, bit4_0, opcode_bin);
         }
         if(is_b_type(opcode)){
-            printf("b_type\n");
+            //printf("b_type\n");
             //offsetを求める
             int current_line = instruction_count;
             const char* label_name = operand3;
             int offset = calculate_offset(assembly_code,label_name,current_line);
             char offset_str[20];
-            printf("offset:%d\n",offset);
+            //printf("offset:%d\n",offset);
             snprintf(offset_str,sizeof(offset_str),"%d",offset);
             r2_bin = get_immediate_binary(offset_str);
-            printf("%s\n",r2_bin);
+            //printf("%s\n",r2_bin);
 
             //opcode -> funct3, rd -> r1, r1 -> r2, r2 -> offsetに対応
             char imm_1[8],imm_2[6];
@@ -616,13 +617,13 @@ void parse_assembly(const char* assembly_code){
             //printf("end");
         }
         if(is_u_type(opcode)){
-            printf("u_type\n");
+            //printf("u_type\n");
             //lui rd upimm
-            printf("rd_bin:%s\n",rd_bin);
-            printf("r1_bin:%s\n",r1_bin);
+            //printf("rd_bin:%s\n",rd_bin);
+            //printf("r1_bin:%s\n",r1_bin);
             char bit31_12[21];
             get_substring(r1_bin, bit31_12, strlen(r1_bin)-20, 20);
-            printf("bit31_12:%s\n",bit31_12);
+            //printf("bit31_12:%s\n",bit31_12);
             if(strcmp(opcode, "lui") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s%s", bit31_12, rd_bin, opcode_bin);
             //printf("end");
         }
@@ -633,7 +634,7 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "auipc") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s%s", bit31_12, rd_bin, opcode_bin);
         }
         if(is_j_type(opcode)){
-           printf("j_type\n");
+           //printf("j_type\n");
 
            // j labelとなっているときは
            //label_name = operand1, rd_bin = get_register_binary("x1")
@@ -642,17 +643,17 @@ void parse_assembly(const char* assembly_code){
             //offsetを求める
             int current_line = instruction_count;
             const char* label_name = operand2;
-            // printf("label_name 528 : %s\n",label_name);
+            // //printf("label_name 528 : %s\n",label_name);
            //printf("label: %s\n",label_name);
             int offset = calculate_offset(assembly_code,label_name,current_line);
-        //    printf("offset 325  %d\n",offset);
+        //    //printf("offset 325  %d\n",offset);
             char offset_str[20];
             snprintf(offset_str,sizeof(offset_str),"%d",offset);
             r1_bin = get_immediate_binary(offset_str);
             need_free_imm_1 = 1;
             //printf("offset:%d\n",offset);
             rd_bin = get_register_binary(operand1);
-            printf("rd_bin:%s\n",rd_bin);
+            //printf("rd_bin:%s\n",rd_bin);
 
             //r1 -> offsetに対応
             char bit20[2],bit10_1[11],bit11[2],bit19_12[9];
@@ -701,7 +702,7 @@ void parse_assembly(const char* assembly_code){
             snprintf(inst.binary_code, sizeof(inst.binary_code), "%s0%s010%s%s", bit11_0, r1_bin, rd_bin, opcode_bin);
         }
         if(is_f_type(opcode)){
-            printf("f_type\n");
+            //printf("f_type\n");
             //丸めモード: 最近傍
             // funct7[31:25] | rs2[24:19] | rs1[18:13] | funct3[12:10] | rd[9:4] | op[3:0]
             // funct7: { [fadd, 00000 00], [fsub, 00001 00], [fmul, 00010 00], [fdiv, 00011 00], [fsqrt, 01011 00], [fsgnjn, 00100 00], [fsgnjx, 00100 00],
@@ -727,14 +728,14 @@ void parse_assembly(const char* assembly_code){
         }
         if(is_c_type(opcode)){
             //x10の値をファイルに書き込む
-            printf("operand1;%s\n",rd_bin);
+            //printf("operand1;%s\n",rd_bin);
             if(strcmp(opcode, "csrw") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s0000000010000001011",rd_bin);
             //sldファイルの値をx10に書き込む
             if(strcmp(opcode, "csrr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000100010101011");
 
         }
-        printf("Binary Code: %s\n",inst.binary_code);
-        // printf("before");
+        //printf("Binary Code: %s\n",inst.binary_code);
+        // //printf("before");
         instruction_count++;
         ////printf("after_instruction_count");
         binary_instructions[binary_instruction_count++] = inst;
@@ -748,22 +749,22 @@ void parse_assembly(const char* assembly_code){
         if(need_free_reg_2 == 1 || need_free_imm_2 == 1){
             //free(r2_bin);
         }
-        printf("before_token:%s\n",token);
+        //printf("before_token:%s\n",token);
         char* before_token = token;
         token = strtok(NULL,delimiter);
-        printf("after_token:%s\n",token);
+        //printf("after_token:%s\n",token);
         // laとla_1はauipcとaddiの3命令に分かれるから調節
         if(strstr(before_token, "la") != NULL && strstr(token, "la") != NULL){
             token = strtok(NULL,delimiter);
-            printf("after_token:%s\n",token);
+            //printf("after_token:%s\n",token);
             token = strtok(NULL,delimiter);
-            printf("after_token:%s\n",token);
+            //printf("after_token:%s\n",token);
         }
         if(strstr(before_token, "la_1") != NULL && strstr(token, "la_1") != NULL){
             token = strtok(NULL,delimiter);
-            printf("after_token:%s\n",token);
+            //printf("after_token:%s\n",token);
             token = strtok(NULL,delimiter);
-            printf("after_token:%s\n",token);
+            //printf("after_token:%s\n",token);
         }
     }
     free(code_copy);
