@@ -290,9 +290,12 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
 
     line_number = is_label_in_entries(trimmed_label);
     if(line_number != 0){ // labelがentryの中に存在
-        return (line_number - current_line) * 4;
+        return (line_number - current_line - 1) * 4;
+        // printf("entry:%d\n",(line_number - current_line - 1));
+        // printf("line_number in entry:%d\n",line_number);
+        // printf("current_line:%d\n",current_line);
     }
-
+    line_number = 0;
     //print("Label: %s, Length: %zu\n", label_name, label_length);
     while (*line_start != '\0') {
         //printf("%s",line_start);
@@ -310,6 +313,9 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
             //print("%c",line_start[label_length-1]);
            //print("hit\n");
            //print("offset 204  %d\n",line_number - current_line);
+        //    printf("calculate:%d\n",(line_number - current_line));
+            // printf("line_number:%d\n",line_number);
+            // printf("current_line:%d\n",current_line);
             return (line_number - current_line) * 4; // オフセットを計算
         }
         // 次の行へ進む
@@ -803,7 +809,7 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "csrr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000100010101011");
 
         }
-        printf("Binary Code: %s\n",inst.binary_code);
+        // printf("Binary Code: %s\n",inst.binary_code);
         // //printf("before");
         instruction_count++;
         ////printf("after_instruction_count");
