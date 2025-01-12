@@ -358,7 +358,7 @@ int main(){
         return 1;
     }
     
-    // execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, float_transition_file, pipeline_file, sld_file, sld_result_file, memory_file, use_register);
+    execute_binary(assembly_count, assembly_instructions, binary_instructions, instruction_length, transition_file, float_transition_file, pipeline_file, sld_file, sld_result_file, memory_file, use_register);
     
     FILE *instruction_statics_file = fopen("./document/instruction_statics.txt","w");
     if (instruction_statics_file == NULL) {
