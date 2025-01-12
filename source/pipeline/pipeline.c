@@ -283,6 +283,9 @@ int main(){
 
     //assmblyをbinaryに変換
     remove_comments(assembly_code);
+
+    // labelとその位置を記録
+    found_labels(assembly_code);
     parse_assembly(assembly_code);
 
     for(int i=0; i<64; i++){

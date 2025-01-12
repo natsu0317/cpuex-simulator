@@ -10,7 +10,7 @@ extern int instruction_count;
 
 #define MAX_LENGTH 2000
 #define MAX_ASSEMBLY_SIZE 16382 //アセンブリコードの最大サイズ
-
+#define MAX_LABELS 100 // ラベルの最大個数
 
 typedef struct{
     char binary_code[33];
@@ -341,6 +341,36 @@ void using_register(char* operand){
     }
 }
 
+typedef struct {
+    char label[256];
+    int position;
+} LabelEntry;
+
+LabelEntry labels[MAX_LABELS];
+int label_count = 0;
+
+
+LabelEntry found_labels(const char* assembly_code){
+    const char* delimiter = "\n";
+    char* code_copy = strdup(assembly_code);
+    char* token = strtok(code_copy, delimiter);
+    int line_number = 0;
+
+    while(token != NULL){
+        char *colon = strchr(token, ':');
+        if(colon != NULL){
+            *colon = '\0';
+            strcpy(labels[label_count].label,token);
+            labels[label_count].position = line_number+1;
+            label_count++;
+            printf("label_name:%s, position:%d\n",token,line_number+1);
+        }
+        token = strtok(NULL,delimiter);
+        line_number++;
+    }
+
+    free(code_copy);
+}
 
 void parse_assembly(const char* assembly_code){
     const char* delimiter = "\n";
