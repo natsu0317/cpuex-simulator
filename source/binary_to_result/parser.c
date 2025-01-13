@@ -81,15 +81,14 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
         // printf("previous_instruction :%s\n",previous_binary_instruction[pc]);
         // printf("two_previous_instruction :%s\n",two_previous_binary_instruction[pc]);
         uint32_t instruction = strtol(binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
-        uint32_t previous_instruction = strtol(previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
-        uint32_t two_previous_instruction = strtol(two_previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
+
+        // 1個前と2個前の命令のopcodeを記録
+        const char* previous_opcode = previous_binary_instruction[pc] + 28;
+        const char* two_previous_opcode = two_previous_binary_instruction[pc] + 28;
 
         // オペコードを取得
         //下4桁
         uint32_t opcode = instruction & 0xF;
-        uint32_t previous_opcode = previous_instruction & 0xF;
-        uint32_t two_previous_opcode = two_previous_instruction & 0xF;
-        //printf("opcode:%x\n",opcode);
 
         switch (opcode) {
             case 0x0:   //label部分
@@ -158,7 +157,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     int32_t imm = (instruction >> 20) & 0xFFF;
                     pc_operand.operand1 = rd;
                     pc_operand.operand2 = rs1;
-                    if(previous_opcode == 0x5){
+                    if(strcmp(previous_opcode, "0101") == 0){
                         //1個前の命令がluiの時(li_1)
                         printf("1個前の命令がlui(li_1)");
                         if(0 <= rd & rd < 32){
@@ -202,7 +201,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
 
                     if(minus == 0){//immは正
                         if (funct3 == 0) {  // addi命令
-                            if(two_previous_opcode == 0x5){
+                            if(strcmp(two_previous_opcode, "0101") == 0){
                                 printf("laの3命令目のaddi(2個前の命令がlui)");
                                 //2個前の命令がluiの時
                                 // imm = imm / 4 + current_line - 2;
@@ -250,9 +249,9 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                             set_register(rd, get_register(rs1) << imm);
                            //printf("slli: x%d, x%d, %d\n", rd, rs1, imm);
                         }
-                    }else if(minus == 1 && previous_opcode != 0x5){
+                    }else if(minus == 1 && strcmp(previous_opcode, "0101") == 0){
                         if (funct3 == 0) {  // addi命令
-                            if(two_previous_opcode == 0x5){
+                            if(strcmp(two_previous_opcode, "0101") == 0){
                                 // 2個前の命令がluiの時
                                 printf("2個前がlui");
                                 // imm = imm / 4 - (current_line - 2);
