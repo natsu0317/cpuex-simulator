@@ -135,7 +135,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     } else if (funct3 == 0x7 && funct7 == 0){  // and
                         set_register(rd, get_register(rs1) & get_register(rs2));
                         counter.r_type[2]++;
-                        printf("and: x%d, x%d, x%d\n", rd, rs1, rs2);
+                        // printf("and: x%d, x%d, x%d\n", rd, rs1, rs2);
                     } else if (funct3 == 0x6 && funct7 == 0){  // or
                         set_register(rd, get_register(rs1) | get_register(rs2));
                         counter.r_type[3]++;
@@ -159,7 +159,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     pc_operand.operand2 = rs1;
                     if(strcmp(previous_opcode, "0101") == 0){
                         //1個前の命令がluiの時(li_1)
-                        printf("1個前の命令がlui(li_1)");
+                        // printf("1個前の命令がlui(li_1)");
                         if(0 <= rd & rd < 32){
                             set_register(rd, get_register(rs1) + imm);
                             counter.i_type[0]++;
@@ -202,7 +202,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     if(minus == 0){//immは正
                         if (funct3 == 0) {  // addi命令
                             if(strcmp(two_previous_opcode, "0101") == 0){
-                                printf("laの3命令目のaddi(2個前の命令がlui)");
+                                // printf("laの3命令目のaddi(2個前の命令がlui)");
                                 //2個前の命令がluiの時
                                 // imm = imm / 4 + current_line - 2;
                                 imm = imm / 4;
@@ -253,7 +253,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         if (funct3 == 0) {  // addi命令
                             if(strcmp(two_previous_opcode, "0101") == 0){
                                 // 2個前の命令がluiの時
-                                printf("2個前がlui");
+                                // printf("2個前がlui");
                                 // imm = imm / 4 - (current_line - 2);
                                 imm = imm / 4;
                             }
