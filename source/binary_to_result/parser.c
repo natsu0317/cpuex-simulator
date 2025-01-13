@@ -188,8 +188,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                             }
                         }
                     }
-                    if((previous_opcode == 0x2) && (two_previous_opcode == 0x5)){
-                        // 1個前の命令がaddiかつ2個前の命令がlui(la)の時
+                    if((strcmp(previous_binary_instruction[pc],"00000000000000000010000000010010") == 0) && (two_previous_opcode == 0x5)){
+                        // 1個前の命令がaddi x1,x1,0かつ2個前の命令がlui(la)の時
                         imm = imm/4;
                         if(0 <= rd & rd < 32){
                             set_register(rd, get_register(rs1) + imm);
@@ -480,6 +480,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
                     //printf("value:%x\n",bit31_12);
                     uint32_t value = (bit31_12 << 12); //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
+                    value = value / 4;
                     //printf("value:%x\n",value);
                     //printf("lui x%d, %d", rd, value);
                     set_register(rd,value);

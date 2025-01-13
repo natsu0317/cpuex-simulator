@@ -554,10 +554,10 @@ void parse_assembly(const char* assembly_code){
             //auipcではなくluiに変更
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0101 ", bit31_12_bin, rd_bin);
 
-            // nop(addi x0,x0,0)命令を追加
+            // nop(addi x1,x1,0)命令を追加
             instruction_count++;
             binary_instructions[binary_instruction_count++] = inst;
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000000000000010");
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000010000000010010");
 
             instruction_count++;
             binary_instructions[binary_instruction_count++] = inst;
