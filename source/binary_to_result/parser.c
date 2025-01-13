@@ -133,11 +133,11 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         set_register(rd, rs1_value - rs2_value);
                         counter.r_type[1]++;
                        //printf("sub: x%d, x%d, x%d\n", rd, rs1, rs2);
-                    } else if (funct3 == 0x7 && funct7 == 0){  // and
+                    } else if (funct3 == 0x7){  // and
                         set_register(rd, get_register(rs1) & get_register(rs2));
                         counter.r_type[2]++;
                         // printf("and: x%d, x%d, x%d\n", rd, rs1, rs2);
-                    } else if (funct3 == 0x4 && funct7 == 0){  // xor
+                    } else if (funct3 == 0x4){  // xor
                         set_register(rd, get_register(rs1) ^ get_register(rs2));
                         counter.r_type[4]++;
                        //printf("xor: x%d, x%d, x%d\n", rd, rs1, rs2);
