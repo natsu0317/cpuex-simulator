@@ -3,7 +3,7 @@
 
 #define MAX_INSTRUCTIONS 20000
 #define INSTRUCTION_LENGTH 33  // 32ビット + null終端文字
-#define MAX_LABELS 100
+#define MAX_LABELS 1000
 
 typedef struct {
     char binary_code[INSTRUCTION_LENGTH];

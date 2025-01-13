@@ -10,7 +10,7 @@ extern int instruction_count;
 
 #define MAX_LENGTH 2000
 #define MAX_ASSEMBLY_SIZE 16382 //アセンブリコードの最大サイズ
-#define MAX_LABELS 100 // ラベルの最大個数
+#define MAX_LABELS 1000 // ラベルの最大個数
 
 typedef struct{
     char binary_code[33];
@@ -221,6 +221,36 @@ void get_substring(const char* source, char* destination, int start, int length)
     destination[length] = '\0';
 }
 
+typedef struct {
+    char label[256];
+    int position;
+} LabelEntry;
+
+LabelEntry labels[MAX_LABELS];
+int label_count = 0;
+
+LabelEntry found_labels(const char* assembly_code){
+    const char* delimiter = "\n";
+    char* code_copy = strdup(assembly_code);
+    char* token = strtok(code_copy, delimiter);
+    int line_number = 0;
+
+    while(token != NULL){
+        char *colon = strchr(token, ':');
+        if(colon != NULL){
+            *colon = '\0';
+            strcpy(labels[label_count].label,token);
+            labels[label_count].position = line_number+1;
+            label_count++;
+            // printf("label_name:%s, position:%d\n",token,line_number+1);
+        }
+        token = strtok(NULL,delimiter);
+        line_number++;
+    }
+
+    free(code_copy);
+}
+
 void trim_whitespace(char* str){
     char* end;
     while(isspace((unsigned char)* str)) str++;
@@ -247,6 +277,14 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
     trim_whitespace(trimmed_label);
     label_length = strlen(trimmed_label);
 
+    // 構造体LabelEntryの中にlabelがあったらそこの位置をreturn
+    for(int i=0; i<label_count; i++){
+        if(strcmp(labels[i].label, trimmed_label) == 0){
+            // printf("position:%d\n",labels[i].position - 1);
+            return (labels[i].position - current_line - 1) * 4;
+        }
+    }
+
     //print("Label: %s, Length: %zu\n", label_name, label_length);
     while (*line_start != '\0') {
         //printf("%s",line_start);
@@ -263,6 +301,7 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
             (line_start[label_length] == ':')) {
             //print("%c",line_start[label_length-1]);
            //print("hit\n");
+        //    printf("line_number:%d\n",line_number);
            //print("offset 204  %d\n",line_number - current_line);
             return (line_number - current_line) * 4; // オフセットを計算
         }
@@ -339,37 +378,6 @@ void using_register(char* operand){
             use_register[reg_number]++;
         }
     }
-}
-
-typedef struct {
-    char label[256];
-    int position;
-} LabelEntry;
-
-LabelEntry labels[MAX_LABELS];
-int label_count = 0;
-
-
-LabelEntry found_labels(const char* assembly_code){
-    const char* delimiter = "\n";
-    char* code_copy = strdup(assembly_code);
-    char* token = strtok(code_copy, delimiter);
-    int line_number = 0;
-
-    while(token != NULL){
-        char *colon = strchr(token, ':');
-        if(colon != NULL){
-            *colon = '\0';
-            strcpy(labels[label_count].label,token);
-            labels[label_count].position = line_number+1;
-            label_count++;
-            // printf("label_name:%s, position:%d\n",token,line_number+1);
-        }
-        token = strtok(NULL,delimiter);
-        line_number++;
-    }
-
-    free(code_copy);
 }
 
 void parse_assembly(const char* assembly_code){
