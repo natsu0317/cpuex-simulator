@@ -26,7 +26,7 @@ double float_memory[256]; //メモリに浮動小数点の値を格納
 // ret = jalr x0, x1, 0
 // bgt a b = blt b a
 
-const char* r_type_opcodes[] = {"add", "sub", "and", "or", "xor", NULL};
+const char* r_type_opcodes[] = {"add", "sub", "and", "xor", "div", "rem", NULL};
 const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori", "slli", NULL};
 const char* s_type_opcodes[] = {"sw", NULL};
 const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL};
@@ -363,7 +363,7 @@ LabelEntry found_labels(const char* assembly_code){
             strcpy(labels[label_count].label,token);
             labels[label_count].position = line_number+1;
             label_count++;
-            printf("label_name:%s, position:%d\n",token,line_number+1);
+            // printf("label_name:%s, position:%d\n",token,line_number+1);
         }
         token = strtok(NULL,delimiter);
         line_number++;
@@ -594,8 +594,10 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "add") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "sub") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0100000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "and") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s111%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
-            if(strcmp(opcode, "or") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s110%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
+            // if(strcmp(opcode, "or") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s110%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "xor") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s100%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
+            if(strcmp(opcode, "div") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s011%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
+            if(strcmp(opcode, "rem") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s110%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
         }
         if(is_i_type(opcode)){
             //printf("i_type\n");
@@ -788,7 +790,7 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "csrr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000100010101011");
 
         }
-        printf("Binary Code: %s\n",inst.binary_code);
+        // printf("Binary Code: %s\n",inst.binary_code);
         // //printf("before");
         instruction_count++;
         ////printf("after_instruction_count");
