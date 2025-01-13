@@ -188,6 +188,35 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                             }
                         }
                     }
+                    if((previous_opcode == 0x2) && (two_previous_opcode == 0x5)){
+                        // 1個前の命令がaddiかつ2個前の命令がlui(la)の時
+                        imm = imm/4;
+                        if(0 <= rd & rd < 32){
+                            set_register(rd, get_register(rs1) + imm);
+                            counter.i_type[0]++;
+                            //printf("addi: x%d, x%d, %d\n", rd, rs1, imm);
+                            //printf("result:%d\n",get_register(rd));
+                        } else {
+                            if(0 <= rs1 & rs1 < 32){
+                                // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
+                                // rs1に格納されている整数値を取得
+                                int32_t int_value = get_register(rs1) + imm;
+                                //printf("int_value:%d\n",int_value);
+                                // 32ビットの整数を浮動小数点数に変換
+                                // float float_value = (float)int_value;
+                                float float_value;
+                                memcpy(&float_value, &int_value, sizeof(float_value));
+                                //printf("float_value:%lf\n",float_value);
+                                // 変換された浮動小数点数を小数レジスタに格納
+                                set_register(rd, float_value);
+                                // デバッグ用の出力
+                                //printf("Converted integer 0x%x to float: %f\n", int_value, float_value);
+                            } else {
+                                float float_value = get_float_register(rs1);
+                                set_register(rd, float_value);
+                            }
+                        }
+                    }
                     int minus = 0;//immが負なら1
                     if(imm & 0x800){
                         //即値が負の値
