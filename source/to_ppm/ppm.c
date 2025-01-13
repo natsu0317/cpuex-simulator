@@ -20,12 +20,24 @@ int main() {
         return 1;
     }
 
+    FILE* int_file = fopen("int.txt","w");
+    if(int_file == NULL){        
+        perror("Error creating output file");
+        fclose(input_file);
+        return 1;
+    }
+
+    float value;
+    while(fscanf(input_file,"%f",&value) == 1){
+        int int_value = (int)value;
+        fprintf(int_file,"%d",int_value);
+    }
+
     // PPMヘッダーの出力
     fprintf(output_file, "P3\n");
     fprintf(output_file, "%d %d\n", WIDTH, HEIGHT);
     fprintf(output_file, "255\n");
 
-    float value;
     for (int i = 0; i < WIDTH * HEIGHT; i++) {
         if (fscanf(input_file, "%f", &value) != 1) {
             fprintf(stderr, "Error reading value from file\n");
@@ -41,5 +53,6 @@ int main() {
 
     fclose(input_file);
     fclose(output_file);
+    fclose(int_file);
     return 0;
 }
