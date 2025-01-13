@@ -81,14 +81,15 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
         // printf("previous_instruction :%s\n",previous_binary_instruction[pc]);
         // printf("two_previous_instruction :%s\n",two_previous_binary_instruction[pc]);
         uint32_t instruction = strtol(binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
-
-        // 1個前と2個前の命令のopcodeを記録
-        const char* previous_opcode = previous_binary_instruction[pc] + 28;
-        const char* two_previous_opcode = two_previous_binary_instruction[pc] + 28;
+        uint32_t previous_instruction = strtol(previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
+        uint32_t two_previous_instruction = strtol(two_previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
 
         // オペコードを取得
         //下4桁
         uint32_t opcode = instruction & 0xF;
+        uint32_t previous_opcode = previous_instruction & 0xF;
+        uint32_t two_previous_opcode = two_previous_instruction & 0xF;
+        //printf("opcode:%x\n",opcode);
 
         switch (opcode) {
             case 0x0:   //label部分
@@ -135,7 +136,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     } else if (funct3 == 0x7 && funct7 == 0){  // and
                         set_register(rd, get_register(rs1) & get_register(rs2));
                         counter.r_type[2]++;
-                        // printf("and: x%d, x%d, x%d\n", rd, rs1, rs2);
+                        printf("and: x%d, x%d, x%d\n", rd, rs1, rs2);
                     } else if (funct3 == 0x6 && funct7 == 0){  // or
                         set_register(rd, get_register(rs1) | get_register(rs2));
                         counter.r_type[3]++;
@@ -157,9 +158,9 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     int32_t imm = (instruction >> 20) & 0xFFF;
                     pc_operand.operand1 = rd;
                     pc_operand.operand2 = rs1;
-                    if(strcmp(previous_opcode, "0101") == 0){
+                    if(previous_opcode == 0x5){
                         //1個前の命令がluiの時(li_1)
-                        // printf("1個前の命令がlui(li_1)");
+                        printf("1個前の命令がlui(li_1)");
                         if(0 <= rd & rd < 32){
                             set_register(rd, get_register(rs1) + imm);
                             counter.i_type[0]++;
@@ -191,7 +192,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         //即値が負の値
                         uint32_t mask = (1 << 12) - 1;
                        //printf("%x\n",mask);
-                        imm = ~imm & mask + 1;//反転
+                        imm = ~imm & mask;//反転
+                        imm = imm+1;
                         minus = 1;
                        //printf("minus%d\n",minus);
                     }
@@ -200,8 +202,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
 
                     if(minus == 0){//immは正
                         if (funct3 == 0) {  // addi命令
-                            if(strcmp(two_previous_opcode, "0101") == 0){
-                                // printf("laの3命令目のaddi(2個前の命令がlui)");
+                            if(two_previous_opcode == 0x5){
+                                printf("laの3命令目のaddi(2個前の命令がlui)");
                                 //2個前の命令がluiの時
                                 // imm = imm / 4 + current_line - 2;
                                 imm = imm / 4;
@@ -248,11 +250,11 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                             set_register(rd, get_register(rs1) << imm);
                            //printf("slli: x%d, x%d, %d\n", rd, rs1, imm);
                         }
-                    }else if(minus == 1 && strcmp(previous_opcode, "0101") == 0){
+                    }else if(minus == 1 && previous_opcode != 0x5){
                         if (funct3 == 0) {  // addi命令
-                            if(strcmp(two_previous_opcode, "0101") == 0){
+                            if(two_previous_opcode == 0x5){
                                 // 2個前の命令がluiの時
-                                // printf("2個前がlui");
+                                printf("2個前がlui");
                                 // imm = imm / 4 - (current_line - 2);
                                 imm = imm / 4;
                             }
@@ -580,16 +582,16 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     pc_operand.opcode = 1;
                     pc_operand.operand1 = rd;
                     pc_operand.operand2 = rs1;
-                    int rs1_value = get_register(rs1);
                     if(lw_offset && 0x800 == 1){//負の値
                         uint32_t mask = (1<<12) - 1;
-                        lw_offset = ~lw_offset & mask + 1;
-                        lw = memory[rs1_value - lw_offset];
+                        lw_offset = ~lw_offset & mask;
+                        lw_offset = lw_offset + 1;
+                        lw = memory[get_register(rs1) - lw_offset];
                        //printf("lw: x%d, -%d(x%d)\n", rd, lw_offset, rs1);
                     }else{
                         //printf("正\n");
                         //printf("address:%d + %d\n",get_register(rs1),lw_offset);
-                        lw = memory[rs1_value + lw_offset];
+                        lw = memory[get_register(rs1) + lw_offset];
                        //printf("lw: x%d, %d(x%d)\n", rd, lw_offset, rs1);
                     }
                     //printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
@@ -613,15 +615,33 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     float a2 = get_float_register(r2);
                     //printf("a1:%f\n",a1);
                     //printf("funct3: %x\n",func3);
-                    typedef float (*operation_t)(float, float);
-                    typedef float (*arg_1_operation_t)(float);
-                    operation_t operantions[4] = {fadd, fsub, fmul, fdiv};
-                    arg_1_operation_t arg_1_operations[4] = {finv, fsqrt, fabsf, fneg};
                     float result;
-                    if(func7 < 4){
-                        result = operantions[func7](a1,a2);
+                    if(func7 == 0){
+                        result = fadd(a1,a2);
+                        //printf("result:%f\n",result);
+                        //printf("fadd x%d x%d\n",r1,r2);
+                        //printf("result %f + %f = %f\n",a1,a2,result);
                         set_register(rd, result);
-                        counter.f_type[func7];
+                        counter.f_type[0]++;
+                    }
+                    if(func7 == 1){
+                        result = fsub(a1,a2);
+                        //printf("fsub x%d = x%d - x%d\n",rd, r1,r2);
+                        //printf("result %f - %f = %f\n",a1,a2,result);
+                        set_register(rd, result);
+                        counter.f_type[1]++;
+                    }
+                    if(func7 == 2){
+                        result = fmul(a1,a2);
+                        //printf("fmul x%d = x%d * x%d\n",rd, r1,r2);
+                        //printf("result %f * %f = %f\n",a1,a2,result);
+                        set_register(rd, result);
+                        counter.f_type[2]++;
+                    }
+                    if(func7 == 3){
+                        result = fdiv(a1,a2);
+                        set_register(rd, result);
+                        counter.f_type[3]++;
                     }
                     if(func7 == 4){
                         if(func3 == 1){// fsgnjn
@@ -635,10 +655,25 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                             counter.f_type[9]++;
                         }
                     }
-                    if(10 <= func7 && func7 < 13){
-                        result = arg_1_operations[func7](a1);
-                        set_register(rd,result);
-                        counter.f_type[func7-6]++;
+                    if(func7 == 12){
+                        result = fabsf(a1);
+                        set_register(rd, result);
+                        counter.f_type[4]++;
+                    }
+                    if(func7 == 13){
+                        result = fneg(a1);
+                        set_register(rd, result);
+                        counter.f_type[5]++;
+                    }
+                    if(func7 == 10){
+                        result = finv(a1);
+                        set_register(rd, result);
+                        counter.f_type[6]++;
+                    }
+                    if(func7 == 11){
+                        result = fsqrt(a1);
+                        set_register(rd, result);
+                        counter.f_type[7]++;
                     }
                     if(func7 == 20){
                         if(func3 == 1){//flt
@@ -857,4 +892,3 @@ int result_main() {
 
     return 0;
 }
-

@@ -234,47 +234,6 @@ void trim_whitespace(char* str){
     *(end + 1) = '\0';
 }
 
-// labelとその位置を記録
-typedef struct {
-    char label[256];
-    int position;
-} LabelEntry;
-
-LabelEntry labels[MAX_LABELS];
-int label_count = 0;
-
-
-LabelEntry found_labels(const char* assembly_code){
-    const char* delimiter = "\n";
-    char* code_copy = strdup(assembly_code);
-    char* token = strtok(code_copy, delimiter);
-    int line_number = 0;
-
-    while(token != NULL){
-        char *colon = strchr(token, ':');
-        if(colon != NULL){
-            *colon = '\0';
-            strcpy(labels[label_count].label,token);
-            labels[label_count].position = line_number+1;
-            label_count++;
-            printf("label_name:%s, position:%d\n",token,line_number+1);
-        }
-        token = strtok(NULL,delimiter);
-        line_number++;
-    }
-
-    free(code_copy);
-}
-
-int is_label_in_entries(const char* label_name){
-    for(int i=0; i<label_count; i++){
-        if(strcmp(labels[i].label,label_name) == 0){
-            return labels[i].position;
-        }
-    }
-    return 0;
-}
-
 int calculate_offset(const char* assembly_code, const char* label_name, int current_line) {
     //print("current_line:%d\n",current_line);
     const char* line_start = assembly_code; // 現在の行の開始位置(ポインタ)
@@ -287,11 +246,6 @@ int calculate_offset(const char* assembly_code, const char* label_name, int curr
     trimmed_label[sizeof(trimmed_label) - 1] = '\0'; // 終端を保証
     trim_whitespace(trimmed_label);
     label_length = strlen(trimmed_label);
-
-    line_number = is_label_in_entries(trimmed_label);
-    if(line_number != 0){ // labelがentryの中に存在
-        return (line_number - current_line) * 4;
-    }
 
     //print("Label: %s, Length: %zu\n", label_name, label_length);
     while (*line_start != '\0') {
@@ -385,6 +339,37 @@ void using_register(char* operand){
             use_register[reg_number]++;
         }
     }
+}
+
+typedef struct {
+    char label[256];
+    int position;
+} LabelEntry;
+
+LabelEntry labels[MAX_LABELS];
+int label_count = 0;
+
+
+LabelEntry found_labels(const char* assembly_code){
+    const char* delimiter = "\n";
+    char* code_copy = strdup(assembly_code);
+    char* token = strtok(code_copy, delimiter);
+    int line_number = 0;
+
+    while(token != NULL){
+        char *colon = strchr(token, ':');
+        if(colon != NULL){
+            *colon = '\0';
+            strcpy(labels[label_count].label,token);
+            labels[label_count].position = line_number+1;
+            label_count++;
+            printf("label_name:%s, position:%d\n",token,line_number+1);
+        }
+        token = strtok(NULL,delimiter);
+        line_number++;
+    }
+
+    free(code_copy);
 }
 
 void parse_assembly(const char* assembly_code){
