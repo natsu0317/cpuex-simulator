@@ -613,10 +613,12 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     float a2 = get_float_register(r2);
                     //printf("a1:%f\n",a1);
                     //printf("funct3: %x\n",func3);
+                    typedef float (*operation_t)(float, float);
+                    typedef float (*arg_1_operation_t)(float);
                     operation_t operantions[4] = {fadd, fsub, fmul, fdiv};
-                    operation_t arg_1_operations[4] = {finv, fsqrt, fabs, fneg};
+                    arg_1_operation_t arg_1_operations[4] = {finv, fsqrt, fabsf, fneg};
                     float result;
-                    if(funct7 < 4){
+                    if(func7 < 4){
                         result = operantions[func7](a1,a2);
                         set_register(rd, result);
                         counter.f_type[func7];
