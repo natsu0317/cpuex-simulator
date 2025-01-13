@@ -247,7 +247,7 @@ void print_instruction_count(FILE* instruction_statics_file) {
 
     // 浮動小数点命令のカウント
     fprintf( instruction_statics_file, "\nFloating-point Instruction Counts:\n");
-    fprintf( instruction_statics_file, "fadd: %d, fsub: %d, fmul: %d, fdiv: %d, fabs: %d, fneg: %d, finv: %d, fsqrt: %d, fsgnjn: %d, fsgnjx: %d, feq: %d, flt: %d, fcvtws: %d, fcvtsw: %d\n",
+    fprintf( instruction_statics_file, "fadd: %d, fsub: %d, fmul: %d, fdiv: %d, finv: %d, fsqrt: %d, fabs: %d, fneg: %d, fsgnjn: %d, fsgnjx: %d, feq: %d, flt: %d, fcvtws: %d, fcvtsw: %d\n",
            counter.f_type[0], counter.f_type[1], counter.f_type[2], counter.f_type[3], counter.f_type[4], counter.f_type[5], counter.f_type[6], counter.f_type[7], counter.f_type[8], counter.f_type[9], counter.f_type[10], counter.f_type[11], counter.f_type[12], counter.f_type[13]);
 
     // CSR命令のカウント

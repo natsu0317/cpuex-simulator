@@ -191,8 +191,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         //即値が負の値
                         uint32_t mask = (1 << 12) - 1;
                        //printf("%x\n",mask);
-                        imm = ~imm & mask;//反転
-                        imm = imm+1;
+                        imm = ~imm & mask + 1;//反転
                         minus = 1;
                        //printf("minus%d\n",minus);
                     }
@@ -581,16 +580,16 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     pc_operand.opcode = 1;
                     pc_operand.operand1 = rd;
                     pc_operand.operand2 = rs1;
+                    int rs1_value = get_register(rs1);
                     if(lw_offset && 0x800 == 1){//負の値
                         uint32_t mask = (1<<12) - 1;
-                        lw_offset = ~lw_offset & mask;
-                        lw_offset = lw_offset + 1;
-                        lw = memory[get_register(rs1) - lw_offset];
+                        lw_offset = ~lw_offset & mask + 1;
+                        lw = memory[rs1_value - lw_offset];
                        //printf("lw: x%d, -%d(x%d)\n", rd, lw_offset, rs1);
                     }else{
                         //printf("正\n");
                         //printf("address:%d + %d\n",get_register(rs1),lw_offset);
-                        lw = memory[get_register(rs1) + lw_offset];
+                        lw = memory[rs1_value + lw_offset];
                        //printf("lw: x%d, %d(x%d)\n", rd, lw_offset, rs1);
                     }
                     //printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
@@ -614,33 +613,13 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     float a2 = get_float_register(r2);
                     //printf("a1:%f\n",a1);
                     //printf("funct3: %x\n",func3);
+                    operation_t operantions[4] = {fadd, fsub, fmul, fdiv};
+                    operation_t arg_1_operations[4] = {finv, fsqrt, fabs, fneg};
                     float result;
-                    if(func7 == 0){
-                        result = fadd(a1,a2);
-                        //printf("result:%f\n",result);
-                        //printf("fadd x%d x%d\n",r1,r2);
-                        //printf("result %f + %f = %f\n",a1,a2,result);
+                    if(funct7 < 4){
+                        result = operantions[func7](a1,a2);
                         set_register(rd, result);
-                        counter.f_type[0]++;
-                    }
-                    if(func7 == 1){
-                        result = fsub(a1,a2);
-                        //printf("fsub x%d = x%d - x%d\n",rd, r1,r2);
-                        //printf("result %f - %f = %f\n",a1,a2,result);
-                        set_register(rd, result);
-                        counter.f_type[1]++;
-                    }
-                    if(func7 == 2){
-                        result = fmul(a1,a2);
-                        //printf("fmul x%d = x%d * x%d\n",rd, r1,r2);
-                        //printf("result %f * %f = %f\n",a1,a2,result);
-                        set_register(rd, result);
-                        counter.f_type[2]++;
-                    }
-                    if(func7 == 3){
-                        result = fdiv(a1,a2);
-                        set_register(rd, result);
-                        counter.f_type[3]++;
+                        counter.f_type[func7];
                     }
                     if(func7 == 4){
                         if(func3 == 1){// fsgnjn
@@ -654,25 +633,10 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                             counter.f_type[9]++;
                         }
                     }
-                    if(func7 == 12){
-                        result = fabsf(a1);
-                        set_register(rd, result);
-                        counter.f_type[4]++;
-                    }
-                    if(func7 == 13){
-                        result = fneg(a1);
-                        set_register(rd, result);
-                        counter.f_type[5]++;
-                    }
-                    if(func7 == 10){
-                        result = finv(a1);
-                        set_register(rd, result);
-                        counter.f_type[6]++;
-                    }
-                    if(func7 == 11){
-                        result = fsqrt(a1);
-                        set_register(rd, result);
-                        counter.f_type[7]++;
+                    if(10 <= func7 && func7 < 13){
+                        result = arg_1_operations[func7](a1);
+                        set_register(rd,result);
+                        counter.f_type[func7-6]++;
                     }
                     if(func7 == 20){
                         if(func3 == 1){//flt
