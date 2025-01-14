@@ -31,7 +31,7 @@ extern InstructionCounter counter;
 // レジスタの値を設定するreg_numは0 ~ 63
 void set_register(int reg_num, double value) {
     // //printf("reg_num:%d\n",reg_num);
-    // //printf("value:%lf\n",value);
+    // printf("value:%lf\n",value);
     registers[0] = 0; //x0は常に0
     if (reg_num >= 1 && reg_num < NUM_REGISTERS) {
         registers[reg_num] = value;
@@ -363,13 +363,11 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
             case 0x5: //lui
                 {
                     //lui rd 0xa だったらrdにa * 16 * 16 * 16を格納
-                    //printf("u_type\n");
+                    printf("u_type\n");
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
-                    //printf("value:%x\n",bit31_12);
                     uint32_t value = (bit31_12 << 12); //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
-                    value = value / 4;
-                    //printf("value:%x\n",value);
+                    // value = value / 4;
                     //printf("lui x%d, %d", rd, value);
                     set_register(rd,value);
                     counter.u_type[0]++;
