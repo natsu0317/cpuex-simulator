@@ -172,6 +172,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         set_register(rd, get_register(rs1) / get_register(rs2));
                     } else if (funct3 == 0x6){ //rem(余り)
                         set_register(rd, get_register(rs1) % get_register(rs2));
+                    } else if (funct3 == 0x1){ //shift
+                        set_register(rd, get_register(rs1) << (get_register(rs2) & 0x1F));
                     }
                 }
                 return pc_operand;
