@@ -156,7 +156,6 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     }
 
                     if (funct3 == 0 && funct7 == 0) {  // add命令
-                        
                         set_register(rd, rs1_value + rs2_value);
                         counter.r_type[0]++;
                     } else if (funct3 == 0 && funct7 == 0x20) {  // sub命令
@@ -175,14 +174,18 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         // printf("商: %u, 余り: %u\n", quotient, remainder);
                         uint32_t result = (quotient << 8) | (remainder & 0xFF);
                         set_register(rd, result);
+                        counter.r_type[5]++;
                     } else if (funct3 == 0x6){ //rem(余り)
                         set_register(rd, get_register(rs1) % get_register(rs2));
                     } else if (funct3 == 0x1){ //shift
                         set_register(rd, get_register(rs1) << (get_register(rs2) & 0x1F));
+                        counter.r_type[6]++;
                     } else if (funct3 == 0x5 && funct7 == 0){ //srl
                         set_register(rd, (uint32_t)get_register(rs1) >> (get_register(rs2) & 0x1F));
+                        counter.r_type[7]++;
                     } else if (funct3 == 0x5 && funct7 == 0x20){ //sra
                         set_register(rd, get_register(rs1) >> (get_register(rs2) & 0x1F));
+                        counter.r_type[8]++;
                     }
                 }
                 return pc_operand;
@@ -218,6 +221,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                                 imm = -imm;
                             }
                             handle_addi_case(rd, rs1, imm);
+                            counter.i_type[0]++;
                         } else if (funct3 == 0x7) {  // andi命令
                             set_register(rd, get_register(rs1) & imm);
                             counter.i_type[1]++;
@@ -264,6 +268,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         //printf("memory%dの中に%lfが格納される\n",get_register(rs1)+imm,get_float_register(rs2));
                         fprintf(memory_file,"%d行目 memory%dの中に%lfが格納される\n",current_line+1, get_register(rs1)+imm, get_float_register(rs2));
                     } 
+                    counter.s_type[0]++;
                 } 
                 return pc_operand;
 
@@ -320,7 +325,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         } else if(funct3 == 0x6){  // bgt
                             if(get_register(rs1) > get_register(rs2)){
                                //printf("bgt: x%d, x%d, -%d\n", rs1, rs2, imm);
-                               counter.b_type[3]++;
+                               counter.b_type[4]++;
                                 pc -= imm/4;
                             }
                         }  else {
@@ -358,7 +363,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     } else if(funct3 == 0x6){  // bgt
                         //printf("bgt");
                         //printf("rs1: %d, rs2: %d\n",get_register(rs1),get_register(rs2));
-                        counter.b_type[3]++;
+                        counter.b_type[4]++;
                         if(get_register(rs1) > get_register(rs2)){
                            //printf("bgt: x%d, x%d, %d\n", rs1, rs2, imm);
                             pc += imm/4;
