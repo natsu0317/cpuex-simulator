@@ -174,6 +174,10 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         set_register(rd, get_register(rs1) % get_register(rs2));
                     } else if (funct3 == 0x1){ //shift
                         set_register(rd, get_register(rs1) << (get_register(rs2) & 0x1F));
+                    } else if (funct3 == 0x5 && funct7 == 0){ //srl
+                        set_register(rd, (uint32_t)get_register(rs1) >> (get_register(rs2) & 0x1F));
+                    } else if (funct3 == 0x5 && funct7 == 0x20){ //sra
+                        set_register(rd, get_register(rs1) >> (get_register(rs2) & 0x1F));
                     }
                 }
                 return pc_operand;
@@ -635,7 +639,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     uint32_t rd = (instruction >> 19) & 0x3F;
                     uint32_t func = (instruction >> 10) & 0x7;
                     //csrw
-                    if(func == 1){ // x10の値をファイルに書きこむ
+                    if(func == 1){ // x10の下位8bit値をファイルに書きこむ
                         if( 0 <= rd && rd < 32){
                             double value = get_register(rd);
                             //printf("x%dの中身%fの値をファイルに書き込む",rd,value);
