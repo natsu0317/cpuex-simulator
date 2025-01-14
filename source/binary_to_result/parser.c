@@ -193,12 +193,15 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     pc_operand.operand2 = rs1;
 
                     if(previous_opcode == 0x5){
+                        printf("lui\n");
                         handle_lui_case(rd, rs1, imm);
                     } else if ((strcmp(previous_binary_instruction[pc],"00000000000000000010000000010010") == 0) && (two_previous_opcode == 0x5)){
                         // 1個前の命令がaddi x1,x1,0かつ2個前の命令がlui(la)の時
+                        printf("la\n");
                         imm = imm/4;
                         handle_addi_case(rd, rs1, imm);
                     } else {
+                        printf("normal\n");
                         int minus = (imm & 0x800) ? 1 : 0;
                         if (minus) {
                             imm = ~imm & ((1 << 12) - 1);
@@ -206,13 +209,16 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         }
                         // 各種命令の処理
                         if (funct3 == 0) {  // addi命令
+                            printf("addi\n");
                             if (two_previous_opcode == 0x5) {
                                 imm /= 4;
                             }
                             if(minus) {
+                                printf("minus");
                                 imm = -imm;
+                                printf("imm:%d\n",imm);
                             }
-                            handle_addi_case(rd, rs1, minus ? -imm : imm);
+                            handle_addi_case(rd, rs1, imm);
                         } else if (funct3 == 0x7) {  // andi命令
                             set_register(rd, get_register(rs1) & imm);
                             counter.i_type[1]++;
