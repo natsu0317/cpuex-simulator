@@ -65,6 +65,38 @@ uint32_t read_next_value_from_file(FILE *file) {
     }
     return 0; // ファイルの終わりやエラーの場合
 }
+  
+void handle_float_register(uint32_t rd, uint32_t rs1, int32_t imm) {
+    if (0 <= rs1 && rs1 < 32) {
+        // rs1が整数レジスタの場合、整数を浮動小数点数に変換
+        int32_t int_value = get_register(rs1) + imm;
+        float float_value;
+        memcpy(&float_value, &int_value, sizeof(float_value));
+        set_register(rd, float_value);
+    } else {
+        // rs1が浮動小数点レジスタの場合、そのままコピー
+        float float_value = get_float_register(rs1);
+        set_register(rd, float_value);
+    }
+}
+                  
+void handle_lui_case(uint32_t rd, uint32_t rs1, int32_t imm) {
+    if (0 <= rd && rd < 32) {
+        set_register(rd, get_register(rs1) + imm);
+        counter.i_type[0]++;
+    } else {
+        handle_float_register(rd, rs1, imm);
+    }
+}
+
+void handle_addi_case(uint32_t rd, uint32_t rs1, int32_t imm) {
+    if (0 <= rd && rd < 32) {
+        set_register(rd, get_register(rs1) + imm);
+        counter.i_type[0]++;
+    } else {
+        handle_float_register(rd, rs1, imm);
+    }
+}
 
 uint32_t previous_instruction = 0;
 // バイナリ命令をデコードして処理
@@ -159,159 +191,40 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     int32_t imm = (instruction >> 20) & 0xFFF;
                     pc_operand.operand1 = rd;
                     pc_operand.operand2 = rs1;
+
                     if(previous_opcode == 0x5){
-                        //1個前の命令がluiの時(li_1)
-                        // printf("1個前の命令がlui(li_1)");
-                        if(0 <= rd & rd < 32){
-                            set_register(rd, get_register(rs1) + imm);
-                            counter.i_type[0]++;
-                            //printf("addi: x%d, x%d, %d\n", rd, rs1, imm);
-                            //printf("result:%d\n",get_register(rd));
-                        } else {
-                            if(0 <= rs1 & rs1 < 32){
-                                // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
-                                // rs1に格納されている整数値を取得
-                                int32_t int_value = get_register(rs1) + imm;
-                                //printf("int_value:%d\n",int_value);
-                                // 32ビットの整数を浮動小数点数に変換
-                                // float float_value = (float)int_value;
-                                float float_value;
-                                memcpy(&float_value, &int_value, sizeof(float_value));
-                                //printf("float_value:%lf\n",float_value);
-                                // 変換された浮動小数点数を小数レジスタに格納
-                                set_register(rd, float_value);
-                                // デバッグ用の出力
-                                //printf("Converted integer 0x%x to float: %f\n", int_value, float_value);
-                            } else {
-                                float float_value = get_float_register(rs1);
-                                set_register(rd, float_value);
-                            }
-                        }
-                    }
-                    if((strcmp(previous_binary_instruction[pc],"00000000000000000010000000010010") == 0) && (two_previous_opcode == 0x5)){
+                        handle_lui_case(rd, rs1, imm);
+                    } else if ((strcmp(previous_binary_instruction[pc],"00000000000000000010000000010010") == 0) && (two_previous_opcode == 0x5)){
                         // 1個前の命令がaddi x1,x1,0かつ2個前の命令がlui(la)の時
                         imm = imm/4;
-                        if(0 <= rd & rd < 32){
-                            set_register(rd, get_register(rs1) + imm);
-                            counter.i_type[0]++;
-                            //printf("addi: x%d, x%d, %d\n", rd, rs1, imm);
-                            //printf("result:%d\n",get_register(rd));
-                        } else {
-                            if(0 <= rs1 & rs1 < 32){
-                                // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
-                                // rs1に格納されている整数値を取得
-                                int32_t int_value = get_register(rs1) + imm;
-                                //printf("int_value:%d\n",int_value);
-                                // 32ビットの整数を浮動小数点数に変換
-                                // float float_value = (float)int_value;
-                                float float_value;
-                                memcpy(&float_value, &int_value, sizeof(float_value));
-                                //printf("float_value:%lf\n",float_value);
-                                // 変換された浮動小数点数を小数レジスタに格納
-                                set_register(rd, float_value);
-                                // デバッグ用の出力
-                                //printf("Converted integer 0x%x to float: %f\n", int_value, float_value);
-                            } else {
-                                float float_value = get_float_register(rs1);
-                                set_register(rd, float_value);
-                            }
+                        handle_addi_case(rd, rs1, imm);
+                    } else {
+                        int minus = (imm & 0x800) ? 1 : 0;
+                        if (minus) {
+                            imm = ~imm & ((1 << 12) - 1);
+                            imm += 1;
                         }
-                    }
-                    int minus = 0;//immが負なら1
-                    if(imm & 0x800){
-                        //即値が負の値
-                        uint32_t mask = (1 << 12) - 1;
-                       //printf("%x\n",mask);
-                        imm = ~imm & mask;//反転
-                        imm = imm+1;
-                        minus = 1;
-                       //printf("minus%d\n",minus);
-                    }
-                    //printf("after_imm:%x\n",imm);
-                    //printf("funct3:%x\n,opcode:%x\n",funct3,opcode);
-
-                    if(minus == 0){//immは正
+                        // 各種命令の処理
                         if (funct3 == 0) {  // addi命令
-                            if(two_previous_opcode == 0x5){
-                                // printf("laの3命令目のaddi(2個前の命令がlui)");
-                                //2個前の命令がluiの時
-                                // imm = imm / 4 + current_line - 2;
-                                imm = imm / 4;
+                            if (two_previous_opcode == 0x5) {
+                                imm /= 4;
                             }
-                            if(0 <= rd & rd < 32){
-                                set_register(rd, get_register(rs1) + imm);
-                                counter.i_type[0]++;
-                                //printf("addi: x%d, x%d, %d\n", rd, rs1, imm);
-                                //printf("result:%d\n",get_register(rd));
-                            } else {
-                                if(0 <= rs1 & rs1 < 32){
-                                    // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
-                                    // rs1に格納されている整数値を取得
-                                    int32_t int_value = get_register(rs1) + imm;
-                                    //printf("int_value:%d\n",int_value);
-                                    // 32ビットの整数を浮動小数点数に変換
-                                    // float float_value = (float)int_value;
-                                    float float_value;
-                                    memcpy(&float_value, &int_value, sizeof(float_value));
-                                    //printf("float_value:%lf\n",float_value);
-                                    // 変換された浮動小数点数を小数レジスタに格納
-                                    set_register(rd, float_value);
-                                    // デバッグ用の出力
-                                    //printf("Converted integer 0x%x to float: %f\n", int_value, float_value);
-                                } else {
-                                    float float_value = get_float_register(rs1);
-                                    set_register(rd, float_value);
-                                }
+                            if(minus) {
+                                imm = -imm;
                             }
-                        } else if (funct3 == 0x7){  // andi
+                            handle_addi_case(rd, rs1, minus ? -imm : imm);
+                        } else if (funct3 == 0x7) {  // andi命令
                             set_register(rd, get_register(rs1) & imm);
                             counter.i_type[1]++;
-                           //printf("andi: x%d, x%d, %d\n", rd, rs1, imm);
-                        } else if (funct3 == 0x6){  // ori
+                        } else if (funct3 == 0x6) {  // ori命令
                             set_register(rd, get_register(rs1) | imm);
                             counter.i_type[2]++;
-                           //printf("andi: x%d, x%d, %d\n", rd, rs1, imm);
-                        } else if (funct3 == 0x4){  // xori
+                        } else if (funct3 == 0x4) {  // xori命令
                             set_register(rd, get_register(rs1) ^ imm);
                             counter.i_type[3]++;
-                           //printf("xori: x%d, x%d, %d\n", rd, rs1, imm);
-                        } else if (funct3 == 0x1){ // rd = rs1 << imm
-                            counter.i_type[4]++;
+                        } else if (funct3 == 0x1) {  // slli命令
                             set_register(rd, get_register(rs1) << imm);
-                           //printf("slli: x%d, x%d, %d\n", rd, rs1, imm);
-                        }
-                    }else if(minus == 1 && previous_opcode != 0x5){
-                        if (funct3 == 0) {  // addi命令
-                            if(two_previous_opcode == 0x5){
-                                // 2個前の命令がluiの時
-                                // printf("2個前がlui");
-                                // imm = imm / 4 - (current_line - 2);
-                                imm = imm / 4;
-                            }
-                            if(0 <= rd & rd < 32){
-                                set_register(rd, get_register(rs1) - imm);
-                                counter.i_type[0]++;
-                                //printf("addi: x%d, x%d, -%d\n", rd, rs1, imm);
-                            } else {
-                                if(0 <= rs1 & rs1 < 32){
-                                    // rdが小数レジスタの時、rs1に格納されている値を2進数に直してその32bitを小数に変換
-                                    // rs1に格納されている整数値を取得
-                                    int32_t int_value = get_register(rs1) + imm;
-                                    //printf("int_value:%d\n",int_value);
-                                    // 32ビットの整数を浮動小数点数に変換
-                                    // float float_value = (float)int_value;
-                                    float float_value;
-                                    memcpy(&float_value, &int_value, sizeof(float_value));
-                                    //printf("float_value:%lf\n",float_value);
-                                    // 変換された浮動小数点数を小数レジスタに格納
-                                    set_register(rd, float_value);
-                                    // デバッグ用の出力
-                                    //printf("Converted integer 0x%x to float: %f\n", int_value, float_value);
-                                } else {
-                                    float float_value = get_float_register(rs1);
-                                    set_register(rd, float_value);
-                                }
-                            }
+                            counter.i_type[4]++;
                         }
                     }
                 }
