@@ -159,24 +159,18 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         
                         set_register(rd, rs1_value + rs2_value);
                         counter.r_type[0]++;
-                        //printf("add: x%d, x%d, x%d\n", rd, rs1, rs2);
-                        //printf("result:%d\n",get_register(rd));
                     } else if (funct3 == 0 && funct7 == 0x20) {  // sub命令
                         set_register(rd, rs1_value - rs2_value);
                         counter.r_type[1]++;
-                       //printf("sub: x%d, x%d, x%d\n", rd, rs1, rs2);
                     } else if (funct3 == 0x7){  // and
                         set_register(rd, get_register(rs1) & get_register(rs2));
                         counter.r_type[2]++;
-                        // printf("and: x%d, x%d, x%d\n", rd, rs1, rs2);
                     } else if (funct3 == 0x4){  // xor
                         set_register(rd, get_register(rs1) ^ get_register(rs2));
                         counter.r_type[4]++;
-                       //printf("xor: x%d, x%d, x%d\n", rd, rs1, rs2);
                     }  else if (funct3 == 0x3){ //div(商)
                         set_register(rd, get_register(rs1) / get_register(rs2));
                     } else if (funct3 == 0x6){ //rem(余り)
-                        printf("rs1:%d, rs2:%d\n",get_register(rs1),get_register(rs2));
                         set_register(rd, get_register(rs1) % get_register(rs2));
                     }
                 }
@@ -193,15 +187,12 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     pc_operand.operand2 = rs1;
 
                     if(previous_opcode == 0x5){
-                        printf("lui\n");
                         handle_lui_case(rd, rs1, imm);
                     } else if ((strcmp(previous_binary_instruction[pc],"00000000000000000010000000010010") == 0) && (two_previous_opcode == 0x5)){
                         // 1個前の命令がaddi x1,x1,0かつ2個前の命令がlui(la)の時
-                        printf("la\n");
                         imm = imm/4;
                         handle_addi_case(rd, rs1, imm);
                     } else {
-                        printf("normal\n");
                         int minus = (imm & 0x800) ? 1 : 0;
                         if (minus) {
                             imm = ~imm & ((1 << 12) - 1);
@@ -209,14 +200,11 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         }
                         // 各種命令の処理
                         if (funct3 == 0) {  // addi命令
-                            printf("addi\n");
                             if (two_previous_opcode == 0x5) {
                                 imm /= 4;
                             }
                             if(minus) {
-                                printf("minus");
                                 imm = -imm;
-                                printf("imm:%d\n",imm);
                             }
                             handle_addi_case(rd, rs1, imm);
                         } else if (funct3 == 0x7) {  // andi命令
@@ -251,34 +239,20 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     imm |= (sw_offset_4_0);
                     if(imm && 0x800 == 1){//負の値
                         uint32_t mask = (1<<12) - 1;
-                        imm = ~imm & mask;
-                        imm = imm + 1;
-                        if(0 <= rs2 && rs2 < 32){
-                            // 整数レジスタ
-                            memory[get_register(rs1) - imm] = get_register(rs2);
-                            //printf("sw: x%d, -%d(x%d)\n", rs2, imm, rs1);
-                            //printf("memory%dの中に%dが格納される\n",get_register(rs1)-imm,get_register(rs2));
-                            fprintf(memory_file,"%d行目 memory%dの中に%dが格納される\n",current_line+1, get_register(rs1)-imm, get_register(rs2));
-                        } else {
-                            // 小数レジスタ
-                            memory[get_register(rs1) - imm] = get_float_register(rs2);
-                            //printf("sw: x%d, -%d(x%d)\n", rs2, imm, rs1);
-                            //printf("memory%dの中に%lfが格納される\n",get_register(rs1)-imm,get_float_register(rs2));
-                            fprintf(memory_file,"%d行目 memory%dの中に%lfが格納される\n",current_line+1, get_register(rs1)-imm, get_float_register(rs2));
-                        }
-                    }else{
-                        if( 0 <= rs2 && rs2 < 32 ){
-                            memory[get_register(rs1) + imm] = get_register(rs2);
-                            //printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
-                            //printf("memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
-                            fprintf(memory_file,"%d行目 memory%dの中に%dが格納される\n",current_line+1, get_register(rs1)+imm, get_register(rs2));
-                        } else {
-                            memory[get_register(rs1) + imm] = get_float_register(rs2);
-                            //printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
-                            //printf("memory%dの中に%lfが格納される\n",get_register(rs1)+imm,get_float_register(rs2));
-                            fprintf(memory_file,"%d行目 memory%dの中に%lfが格納される\n",current_line+1, get_register(rs1)+imm, get_float_register(rs2));
-                        }
-                    }     
+                        imm = ~imm & mask + 1;
+                        imm = -imm;
+                    }
+                    if( 0 <= rs2 && rs2 < 32 ){
+                        memory[get_register(rs1) + imm] = get_register(rs2);
+                        //printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
+                        //printf("memory%dの中に%dが格納される\n",get_register(rs1)+imm,get_register(rs2));
+                        fprintf(memory_file,"%d行目 memory%dの中に%dが格納される\n",current_line+1, get_register(rs1)+imm, get_register(rs2));
+                    } else {
+                        memory[get_register(rs1) + imm] = get_float_register(rs2);
+                        //printf("sw: x%d, %d(x%d)\n", rs2, imm, rs1);
+                        //printf("memory%dの中に%lfが格納される\n",get_register(rs1)+imm,get_float_register(rs2));
+                        fprintf(memory_file,"%d行目 memory%dの中に%lfが格納される\n",current_line+1, get_register(rs1)+imm, get_float_register(rs2));
+                    } 
                 } 
                 return pc_operand;
 
