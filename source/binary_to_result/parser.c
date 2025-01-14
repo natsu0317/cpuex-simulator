@@ -276,41 +276,82 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     imm |= (bit4_1 << 1);
                     if(bit12 == 1){
                         //immは負の値
+                        //2の補数
                         uint32_t mask = (1 << 12) -1;
                         imm = ~imm & mask;
                         imm = imm + 1;
-                        imm = -imm;
-                    }
-                    int rs1_value = get_register(rs1);
-                    int rs2_value = get_register(rs2);
-                    int should_branch = 0;
-                    switch(funct3){
-                        case 0x0: //beq
-                            should_branch = (rs1_value == rs2_value);
-                            counter.b_type[0]++;
-                            break;
-                        case 0x1: //bne
-                            should_branch = (rs1_value != rs2_value);
-                            counter.b_type[1]++;
-                            break;
-                        case 0x4: //blt
-                            should_branch = (rs1_value < rs2_value);
-                            counter.b_type[2]++;
-                            break;
-                        case 0x5:  // bge
-                            should_branch = (get_register(rs1) >= get_register(rs2));
-                            counter.b_type[3]++;
-                            break;
-                        case 0x6:  // bgt
-                            should_branch = (get_register(rs1) > get_register(rs2));
-                            counter.b_type[4]++;
-                            break;
-                        default:
-                            break;
-                    }
-
-                    if(should_branch){ //分岐実行
-                        pc += imm/4;
+                        if (funct3 == 0) {  // beq
+                            if(get_register(rs1) == get_register(rs2)){
+                               //printf("beq: x%d, x%d, -%d\n", rs1, rs2, imm);
+                               counter.b_type[0]++;
+                                pc -= imm/4;
+                            }
+                        } else if(funct3 == 0x1){  // bne
+                            if(get_register(rs1) != get_register(rs2)){
+                               //printf("bne: x%d, x%d, -%d\n", rs1, rs2, imm);
+                               counter.b_type[1]++;
+                               //printf("pc:%d\n",pc);
+                                pc -= imm/4;
+                               //printf("after_pc:%d\n",pc);
+                            }
+                        } else if(funct3 == 0x4){  // blt
+                            if(get_register(rs1) < get_register(rs2)){
+                               //printf("blt: x%d, x%d, -%d\n", rs1, rs2, imm);
+                               counter.b_type[2]++;
+                                pc -= imm/4;
+                            }
+                        } else if(funct3 == 0x5){  // bge
+                            if(get_register(rs1) >= get_register(rs2)){
+                               //printf("bge: x%d, x%d, -%d\n", rs1, rs2, imm);
+                               counter.b_type[3]++;
+                                pc -= imm/4;
+                            }
+                        } else if(funct3 == 0x6){  // bgt
+                            if(get_register(rs1) > get_register(rs2)){
+                               //printf("bgt: x%d, x%d, -%d\n", rs1, rs2, imm);
+                               counter.b_type[3]++;
+                                pc -= imm/4;
+                            }
+                        }  else {
+                            pc = 1;
+                        }
+                    } else if (funct3 == 0) {  // beq
+                       //printf("beq\n");
+                        if(get_register(rs1) == get_register(rs2)){
+                           //printf("beq: x%d, x%d, %d\n", rs1, rs2, imm);
+                           counter.b_type[0]++;
+                            pc += imm/4;
+                        }
+                    } else if(funct3 == 0x1){  // bne
+                        if(get_register(rs1) != get_register(rs2)){
+                           //printf("bne: x%d, x%d, %d\n", rs1, rs2, imm);
+                           counter.b_type[1]++;
+                            //printf("pc:%d\n",pc);
+                            pc += imm/4;
+                            //printf("after_pc:%d\n",pc);
+                        }
+                    } else if(funct3 == 0x4){  // blt
+                        if(get_register(rs1) < get_register(rs2)){
+                           //printf("blt: x%d, x%d, %d\n", rs1, rs2, imm);
+                           counter.b_type[2]++;
+                            pc += imm/4;
+                        }
+                    } else if(funct3 == 0x5){  // bge
+                        //printf("bge");
+                        //printf("rs1: %d, rs2: %d\n",get_register(rs1),get_register(rs2));
+                        counter.b_type[3]++;
+                        if(get_register(rs1) >= get_register(rs2)){
+                           //printf("bge: x%d, x%d, %d\n", rs1, rs2, imm);
+                            pc += imm/4;
+                        }
+                    } else if(funct3 == 0x6){  // bgt
+                        //printf("bgt");
+                        //printf("rs1: %d, rs2: %d\n",get_register(rs1),get_register(rs2));
+                        counter.b_type[3]++;
+                        if(get_register(rs1) > get_register(rs2)){
+                           //printf("bgt: x%d, x%d, %d\n", rs1, rs2, imm);
+                            pc += imm/4;
+                        }
                     }
                     if(pc == 0){
                         pc = 1;
