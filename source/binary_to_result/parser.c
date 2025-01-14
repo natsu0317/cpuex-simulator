@@ -646,14 +646,20 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     //csrw
                     if(func == 1){ // x10の下位8bit値をファイルに書きこむ
                         if( 0 <= rd && rd < 32){
-                            double value = get_register(rd);
+                            uint32_t value = (uint32_t)get_register(rd);
+                            uint8_t lower8bits = value & 0xFF;
+                            // double value = get_register(rd);
                             //printf("x%dの中身%fの値をファイルに書き込む",rd,value);
-                            fprintf(sld_result_file, "%f\n", value);
+                            // fprintf(sld_result_file, "%f\n", value);
+                            fprintf(sld_result_file, "%u\n", lower8bits);
                             counter.c_type[1]++;
                         } else {
-                            double value = get_float_register(rd);
-                            //printf("f%dの中身%fの値をファイルに書き込む",rd-32,value);
-                            fprintf(sld_result_file, "%f\n", value);
+                            uint32_t value = (uint32_t)get_float_register(rd);
+                            uint8_t lower8bits = value & 0xFF;
+                            fprintf(sld_result_file, "%u\n", lower8bits);
+                            // double value = get_float_register(rd);
+                            // printf("f%dの中身%fの値をファイルに書き込む",rd-32,value);
+                            // fprintf(sld_result_file, "%f\n", value);
                             counter.c_type[1]++;
                         }
                     }
