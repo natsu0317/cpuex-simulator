@@ -363,7 +363,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
             case 0x5: //lui
                 {
                     //lui rd 0xa だったらrdにa * 16 * 16 * 16を格納
-                    printf("u_type\n");
+                    // printf("u_type\n");
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
                     uint32_t value = (bit31_12 << 12); //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
