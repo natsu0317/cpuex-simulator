@@ -26,7 +26,7 @@ double float_memory[256]; //メモリに浮動小数点の値を格納
 // ret = jalr x0, x1, 0
 // bgt a b = blt b a
 
-const char* r_type_opcodes[] = {"add", "sub", "and", "xor", "div", "rem", "sll", "sra", "srl", NULL};
+const char* r_type_opcodes[] = {"add", "sub", "and", "xor", "div10", "rem", "sll", "sra", "srl", NULL};
 const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori", "slli", NULL};
 const char* s_type_opcodes[] = {"sw", NULL};
 const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL}; 
@@ -467,7 +467,7 @@ void parse_assembly(const char* assembly_code){
         convert_registerset_to_x(operand1);
         convert_registerset_to_x(operand2);
         convert_registerset_to_x(operand3);
-        //printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);     
+        // printf("opcode:%s, operand1:%s, operand2:%s, operand3:%s\n",opcode,operand1,operand2,operand3);     
         using_register(operand1);
         using_register(operand2);
         using_register(operand3);
@@ -598,13 +598,13 @@ void parse_assembly(const char* assembly_code){
         }
 
         if(is_r_type(opcode)){
-            //printf("r_type\n");
+            // printf("r_type\n");
             if(strcmp(opcode, "add") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "sub") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0100000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "and") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s111%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             // if(strcmp(opcode, "or") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s110%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "xor") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s100%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
-            if(strcmp(opcode, "div") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s011%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
+            if(strcmp(opcode, "div10") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000000000%s011%s%s",r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "rem") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s110%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "sll") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s001%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "sra") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0100000%s%s101%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);

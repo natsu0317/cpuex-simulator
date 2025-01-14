@@ -131,7 +131,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                 return pc_operand;
             case 0x1:  // R形式命令 (例:"add", "sub", "and", "or", "xor",)
                 {
-                    //printf("r_type\n");
+                    // printf("r_type\n");
                     uint32_t funct3 = (instruction >>10) & 0x7;
                     uint32_t funct7 = (instruction >> 25) & 0x7F;
                     uint32_t rd = (instruction >> 4) & 0x3F;
@@ -168,8 +168,13 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     } else if (funct3 == 0x4){  // xor
                         set_register(rd, get_register(rs1) ^ get_register(rs2));
                         counter.r_type[4]++;
-                    }  else if (funct3 == 0x3){ //div(商)
-                        set_register(rd, get_register(rs1) / get_register(rs2));
+                    }  else if (funct3 == 0x3){ //div10(商)
+                        // printf("rs1_value: %u\n", rs1_value);
+                        uint32_t quotient = (uint32_t)rs1_value / 10;
+                        uint32_t remainder = (uint32_t)rs1_value % 10;
+                        // printf("商: %u, 余り: %u\n", quotient, remainder);
+                        uint32_t result = (quotient << 8) | (remainder & 0xFF);
+                        set_register(rd, result);
                     } else if (funct3 == 0x6){ //rem(余り)
                         set_register(rd, get_register(rs1) % get_register(rs2));
                     } else if (funct3 == 0x1){ //shift
