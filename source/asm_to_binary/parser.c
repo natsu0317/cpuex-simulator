@@ -518,7 +518,7 @@ void parse_assembly(const char* assembly_code){
             //printf("opcode:%s\n",opcode);
             // la rd, symbolを変換すると下2行に対応
             // auipc rd, symbol(31:12)
-            // addi rd, rd, symbol(11:0)
+            // uaddi rd, rd, symbol(11:0)
             int current_line = instruction_count;
             int operand2_num = atoi(operand2); // Assuming operand2 is a string that represents a number
             //printf("operand2:%d\n", operand2_num);
@@ -562,24 +562,24 @@ void parse_assembly(const char* assembly_code){
             //auipcではなくluiに変更
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0101 ", bit31_12_bin, rd_bin);
 
-            // nop(addi x1,x1,0)命令を追加
+            // nop(addi x0,x0,0)命令を追加
             instruction_count++;
             binary_instructions[binary_instruction_count++] = inst;
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000010000000010010");
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000000000000010");
 
             instruction_count++;
             binary_instructions[binary_instruction_count++] = inst;
             // char bit11_0[13];
             // get_substring(r1_bin, bit11_0, strlen(r1_bin)-12, 12);
             // //printf("bit11_0:%s\n",bit11_0);
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s0010", bit11_0_bin, rd_bin, rd_bin);
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s110%s0010", bit11_0_bin, rd_bin, rd_bin);
             }
 
         if(strcmp(opcode, "li_1") == 0){
             // liの即値が32bit
             // printf("r1_bin:%s\n",r1_bin);
             // lui rd imm(31:12)
-            // addi rd, rd, imm(11:0)
+            // uaddi rd, rd, imm(11:0)
 
             char bit31_12[21];
             char bit11_0[13];
@@ -593,8 +593,8 @@ void parse_assembly(const char* assembly_code){
 
             instruction_count++;
             binary_instructions[binary_instruction_count++] = inst;
-            // addi rd, rd, imm(11:0)
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s0010", bit11_0, rd_bin, rd_bin);
+            // uaddi rd, rd, imm(11:0)
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s110%s0010", bit11_0, rd_bin, rd_bin);
         }
 
         if(is_r_type(opcode)){
@@ -616,8 +616,9 @@ void parse_assembly(const char* assembly_code){
             char r2_bin_sub[13];//12bit + 終端文字
             get_substring(r2_bin,r2_bin_sub,strlen(r2_bin)-12,12);
             if(strcmp(opcode, "addi") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s000%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
+            if(strcmp(opcode, "uaddi") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s110%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
             if(strcmp(opcode, "andi") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s111%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
-            if(strcmp(opcode, "ori") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s110%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
+            // if(strcmp(opcode, "ori") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s110%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
             if(strcmp(opcode, "xori") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"%s0%s100%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
             if(strcmp(opcode, "slli") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code), "%s0%s001%s%s", r2_bin_sub, r1_bin, rd_bin, opcode_bin);
         }
