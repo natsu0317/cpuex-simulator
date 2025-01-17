@@ -79,15 +79,6 @@ void handle_float_register(uint32_t rd, uint32_t rs1, int32_t imm) {
         set_register(rd, float_value);
     }
 }
-                  
-void handle_lui_case(uint32_t rd, uint32_t rs1, int32_t imm) {
-    if (0 <= rd && rd < 32) {
-        set_register(rd, get_register(rs1) + imm);
-        counter.i_type[0]++;
-    } else {
-        handle_float_register(rd, rs1, imm);
-    }
-}
 
 void handle_addi_case(uint32_t rd, uint32_t rs1, int32_t imm) {
     if (0 <= rd && rd < 32) {
@@ -199,14 +190,14 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     int32_t imm = (instruction >> 20) & 0xFFF;
                     pc_operand.operand1 = rd;
                     pc_operand.operand2 = rs1;
-
-                    if(previous_opcode == 0x5){
-                        handle_lui_case(rd, rs1, imm);
-                    } else if ((strcmp(previous_binary_instruction[pc],"00000000000000000010000000010010") == 0) && (two_previous_opcode == 0x5)){
-                        // 1個前の命令がaddi x1,x1,0かつ2個前の命令がlui(la)の時
-                        imm = imm/4;
-                        handle_addi_case(rd, rs1, imm);
+                    
+                    if(funct3 == 0x6){ //uaddi
+                        if(previous_opcode == 0x2){
+                            imm = imm/4; //la
+                        }
+                        handle_addi_case(rd,rs1,imm);
                     } else {
+                        //負の計算
                         int minus = (imm & 0x800) ? 1 : 0;
                         if (minus) {
                             imm = ~imm & ((1 << 12) - 1);
