@@ -342,9 +342,6 @@ void convert_registerset_to_x(char *operand){
     change(operand, "%edi", "x7");
     change(operand, "%ebp", "x8");
     change(operand, "%esp", "x2");
-    change(operand, "zero", "x0");
-    change(operand, "ra", "x1");
-    change(operand, "sp", "x2");
     for(int i = 0; i <= 7; i++){
         char reg_name[4];
         char x_reg_name[4];
