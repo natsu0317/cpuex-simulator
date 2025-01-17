@@ -537,7 +537,7 @@ void parse_assembly(const char* assembly_code){
             // オフセットを32ビット符号付き整数として扱う
             int32_t signed_offset = offset;
             // 上位20ビットを取得 (符号付きで右シフト)
-            int32_t bit31_12 = (signed_offset + 0x800) >> 12; // 四捨五入のために0x800を加算
+            int32_t bit31_12 = signed_offset >> 12; 
             // 下位12ビットを取得
             uint32_t bit11_0 = signed_offset & 0xFFF;
             // 下位12ビットの符号拡張を確認
