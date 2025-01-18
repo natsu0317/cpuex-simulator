@@ -87,9 +87,9 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
     int total_cycles = 1;
 
     while (current_line < instruction_length) {   
-        printf("pipeline start\n");
-        printf("行数：%d\n",current_line); 
-        printf("binary:%s\n",binary_instructions[current_line - 1].binary_code);
+        // printf("pipeline start\n");
+        // printf("行数：%d\n",current_line); 
+        // printf("binary:%s\n",binary_instructions[current_line - 1].binary_code);
         //finish命令
         if(strcmp(binary_instructions[current_line - 1].binary_code,"11111111111111111111111111111111") == 0){
             break;
@@ -114,12 +114,17 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         // 1個前の命令を記録するため
         const char temporary_previous_instruction[1][33] = {"11111111111111111111111111111111"};
         const char temporary_two_previous_instruction[1][33] = {"11111111111111111111111111111111"};
-        if(current_line > 2){
-            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 2].binary_code, &binary_instructions[current_line - 3].binary_code, 1, current_line - 1, sld_file, sld_result_file, memory_file);
-        } else if(current_line > 1) {
-            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 2].binary_code, temporary_two_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
+        // if(current_line > 2){
+        //     pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 2].binary_code, &binary_instructions[current_line - 3].binary_code, 1, current_line - 1, sld_file, sld_result_file, memory_file);
+        // } else if(current_line > 1) {
+        //     pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 2].binary_code, temporary_two_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
+        // } else {
+        //     pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, temporary_previous_instruction, temporary_two_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
+        // }
+        if(current_line > 1) {
+            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 2].binary_code, 1, current_line - 1, sld_file, sld_result_file, memory_file);
         } else {
-            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, temporary_previous_instruction, temporary_two_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
+            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, temporary_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
         }
         pc = pc_opcode_operand1.pc;
         int opcode = pc_opcode_operand1.opcode;//1 = sw / lw, 2 = 分岐命令
@@ -135,50 +140,50 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
 
         //register遷移の出力
         // print_register_transition(transition_file, float_transition_file, current_line);
-        print_use_register_transition(transition_file, current_line, use_register);
-        print_use_float_register_transition(float_transition_file, current_line, use_register);
+        // print_use_register_transition(transition_file, current_line, use_register);
+        // print_use_float_register_transition(float_transition_file, current_line, use_register);
         fflush(transition_file); 
-        printf("binary_insturcinos[current_line]:%s\n",binary_instructions[current_line - 1].binary_code);
-        printf("assembly_code:%20s\n",assembly_instructions[current_line+assembly_count]);
-        if(strcmp(binary_instructions[current_line - 1].binary_code,"00000000000000000000000000000000") == 0){
-            current_line++;
-            printf("\n");
-            continue;
-        } else {      
-            //pipeline 出力
+        // printf("binary_insturcinos[current_line]:%s\n",binary_instructions[current_line - 1].binary_code);
+        // printf("assembly_code:%20s\n",assembly_instructions[current_line+assembly_count]);
+        // if(strcmp(binary_instructions[current_line - 1].binary_code,"00000000000000000000000000000000") == 0){
+        //     current_line++;
+        //     printf("\n");
+        //     continue;
+        // } else {      
+        //     //pipeline 出力
 
-            print_pipeline(pipeline_file, assembly_instructions, current_line - 1, assembly_count, total_cycles);
+        //     print_pipeline(pipeline_file, assembly_instructions, current_line - 1, assembly_count, total_cycles);
 
-            //data hazard
-            //現在のoperand2 or operand3 == n個前のoperand1 -> (4-n)サイクルstall
-            // -> フォワーディングにより解決
-            //sw, lwが来たらその後1クロックstall
+        //     //data hazard
+        //     //現在のoperand2 or operand3 == n個前のoperand1 -> (4-n)サイクルstall
+        //     // -> フォワーディングにより解決
+        //     //sw, lwが来たらその後1クロックstall
 
-            //フォワーディングがない場合
-            // for(int i=2;i>=0;i--){
-            //     if(operand2 == save_operand[i]){
-            //         print_stall(pipeline_file, 4-i, total_cycles);
-            //         total_cycles += (4-i);
-            //         break;
-            //     } else if (operand3 == save_operand[i]){
-            //         print_stall(pipeline_file, 4-i, total_cycles);
-            //         total_cycles += (4-i);
-            //         break;
-            //     }
-            // }
-            if( opcode == 1){
-                if(operand2 == save_operand[0] || operand3 == save_operand[0]){
-                    print_stall(pipeline_file, 1, total_cycles);
-                    total_cycles++;
-                }
-            }
-            //制御 hazard
-            //分岐命令の後は1サイクルストール
-            if( opcode == 2 ){
-                print_stall(pipeline_file, 1, total_cycles);
-                total_cycles++;
-            }
-        }
+        //     //フォワーディングがない場合
+        //     // for(int i=2;i>=0;i--){
+        //     //     if(operand2 == save_operand[i]){
+        //     //         print_stall(pipeline_file, 4-i, total_cycles);
+        //     //         total_cycles += (4-i);
+        //     //         break;
+        //     //     } else if (operand3 == save_operand[i]){
+        //     //         print_stall(pipeline_file, 4-i, total_cycles);
+        //     //         total_cycles += (4-i);
+        //     //         break;
+        //     //     }
+        //     // }
+        //     if( opcode == 1){
+        //         if(operand2 == save_operand[0] || operand3 == save_operand[0]){
+        //             print_stall(pipeline_file, 1, total_cycles);
+        //             total_cycles++;
+        //         }
+        //     }
+        //     //制御 hazard
+        //     //分岐命令の後は1サイクルストール
+        //     if( opcode == 2 ){
+        //         print_stall(pipeline_file, 1, total_cycles);
+        //         total_cycles++;
+        //     }
+        // }
         // printf("pc:%d\n",pc);
         
         if (pc == 1) {
@@ -206,9 +211,8 @@ void print_instruction_count(FILE* instruction_statics_file) {
 
     // R型命令のカウント
     fprintf( instruction_statics_file, "\nR-type Instruction Counts:\n");
-    fprintf( instruction_statics_file, "add: %d, sub: %d, and: %d, or: %d, xor: %d\n",
-           counter.r_type[0], counter.r_type[1], counter.r_type[2],
-           counter.r_type[3], counter.r_type[4]);
+    fprintf( instruction_statics_file, "add: %d, sub: %d, and: %d, xor: %d, div10: %d, sll: %d, srl: %d, sra: %d\n",
+           counter.r_type[0], counter.r_type[1], counter.r_type[2], counter.r_type[4], counter.r_type[5], counter.r_type[6], counter.r_type[7], counter.r_type[8]);
 
     // I型命令のカウント
     fprintf( instruction_statics_file, "\nI-type Instruction Counts:\n");
@@ -221,9 +225,9 @@ void print_instruction_count(FILE* instruction_statics_file) {
 
     // B型命令のカウント
     fprintf( instruction_statics_file, "\nB-type Instruction Counts:\n");
-    fprintf( instruction_statics_file, "beq: %d, bne: %d, blt: %d, bge: %d, bltu: %d, bgeu: %d\n",
+    fprintf( instruction_statics_file, "beq: %d, bne: %d, blt: %d, bge: %d, bgt: %d\n",
            counter.b_type[0], counter.b_type[1], counter.b_type[2],
-           counter.b_type[3], counter.b_type[4], counter.b_type[5]);
+           counter.b_type[3], counter.b_type[4]);
 
     // U型命令のカウント
     fprintf( instruction_statics_file, "\nU-type Instruction Counts:\n");
@@ -288,12 +292,6 @@ int main(){
     found_labels(assembly_code);
     parse_assembly(assembly_code);
 
-    for(int i=0; i<64; i++){
-        if(use_register[i] > 0){
-            printf("x%d\n",i);
-        }
-    }
-
     char* token = strtok((char*)assembly_code, "\n");
     while (token != NULL && instruction_count < MAX_INSTRUCTIONS) {
         strncpy(assembly_instructions[instruction_count], token, MAX_INSTRUCTION_LENGTH - 1);
@@ -301,7 +299,7 @@ int main(){
         instruction_count++;
         token = strtok(NULL, "\n");
     }
-    printf("count:%d\n",instruction_count);
+    // printf("count:%d\n",instruction_count);
 
     //binary codeはbinary.txtにoutput
     FILE *output_file = fopen("./document/binary.txt","w");    
@@ -312,7 +310,7 @@ int main(){
     int instruction_length = print_binary_instructions(output_file) + 1;
     //printf("%d\n",instruction_length);
     fclose(output_file);
-    printf("length:%d\n",instruction_length);
+    // printf("length:%d\n",instruction_length);
     int assembly_count =  instruction_count - instruction_length;
     //printf("assembly_code:%20s",assembly_instructions[assembly_count]);
 
@@ -369,7 +367,7 @@ int main(){
         return 1;
     }
 
-    print_instruction_count(instruction_statics_file);
+    // print_instruction_count(instruction_statics_file);
 
     fclose(transition_file);
     fclose(sld_file);
