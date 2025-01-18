@@ -555,9 +555,9 @@ void parse_assembly(const char* assembly_code){
             //printf("bit31_12 (2進数): %s\n", bit31_12_bin);
             //printf("bit11_0 (2進数): %s\n", bit11_0_bin);
             // //printf("%s00%s0110\n", bit31_12, rd_bin);
-            // snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0110", bit31_12_bin, rd_bin);
-            //auipcではなくluiに変更
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0101 ", bit31_12_bin, rd_bin);
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0110", bit31_12_bin, rd_bin);
+            //lui version(多分違う)
+            // snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0101 ", bit31_12_bin, rd_bin);
 
             // nop(addi x0,x0,0)命令を追加
             instruction_count++;
