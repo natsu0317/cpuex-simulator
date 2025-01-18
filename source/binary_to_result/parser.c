@@ -176,10 +176,12 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         for(int i=0; i<num_digits; i++){
                             result |= ((digits[i] + '0') << ((3-i)*8));
                         }
-                        result >>= (3 - num_digits) * 4 + 6;
-                        // printf("value:%x\n",result);
+                        if(num_digits < 4){
+                            result >>= (4 - num_digits) * 4 + 2;
+                        } else {
+                            result <<= 2;
+                        }
                         result |= ((num_digits - 1) & 0x3);
-                        // printf("value:%x\n",result);
                         // result <<= (4 - num_digits) * 8;
                         set_register(rd, result);
                         counter.r_type[5]++;
@@ -653,12 +655,12 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                 
             case 0xb:  // csrr, csrw, csrw_int
                 {
-                    //printf("csrr/csrw\n");
+                    // printf("csrr/csrw\n");
                     uint32_t rd = (instruction >> 19) & 0x3F;
                     uint32_t func = (instruction >> 10) & 0x7;
                     //csrw_int
                     if(func == 4){
-                        uint32_t value = (uint32_t)get_register(rd); 
+                        uint32_t value = (uint32_t)registers[rd]; 
                         //下位2bitで出力回数
                         int total_output = (value & 0x3) + 1;
                         for(int i=0; i < total_output; i++){
