@@ -528,7 +528,9 @@ void parse_assembly(const char* assembly_code){
             if (strcmp(opcode, "la_1") == 0) {
                 offset = operand2_num + 12;
             }
-            offset = offset + current_line * 4 + 4; //laが3命令に分割する
+            // offset = offset + current_line * 4 + 4; //laが3命令に分割する
+            // auipcを使用 -> current_line足さない
+            offset = offset + 4;
             // offset = offset + 8; //laが3命令に分割する
             //printf("offset:%d\n",offset);
             // オフセットを32ビット符号付き整数として扱う

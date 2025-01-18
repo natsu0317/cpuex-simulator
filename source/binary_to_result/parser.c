@@ -421,7 +421,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     int32_t value = (int32_t)(bit31_12 << 12); // 符号付きの32ビット整数としてシフト
                     //printf("value:%d\n",value);
                     value = value / 4;
-                    // value = value + current_line; 
+                    value = value + current_line; 
                     set_register(rd,value);
                     counter.aui_type[0]++;
                     //printf("auipc x%d ,%d\n",rd,bit31_12);
