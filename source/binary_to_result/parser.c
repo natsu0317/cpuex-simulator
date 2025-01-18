@@ -651,11 +651,22 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                 }
                 return pc_operand;
                 
-            case 0xb:  // csrr, csrw
+            case 0xb:  // csrr, csrw, csrw_int
                 {
                     //printf("csrr/csrw\n");
                     uint32_t rd = (instruction >> 19) & 0x3F;
                     uint32_t func = (instruction >> 10) & 0x7;
+                    //csrw_int
+                    if(func == 4){
+                        uint32_t value = (uint32_t)get_register(rd); 
+                        //下位2bitで出力回数
+                        int total_output = (value & 0x3) + 1;
+                        for(int i=0; i < total_output; i++){
+                            int shift_count = 2+i*8;
+                            uint8_t lower8bits = (value >> shift_count) & 0xF;
+                            fprintf(sld_result_file, "%u\n", lower8bits);
+                        }
+                    }
                     //csrw
                     if(func == 1){ // x10の下位8bit値をファイルに書きこむ
                         if( 0 <= rd && rd < 32){
