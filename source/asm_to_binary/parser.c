@@ -36,7 +36,7 @@ const char* j_type_opcodes[] = {"jal", NULL};
 const char* jalr_type_opcodes[] = {"jalr", NULL};
 const char* lw_type_opcodes[] = {"lw", NULL};
 const char* f_type_opcodes[] = {"fadd", "fsub", "fmul", "fdiv", "fabs", "fneg", "finv", "fsqrt", "fsgnjn", "fsgnjx", "feq", "flt", "fcvtws", "fcvtsw", NULL};
-const char* c_type_opcodes[] = {"csrr", "csrw", NULL};
+const char* c_type_opcodes[] = {"csrr", "csrw", "csrw_int", NULL};
 
 int is_opcode_type(const char* opcode,const char** type_opcodes){
     const char** op = type_opcodes;
@@ -384,7 +384,7 @@ void parse_assembly(const char* assembly_code){
     BinaryInstruction inst;
 
     while (token != NULL){
-        //printf("token:%s\n",token);
+        // printf("token:%s\n",token);
         //printf("instruction_count:%d\n",instruction_count);
         //labelの部分は0000...0で出力するようになっている
         if (strchr(token, ':') != NULL ||
@@ -793,6 +793,7 @@ void parse_assembly(const char* assembly_code){
         }
         if(is_c_type(opcode)){
             //x10の値をファイルに書き込む
+            if(strcmp(opcode, "csrw_int") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s0000001000000001011",rd_bin);
             //printf("operand1;%s\n",rd_bin);
             if(strcmp(opcode, "csrw") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s0000000010000001011",rd_bin);
             //sldファイルの値をx10に書き込む
