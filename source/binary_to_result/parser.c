@@ -159,11 +159,28 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         set_register(rd, get_register(rs1) ^ get_register(rs2));
                         counter.r_type[4]++;
                     }  else if (funct3 == 0x3){ //div10(商)
-                        // printf("rs1_value: %u\n", rs1_value);
-                        uint32_t quotient = (uint32_t)rs1_value / 10;
-                        uint32_t remainder = (uint32_t)rs1_value % 10;
-                        // printf("商: %u, 余り: %u\n", quotient, remainder);
-                        uint32_t result = (quotient << 8) | (remainder & 0xFF);
+                        // // printf("rs1_value: %u\n", rs1_value);
+                        // uint32_t quotient = (uint32_t)rs1_value / 10;
+                        // uint32_t remainder = (uint32_t)rs1_value % 10;
+                        // // printf("商: %u, 余り: %u\n", quotient, remainder);
+                        // uint32_t result = (quotient << 8) | (remainder & 0xFF);
+                        // set_register(rd, result);
+                        uint32_t digits[4] = {0};
+                        int num_digits = 0;
+                        // 10で割って各桁を取得
+                        while((int)rs1_value > 0 && num_digits < 4){
+                            digits[num_digits++] = (uint32_t)rs1_value % 10;
+                            rs1_value /= 10;
+                        }
+                        uint32_t result = 0;
+                        for(int i=0; i<num_digits; i++){
+                            result |= ((digits[i] + '0') << ((3-i)*8));
+                        }
+                        result >>= (3 - num_digits) * 4 + 6;
+                        // printf("value:%x\n",result);
+                        result |= ((num_digits - 1) & 0x3);
+                        // printf("value:%x\n",result);
+                        // result <<= (4 - num_digits) * 8;
                         set_register(rd, result);
                         counter.r_type[5]++;
                     } else if (funct3 == 0x6){ //rem(余り)
