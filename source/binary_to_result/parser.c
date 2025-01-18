@@ -159,12 +159,6 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                         set_register(rd, get_register(rs1) ^ get_register(rs2));
                         counter.r_type[4]++;
                     }  else if (funct3 == 0x3){ //div10(商)
-                        // // printf("rs1_value: %u\n", rs1_value);
-                        // uint32_t quotient = (uint32_t)rs1_value / 10;
-                        // uint32_t remainder = (uint32_t)rs1_value % 10;
-                        // // printf("商: %u, 余り: %u\n", quotient, remainder);
-                        // uint32_t result = (quotient << 8) | (remainder & 0xFF);
-                        // set_register(rd, result);
                         uint32_t digits[4] = {0};
                         int num_digits = 0;
                         // 10で割って各桁を取得
