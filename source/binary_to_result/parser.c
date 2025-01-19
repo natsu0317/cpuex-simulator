@@ -114,86 +114,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
         // uint32_t two_previous_opcode = two_previous_instruction & 0xF;
         //printf("opcode:%x\n",opcode);
 
-        switch (opcode) {
-            case 0x0:   //label部分
-                {
-                    pc_operand.pc = 1;
-                }
-                return pc_operand;
-            case 0x1:  // R形式命令 (例:"add", "sub", "and", "or", "xor",)
-                {
-                    // printf("r_type\n");
-                    uint32_t funct3 = (instruction >>10) & 0x7;
-                    uint32_t funct7 = (instruction >> 25) & 0x7F;
-                    uint32_t rd = (instruction >> 4) & 0x3F;
-                    uint32_t rs1 = (instruction >> 13) & 0x3F;
-                    uint32_t rs2 = (instruction >> 19) & 0x3F;
-                    pc_operand.operand1 = rd;
-                    pc_operand.operand2 = rs1;
-                    pc_operand.operand3 = rs2;
-                    double rs1_value;
-                    double rs2_value;
-                    if(0 <= rs1 & rs1 < 32){
-                        //整数レジスタ
-                        rs1_value = get_register(rs1);
-                    } else {
-                        rs1_value = get_float_register(rs1);
-                    }
-                    if(0 <= rs2 & rs2 < 32){
-                        //整数レジスタ
-                        rs2_value = get_register(rs2);
-                    } else {
-                        rs2_value = get_float_register(rs2);
-                    }
-
-                    if (funct3 == 0 && funct7 == 0) {  // add命令
-                        set_register(rd, rs1_value + rs2_value);
-                        counter.r_type[0]++;
-                    } else if (funct3 == 0 && funct7 == 0x20) {  // sub命令
-                        set_register(rd, rs1_value - rs2_value);
-                        counter.r_type[1]++;
-                    } else if (funct3 == 0x7){  // and
-                        set_register(rd, get_register(rs1) & get_register(rs2));
-                        counter.r_type[2]++;
-                    } else if (funct3 == 0x4){  // xor
-                        set_register(rd, get_register(rs1) ^ get_register(rs2));
-                        counter.r_type[4]++;
-                    }  else if (funct3 == 0x3){ //div10(商)
-                        uint32_t digits[4] = {0};
-                        int num_digits = 0;
-                        // 10で割って各桁を取得
-                        while((int)rs1_value > 0 && num_digits < 4){
-                            digits[num_digits++] = (uint32_t)rs1_value % 10;
-                            rs1_value /= 10;
-                        }
-                        uint32_t result = 0;
-                        for(int i=0; i<num_digits; i++){
-                            result |= ((digits[i] + '0') << ((3-i)*8));
-                        }
-                        if(num_digits < 4){
-                            result >>= (4 - num_digits) * 4 + 2;
-                        } else {
-                            result <<= 2;
-                        }
-                        result |= ((num_digits - 1) & 0x3);
-                        // result <<= (4 - num_digits) * 8;
-                        set_register(rd, result);
-                        counter.r_type[5]++;
-                    } else if (funct3 == 0x6){ //rem(余り)
-                        set_register(rd, get_register(rs1) % get_register(rs2));
-                    } else if (funct3 == 0x1){ //shift
-                        set_register(rd, get_register(rs1) << (get_register(rs2) & 0x1F));
-                        counter.r_type[6]++;
-                    } else if (funct3 == 0x5 && funct7 == 0){ //srl
-                        set_register(rd, (uint32_t)get_register(rs1) >> (get_register(rs2) & 0x1F));
-                        counter.r_type[7]++;
-                    } else if (funct3 == 0x5 && funct7 == 0x20){ //sra
-                        set_register(rd, get_register(rs1) >> (get_register(rs2) & 0x1F));
-                        counter.r_type[8]++;
-                    }
-                }
-                return pc_operand;
-
+        switch (opcode) { 
             case 0x2:  // I形式命令 (例: "addi", "andi", "ori", "xori")
                 {   
                    //printf("i_type\n");
@@ -272,268 +193,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     counter.s_type[0]++;
                 } 
                 return pc_operand;
-
-            case 0x4:  // B形式命令 (例: "beq", "bne", "blt", "bge", "bgt")
-                {
-                    //printf("b_type\n");
-                    uint32_t funct3 = (instruction >> 10) & 0x7;
-                    uint32_t rs1 = (instruction >> 13) & 0x3F;
-                    uint32_t rs2 = (instruction >> 19) & 0x3F;
-                    uint32_t bit12 = (instruction >> 31) & 0x1;
-                    uint32_t bit10_5 = (instruction >> 25) & 0x3F;
-                    uint32_t bit4_1 = (instruction >> 5) & 0xF;
-                    uint32_t bit11 = (instruction >> 4) & 0x1;
-                    uint32_t imm = 0;
-                    pc_operand.opcode = 2; 
-                    pc_operand.operand2 = rs1;
-                    pc_operand.operand3 = rs2;
-                    imm |= (bit12 << 12);
-                    imm |= (bit11 << 11);
-                    imm |= (bit10_5 << 5);
-                    imm |= (bit4_1 << 1);
-                    if(bit12 == 1){
-                        //immは負の値
-                        //2の補数
-                        uint32_t mask = (1 << 12) -1;
-                        imm = ~imm & mask;
-                        imm = imm + 1;
-                        if (funct3 == 0) {  // beq
-                            if(get_register(rs1) == get_register(rs2)){
-                               //printf("beq: x%d, x%d, -%d\n", rs1, rs2, imm);
-                               counter.b_type[0]++;
-                                pc -= imm/4;
-                            }
-                        } else if(funct3 == 0x1){  // bne
-                            if(get_register(rs1) != get_register(rs2)){
-                               //printf("bne: x%d, x%d, -%d\n", rs1, rs2, imm);
-                               counter.b_type[1]++;
-                               //printf("pc:%d\n",pc);
-                                pc -= imm/4;
-                               //printf("after_pc:%d\n",pc);
-                            }
-                        } else if(funct3 == 0x4){  // blt
-                            if(get_register(rs1) < get_register(rs2)){
-                               //printf("blt: x%d, x%d, -%d\n", rs1, rs2, imm);
-                               counter.b_type[2]++;
-                                pc -= imm/4;
-                            }
-                        } else if(funct3 == 0x5){  // bge
-                            if(get_register(rs1) >= get_register(rs2)){
-                               //printf("bge: x%d, x%d, -%d\n", rs1, rs2, imm);
-                               counter.b_type[3]++;
-                                pc -= imm/4;
-                            }
-                        } else if(funct3 == 0x6){  // bgt
-                            if(get_register(rs1) > get_register(rs2)){
-                               //printf("bgt: x%d, x%d, -%d\n", rs1, rs2, imm);
-                               counter.b_type[4]++;
-                                pc -= imm/4;
-                            }
-                        }  else {
-                            pc = 1;
-                        }
-                    } else if (funct3 == 0) {  // beq
-                       //printf("beq\n");
-                        if(get_register(rs1) == get_register(rs2)){
-                           //printf("beq: x%d, x%d, %d\n", rs1, rs2, imm);
-                           counter.b_type[0]++;
-                            pc += imm/4;
-                        }
-                    } else if(funct3 == 0x1){  // bne
-                        if(get_register(rs1) != get_register(rs2)){
-                           //printf("bne: x%d, x%d, %d\n", rs1, rs2, imm);
-                           counter.b_type[1]++;
-                            //printf("pc:%d\n",pc);
-                            pc += imm/4;
-                            //printf("after_pc:%d\n",pc);
-                        }
-                    } else if(funct3 == 0x4){  // blt
-                        if(get_register(rs1) < get_register(rs2)){
-                           //printf("blt: x%d, x%d, %d\n", rs1, rs2, imm);
-                           counter.b_type[2]++;
-                            pc += imm/4;
-                        }
-                    } else if(funct3 == 0x5){  // bge
-                        //printf("bge");
-                        //printf("rs1: %d, rs2: %d\n",get_register(rs1),get_register(rs2));
-                        counter.b_type[3]++;
-                        if(get_register(rs1) >= get_register(rs2)){
-                           //printf("bge: x%d, x%d, %d\n", rs1, rs2, imm);
-                            pc += imm/4;
-                        }
-                    } else if(funct3 == 0x6){  // bgt
-                        //printf("bgt");
-                        //printf("rs1: %d, rs2: %d\n",get_register(rs1),get_register(rs2));
-                        counter.b_type[4]++;
-                        if(get_register(rs1) > get_register(rs2)){
-                           //printf("bgt: x%d, x%d, %d\n", rs1, rs2, imm);
-                            pc += imm/4;
-                        }
-                    }
-                    if(pc == 0){
-                        pc = 1;
-                    }
-                    pc_operand.pc = pc;
-                }
-                return pc_operand;
-
-            case 0x5: //lui
-                {
-                    //lui rd 0xa だったらrdにa * 16 * 16 * 16を格納
-                    // printf("u_type\n");
-                    uint32_t rd = (instruction >> 4) & 0x3F;
-                    uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
-                    uint32_t value = (bit31_12 << 12); //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
-                    // value = value / 4;
-                    //printf("lui x%d, %d", rd, value);
-                    set_register(rd,value);
-                    counter.u_type[0]++;
-                }
-                return pc_operand;
-
-            case 0x6: //auipc {upimm, 12'b0} + pc
-                {
-                    //printf("auipc\n");
-                    uint32_t rd = (instruction >> 4) & 0x3F;
-                    uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
-                    //printf("%x\n",bit31_12);
-                    // uint32_t value = (bit31_12 << 12); //これも4で割るべきかも？ それか下のcurrent_lineを4倍する
-                    // if(bit31_12 & 0x80000){
-                    //     //負の値
-                    //     uint32_t mask = 0xFFFFFFFF;
-                    //     value = ~value & mask;
-                    //     value = value + 1;
-                    // }
-                    // 符号拡張を行う
-                    if (bit31_12 & 0x80000) {
-                        // 負の値の場合
-                        bit31_12 |= 0xFFF00000; // 上位ビットを1で埋める
-                    }
-                    int32_t value = (int32_t)(bit31_12 << 12); // 符号付きの32ビット整数としてシフト
-                    //printf("value:%d\n",value);
-                    value = value / 4;
-                    value = value + current_line; 
-                    set_register(rd,value);
-                    counter.aui_type[0]++;
-                    //printf("auipc x%d ,%d\n",rd,bit31_12);
-                }
-                return pc_operand;
-
-            case 0x7:  // J形式命令 (例: "jal")
-                {
-                    //printf("jal\n");
-                    //printf("%x\n",instruction);
-                    uint32_t bit20 = (instruction >> 31) & 0x1;
-                    uint32_t bit10_1 = (instruction >> 21) & 0x3FF;
-                    uint32_t bit11 = (instruction >> 20) & 0x1;
-                    uint32_t bit19_12 = (instruction >> 12) & 0xFF;
-                    uint32_t rd = (instruction >> 4) & 0x3F;
-                    int32_t imm = 0;
-                    imm |= (bit20 << 20);
-                    imm |= (bit19_12 << 12);
-                    imm |= (bit11 << 11);
-                    imm |= (bit10_1 << 1);
-                    //printf("Executed jal: x%d = PC + 1, PC += %d\n", rd, imm);
-                    // 符号拡張
-                    if (bit20) {
-                        imm |= 0xFFE00000;  // 負の値の場合、上位ビットを1で埋める
-                    }
-                    int next_line = current_line + imm/4;
-                    //printf("imm: %d\n",imm);
-                    //printf("jal: x%d, %d\n", rd, imm);
-                    //printf("jal x%d, %d (PC: %d -> %d)\n", rd, imm, current_line +1, next_line +1);
-                    counter.j_type[0]++;
-                    // 戻りアドレスを保存
-                    //printf("戻りアドレスrd: %d\n",current_line+2);
-                    set_register(rd, current_line + 2);
-                    //printf("戻りアドレスrd: %d\n",get_register(rd));
-                    
-                    // PCの更新後に即座にreturn
-                    pc = imm/4;
-                    pc_operand.pc = pc;
-                }
-                return pc_operand;
                 
-            case 0x8:  // I形式命令 ("jalr")
-                {   
-                   //printf("i_type (jalr)\n");
-                   counter.jalr_type[0]++;
-                    uint32_t rd = (instruction >> 4) & 0x3F;
-                    uint32_t rs1 = (instruction >> 13) & 0x3F;
-                    int32_t imm = (instruction >> 20) & 0xFFF;
-                    pc_operand.operand1 = rd;
-                    pc_operand.operand2 = rs1;
-                   //printf("imm:%x\n",imm);
-                    int minus = 0;//immが負なら1
-                    if(imm & 0x800){
-                        //即値が負の値
-                        uint32_t mask = (1 << 12) - 1;
-                       //printf("%x\n",mask);
-                        imm = ~imm & mask;//反転
-                        imm = imm+1;
-                        minus = 1;
-                       //printf("minus%d\n",minus);
-                    }
-                   //printf("after_imm:%x\n",imm);
-                    //printf("funct3:%x\n,opcode:%x\n",funct3,opcode);
-
-                    if(minus == 0){//immは正
-                        //printf("immが正");
-                        //printf("jalr: x%d, x%d, %d\n", rd, rs1, imm);
-                        set_register(rd,current_line+2);
-                        pc = get_register(rs1) + imm/4 - current_line - 1;
-                        // pc = get_register(rs1) + imm/4;
-                        // set_register(rd, get_register(rs1) + imm/4);
-                        //printf("rs1:%d\n",get_register(rs1));
-                        //printf("pc:%d\n",pc);
-                        //printf("rd:x%d = %d\n",rd,get_register(rd));
-                    }else if(minus == 1){
-                        //printf("jalr: x%d, x%d, -%d\n", rd, rs1, imm);
-                        set_register(rd,current_line+2);
-                        pc = get_register(rs1) - imm/4 - current_line - 1;
-                        // set_register(rd, get_register(rs1) - imm/4);
-                        //printf("rs1:%d\n",get_register(rs1));
-                        //printf("pc:%d\n",pc);
-                    }
-                    //printf("x1 = %d\n",get_register(1));
-                }
-               //printf("pc:%d\n",pc);
-                if(pc == 0){
-                    pc = 1;
-                }
-                pc_operand.pc = pc;
-                return pc_operand;
-
-            case 0x9:  // lw  x[rd] = mem[x[r1] + offset]
-                {
-                   //printf("lw\n");
-                   counter.lw_type[0]++;
-                    uint32_t rs1 = (instruction >> 13) & 0x3F;
-                    uint32_t rd = (instruction >> 4) & 0x3F;
-                    uint32_t lw_offset = (instruction >> 20) & 0xFFF;
-                    //printf("rs1:x%d,rd;x%d,lw_offset:%d\n",rs1,rd,lw_offset);
-                    float lw = 0; //setする値
-                    pc_operand.opcode = 1;
-                    pc_operand.operand1 = rd;
-                    pc_operand.operand2 = rs1;
-                    if(lw_offset && 0x800 == 1){//負の値
-                        uint32_t mask = (1<<12) - 1;
-                        lw_offset = ~lw_offset & mask;
-                        lw_offset = lw_offset + 1;
-                        lw = memory[get_register(rs1) - lw_offset];
-                       //printf("lw: x%d, -%d(x%d)\n", rd, lw_offset, rs1);
-                    }else{
-                        //printf("正\n");
-                        //printf("address:%d + %d\n",get_register(rs1),lw_offset);
-                        lw = memory[get_register(rs1) + lw_offset];
-                       //printf("lw: x%d, %d(x%d)\n", rd, lw_offset, rs1);
-                    }
-                    //printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
-                    fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%f\n",current_line+1, get_register(rs1) + lw_offset,lw);
-                    set_register(rd,lw);
-                }   
-                return pc_operand;
-            
             case 0xa:   //fadd,fsub,fmul,fdiv
                 {   
                     //printf("f_type\n");
@@ -644,6 +304,346 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                 }
                 return pc_operand;
                 
+            case 0x9:  // lw  x[rd] = mem[x[r1] + offset]
+                {
+                   //printf("lw\n");
+                   counter.lw_type[0]++;
+                    uint32_t rs1 = (instruction >> 13) & 0x3F;
+                    uint32_t rd = (instruction >> 4) & 0x3F;
+                    uint32_t lw_offset = (instruction >> 20) & 0xFFF;
+                    //printf("rs1:x%d,rd;x%d,lw_offset:%d\n",rs1,rd,lw_offset);
+                    float lw = 0; //setする値
+                    pc_operand.opcode = 1;
+                    pc_operand.operand1 = rd;
+                    pc_operand.operand2 = rs1;
+                    if(lw_offset && 0x800 == 1){//負の値
+                        uint32_t mask = (1<<12) - 1;
+                        lw_offset = ~lw_offset & mask;
+                        lw_offset = lw_offset + 1;
+                        lw = memory[get_register(rs1) - lw_offset];
+                       //printf("lw: x%d, -%d(x%d)\n", rd, lw_offset, rs1);
+                    }else{
+                        //printf("正\n");
+                        //printf("address:%d + %d\n",get_register(rs1),lw_offset);
+                        lw = memory[get_register(rs1) + lw_offset];
+                       //printf("lw: x%d, %d(x%d)\n", rd, lw_offset, rs1);
+                    }
+                    //printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
+                    fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%f\n",current_line+1, get_register(rs1) + lw_offset,lw);
+                    set_register(rd,lw);
+                }   
+                return pc_operand;
+            
+            case 0x7:  // J形式命令 (例: "jal")
+                {
+                    //printf("jal\n");
+                    //printf("%x\n",instruction);
+                    uint32_t bit20 = (instruction >> 31) & 0x1;
+                    uint32_t bit10_1 = (instruction >> 21) & 0x3FF;
+                    uint32_t bit11 = (instruction >> 20) & 0x1;
+                    uint32_t bit19_12 = (instruction >> 12) & 0xFF;
+                    uint32_t rd = (instruction >> 4) & 0x3F;
+                    int32_t imm = 0;
+                    imm |= (bit20 << 20);
+                    imm |= (bit19_12 << 12);
+                    imm |= (bit11 << 11);
+                    imm |= (bit10_1 << 1);
+                    //printf("Executed jal: x%d = PC + 1, PC += %d\n", rd, imm);
+                    // 符号拡張
+                    if (bit20) {
+                        imm |= 0xFFE00000;  // 負の値の場合、上位ビットを1で埋める
+                    }
+                    int next_line = current_line + imm/4;
+                    //printf("imm: %d\n",imm);
+                    //printf("jal: x%d, %d\n", rd, imm);
+                    //printf("jal x%d, %d (PC: %d -> %d)\n", rd, imm, current_line +1, next_line +1);
+                    counter.j_type[0]++;
+                    // 戻りアドレスを保存
+                    //printf("戻りアドレスrd: %d\n",current_line+2);
+                    set_register(rd, current_line + 2);
+                    //printf("戻りアドレスrd: %d\n",get_register(rd));
+                    
+                    // PCの更新後に即座にreturn
+                    pc = imm/4;
+                    pc_operand.pc = pc;
+                }
+                return pc_operand;
+                
+            case 0x0:   //label部分
+                {
+                    pc_operand.pc = 1;
+                }
+                return pc_operand;
+            case 0x1:  // R形式命令 (例:"add", "sub", "and", "or", "xor",)
+                {
+                    // printf("r_type\n");
+                    uint32_t funct3 = (instruction >>10) & 0x7;
+                    uint32_t funct7 = (instruction >> 25) & 0x7F;
+                    uint32_t rd = (instruction >> 4) & 0x3F;
+                    uint32_t rs1 = (instruction >> 13) & 0x3F;
+                    uint32_t rs2 = (instruction >> 19) & 0x3F;
+                    pc_operand.operand1 = rd;
+                    pc_operand.operand2 = rs1;
+                    pc_operand.operand3 = rs2;
+                    double rs1_value;
+                    double rs2_value;
+                    if(0 <= rs1 & rs1 < 32){
+                        //整数レジスタ
+                        rs1_value = get_register(rs1);
+                    } else {
+                        rs1_value = get_float_register(rs1);
+                    }
+                    if(0 <= rs2 & rs2 < 32){
+                        //整数レジスタ
+                        rs2_value = get_register(rs2);
+                    } else {
+                        rs2_value = get_float_register(rs2);
+                    }
+
+                    if (funct3 == 0 && funct7 == 0) {  // add命令
+                        set_register(rd, rs1_value + rs2_value);
+                        counter.r_type[0]++;
+                    } else if (funct3 == 0 && funct7 == 0x20) {  // sub命令
+                        set_register(rd, rs1_value - rs2_value);
+                        counter.r_type[1]++;
+                    } else if (funct3 == 0x7){  // and
+                        set_register(rd, get_register(rs1) & get_register(rs2));
+                        counter.r_type[2]++;
+                    } else if (funct3 == 0x4){  // xor
+                        set_register(rd, get_register(rs1) ^ get_register(rs2));
+                        counter.r_type[4]++;
+                    }  else if (funct3 == 0x3){ //div10(商)
+                        uint32_t digits[4] = {0};
+                        int num_digits = 0;
+                        // 10で割って各桁を取得
+                        while((int)rs1_value > 0 && num_digits < 4){
+                            digits[num_digits++] = (uint32_t)rs1_value % 10;
+                            rs1_value /= 10;
+                        }
+                        uint32_t result = 0;
+                        for(int i=0; i<num_digits; i++){
+                            result |= ((digits[i] + '0') << ((3-i)*8));
+                        }
+                        if(num_digits < 4){
+                            result >>= (4 - num_digits) * 4 + 2;
+                        } else {
+                            result <<= 2;
+                        }
+                        result |= ((num_digits - 1) & 0x3);
+                        // result <<= (4 - num_digits) * 8;
+                        set_register(rd, result);
+                        counter.r_type[5]++;
+                    } else if (funct3 == 0x6){ //rem(余り)
+                        set_register(rd, get_register(rs1) % get_register(rs2));
+                    } else if (funct3 == 0x1){ //shift
+                        set_register(rd, get_register(rs1) << (get_register(rs2) & 0x1F));
+                        counter.r_type[6]++;
+                    } else if (funct3 == 0x5 && funct7 == 0){ //srl
+                        set_register(rd, (uint32_t)get_register(rs1) >> (get_register(rs2) & 0x1F));
+                        counter.r_type[7]++;
+                    } else if (funct3 == 0x5 && funct7 == 0x20){ //sra
+                        set_register(rd, get_register(rs1) >> (get_register(rs2) & 0x1F));
+                        counter.r_type[8]++;
+                    }
+                }
+                return pc_operand;
+
+            case 0x5: //lui
+                {
+                    //lui rd 0xa だったらrdにa * 16 * 16 * 16を格納
+                    // printf("u_type\n");
+                    uint32_t rd = (instruction >> 4) & 0x3F;
+                    uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
+                    uint32_t value = (bit31_12 << 12); //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
+                    // value = value / 4;
+                    //printf("lui x%d, %d", rd, value);
+                    set_register(rd,value);
+                    counter.u_type[0]++;
+                }
+                return pc_operand;
+
+            case 0x4:  // B形式命令 (例: "beq", "bne", "blt", "bge", "bgt")
+                {
+                    //printf("b_type\n");
+                    uint32_t funct3 = (instruction >> 10) & 0x7;
+                    uint32_t rs1 = (instruction >> 13) & 0x3F;
+                    uint32_t rs2 = (instruction >> 19) & 0x3F;
+                    uint32_t bit12 = (instruction >> 31) & 0x1;
+                    uint32_t bit10_5 = (instruction >> 25) & 0x3F;
+                    uint32_t bit4_1 = (instruction >> 5) & 0xF;
+                    uint32_t bit11 = (instruction >> 4) & 0x1;
+                    uint32_t imm = 0;
+                    pc_operand.opcode = 2; 
+                    pc_operand.operand2 = rs1;
+                    pc_operand.operand3 = rs2;
+                    imm |= (bit12 << 12);
+                    imm |= (bit11 << 11);
+                    imm |= (bit10_5 << 5);
+                    imm |= (bit4_1 << 1);
+                    if(bit12 == 1){
+                        //immは負の値
+                        //2の補数
+                        uint32_t mask = (1 << 12) -1;
+                        imm = ~imm & mask;
+                        imm = imm + 1;
+                        if (funct3 == 0) {  // beq
+                            if(get_register(rs1) == get_register(rs2)){
+                               //printf("beq: x%d, x%d, -%d\n", rs1, rs2, imm);
+                               counter.b_type[0]++;
+                                pc -= imm/4;
+                            }
+                        } else if(funct3 == 0x1){  // bne
+                            if(get_register(rs1) != get_register(rs2)){
+                               //printf("bne: x%d, x%d, -%d\n", rs1, rs2, imm);
+                               counter.b_type[1]++;
+                               //printf("pc:%d\n",pc);
+                                pc -= imm/4;
+                               //printf("after_pc:%d\n",pc);
+                            }
+                        } else if(funct3 == 0x4){  // blt
+                            if(get_register(rs1) < get_register(rs2)){
+                               //printf("blt: x%d, x%d, -%d\n", rs1, rs2, imm);
+                               counter.b_type[2]++;
+                                pc -= imm/4;
+                            }
+                        } else if(funct3 == 0x5){  // bge
+                            if(get_register(rs1) >= get_register(rs2)){
+                               //printf("bge: x%d, x%d, -%d\n", rs1, rs2, imm);
+                               counter.b_type[3]++;
+                                pc -= imm/4;
+                            }
+                        } else if(funct3 == 0x6){  // bgt
+                            if(get_register(rs1) > get_register(rs2)){
+                               //printf("bgt: x%d, x%d, -%d\n", rs1, rs2, imm);
+                               counter.b_type[4]++;
+                                pc -= imm/4;
+                            }
+                        }  else {
+                            pc = 1;
+                        }
+                    } else if (funct3 == 0) {  // beq
+                       //printf("beq\n");
+                        if(get_register(rs1) == get_register(rs2)){
+                           //printf("beq: x%d, x%d, %d\n", rs1, rs2, imm);
+                           counter.b_type[0]++;
+                            pc += imm/4;
+                        }
+                    } else if(funct3 == 0x1){  // bne
+                        if(get_register(rs1) != get_register(rs2)){
+                           //printf("bne: x%d, x%d, %d\n", rs1, rs2, imm);
+                           counter.b_type[1]++;
+                            //printf("pc:%d\n",pc);
+                            pc += imm/4;
+                            //printf("after_pc:%d\n",pc);
+                        }
+                    } else if(funct3 == 0x4){  // blt
+                        if(get_register(rs1) < get_register(rs2)){
+                           //printf("blt: x%d, x%d, %d\n", rs1, rs2, imm);
+                           counter.b_type[2]++;
+                            pc += imm/4;
+                        }
+                    } else if(funct3 == 0x5){  // bge
+                        //printf("bge");
+                        //printf("rs1: %d, rs2: %d\n",get_register(rs1),get_register(rs2));
+                        counter.b_type[3]++;
+                        if(get_register(rs1) >= get_register(rs2)){
+                           //printf("bge: x%d, x%d, %d\n", rs1, rs2, imm);
+                            pc += imm/4;
+                        }
+                    } else if(funct3 == 0x6){  // bgt
+                        //printf("bgt");
+                        //printf("rs1: %d, rs2: %d\n",get_register(rs1),get_register(rs2));
+                        counter.b_type[4]++;
+                        if(get_register(rs1) > get_register(rs2)){
+                           //printf("bgt: x%d, x%d, %d\n", rs1, rs2, imm);
+                            pc += imm/4;
+                        }
+                    }
+                    if(pc == 0){
+                        pc = 1;
+                    }
+                    pc_operand.pc = pc;
+                }
+                return pc_operand;
+
+            case 0x6: //auipc {upimm, 12'b0} + pc
+                {
+                    //printf("auipc\n");
+                    uint32_t rd = (instruction >> 4) & 0x3F;
+                    uint32_t bit31_12 = (instruction >> 12) & 0xFFFFF;
+                    //printf("%x\n",bit31_12);
+                    // uint32_t value = (bit31_12 << 12); //これも4で割るべきかも？ それか下のcurrent_lineを4倍する
+                    // if(bit31_12 & 0x80000){
+                    //     //負の値
+                    //     uint32_t mask = 0xFFFFFFFF;
+                    //     value = ~value & mask;
+                    //     value = value + 1;
+                    // }
+                    // 符号拡張を行う
+                    if (bit31_12 & 0x80000) {
+                        // 負の値の場合
+                        bit31_12 |= 0xFFF00000; // 上位ビットを1で埋める
+                    }
+                    int32_t value = (int32_t)(bit31_12 << 12); // 符号付きの32ビット整数としてシフト
+                    //printf("value:%d\n",value);
+                    value = value / 4;
+                    value = value + current_line; 
+                    set_register(rd,value);
+                    counter.aui_type[0]++;
+                    //printf("auipc x%d ,%d\n",rd,bit31_12);
+                }
+                return pc_operand;
+
+            case 0x8:  // I形式命令 ("jalr")
+                {   
+                   //printf("i_type (jalr)\n");
+                   counter.jalr_type[0]++;
+                    uint32_t rd = (instruction >> 4) & 0x3F;
+                    uint32_t rs1 = (instruction >> 13) & 0x3F;
+                    int32_t imm = (instruction >> 20) & 0xFFF;
+                    pc_operand.operand1 = rd;
+                    pc_operand.operand2 = rs1;
+                   //printf("imm:%x\n",imm);
+                    int minus = 0;//immが負なら1
+                    if(imm & 0x800){
+                        //即値が負の値
+                        uint32_t mask = (1 << 12) - 1;
+                       //printf("%x\n",mask);
+                        imm = ~imm & mask;//反転
+                        imm = imm+1;
+                        minus = 1;
+                       //printf("minus%d\n",minus);
+                    }
+                   //printf("after_imm:%x\n",imm);
+                    //printf("funct3:%x\n,opcode:%x\n",funct3,opcode);
+
+                    if(minus == 0){//immは正
+                        //printf("immが正");
+                        //printf("jalr: x%d, x%d, %d\n", rd, rs1, imm);
+                        set_register(rd,current_line+2);
+                        pc = get_register(rs1) + imm/4 - current_line - 1;
+                        // pc = get_register(rs1) + imm/4;
+                        // set_register(rd, get_register(rs1) + imm/4);
+                        //printf("rs1:%d\n",get_register(rs1));
+                        //printf("pc:%d\n",pc);
+                        //printf("rd:x%d = %d\n",rd,get_register(rd));
+                    }else if(minus == 1){
+                        //printf("jalr: x%d, x%d, -%d\n", rd, rs1, imm);
+                        set_register(rd,current_line+2);
+                        pc = get_register(rs1) - imm/4 - current_line - 1;
+                        // set_register(rd, get_register(rs1) - imm/4);
+                        //printf("rs1:%d\n",get_register(rs1));
+                        //printf("pc:%d\n",pc);
+                    }
+                    //printf("x1 = %d\n",get_register(1));
+                }
+               //printf("pc:%d\n",pc);
+                if(pc == 0){
+                    pc = 1;
+                }
+                pc_operand.pc = pc;
+                return pc_operand;
+
             case 0xb:  // csrr, csrw, csrw_int
                 {
                     // printf("csrr/csrw\n");
