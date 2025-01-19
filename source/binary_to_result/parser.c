@@ -91,28 +91,18 @@ void handle_addi_case(uint32_t rd, uint32_t rs1, int32_t imm) {
 
 uint32_t previous_instruction = 0;
 // バイナリ命令をデコードして処理
-Pc_operand execute_binary_instruction(const char binary_instruction[][33], const char previous_binary_instruction[][33], int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
+Pc_operand execute_binary_instruction(const char binary_instruction[][33], int previous_is_nop, int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
     Pc_operand pc_operand;
     pc_operand.opcode = 0;
     pc_operand.pc = 1;
     //printf("current_line:%d\n",current_line);
     fflush(memory_file);
     for(int pc=0; pc<num_instructions; pc++){
-
-        //printf("x1:%d\n",get_register(1));
-        //printf("instruction :%s\n",binary_instruction[pc]);
-        // printf("previous_instruction :%s\n",previous_binary_instruction[pc]);
-        // printf("two_previous_instruction :%s\n",two_previous_binary_instruction[pc]);
         uint32_t instruction = strtol(binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
-        uint32_t previous_instruction = strtol(previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
-        // uint32_t two_previous_instruction = strtol(two_previous_binary_instruction[pc], NULL, 2); //2進数文字列を数値に変換
 
         // オペコードを取得
         //下4桁
         uint32_t opcode = instruction & 0xF;
-        uint32_t previous_opcode = previous_instruction & 0xF;
-        // uint32_t two_previous_opcode = two_previous_instruction & 0xF;
-        //printf("opcode:%x\n",opcode);
 
         switch (opcode) { 
             case 0x2:  // I形式命令 (例: "addi", "andi", "ori", "xori")
@@ -126,7 +116,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], const
                     pc_operand.operand2 = rs1;
                     
                     if(funct3 == 0x6){ //uaddi
-                        if(previous_opcode == 0x2){
+                        if(previous_is_nop == 1){
                             imm = imm/4; //la
                         }
                         handle_addi_case(rd,rs1,imm);

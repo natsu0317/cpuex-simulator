@@ -113,19 +113,14 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         Pc_operand pc_opcode_operand1;
         // 1個前の命令を記録するため
         const char temporary_previous_instruction[1][33] = {"11111111111111111111111111111111"};
-        const char temporary_two_previous_instruction[1][33] = {"11111111111111111111111111111111"};
-        // if(current_line > 2){
-        //     pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 2].binary_code, &binary_instructions[current_line - 3].binary_code, 1, current_line - 1, sld_file, sld_result_file, memory_file);
-        // } else if(current_line > 1) {
-        //     pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 2].binary_code, temporary_two_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
-        // } else {
-        //     pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, temporary_previous_instruction, temporary_two_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
-        // }
-        if(current_line > 1) {
-            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, &binary_instructions[current_line - 2].binary_code, 1, current_line - 1, sld_file, sld_result_file, memory_file);
-        } else {
-            pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, temporary_previous_instruction, 1, current_line - 1, sld_file, sld_result_file, memory_file);
+        int previous_is_nop = 0;
+        // printf("previous:%s\n",binary_instructions[current_line - 2].binary_code);
+        if(current_line > 1){
+            if(strcmp(binary_instructions[current_line - 2].binary_code, "00000000000000000000000000000010") == 0){
+                previous_is_nop = 1; //1つ前の命令がnop(laの分岐用)
+            }
         }
+        pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, previous_is_nop, 1, current_line - 1, sld_file, sld_result_file, memory_file);
         pc = pc_opcode_operand1.pc;
         int opcode = pc_opcode_operand1.opcode;//1 = sw / lw, 2 = 分岐命令
         int operand2 = pc_opcode_operand1.operand2;
@@ -367,7 +362,7 @@ int main(){
         return 1;
     }
 
-    // print_instruction_count(instruction_statics_file);
+    print_instruction_count(instruction_statics_file);
 
     fclose(transition_file);
     fclose(sld_file);
