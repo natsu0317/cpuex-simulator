@@ -98,14 +98,19 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         if(strcmp(binary_instructions[current_line - 1].binary_code,"11111111111111111111111111111110") == 0){
             printf("Execution paused at line %d. Type 'c' to resume execution.\n", current_line);
             char command[256];
-            while(1){
-                printf(">");
-                fgets(command, sizeof(command), stdin);
-                command[strcspn(command, "\n")] = 0;  // fgetsは入力された文字列の末尾に\nを含む -> \0で置き換えて改行をremove
-                if(strcmp(command, "c") == 0){
-                    break;
+            while (1) {
+                if (fgets(command, sizeof(command), stdin) != NULL) {
+                    command[strcspn(command, "\n")] = 0;  // 改行をヌル文字に置き換える
+                    if (strcmp(command, "c") == 0) {
+                        break;  // 入力が"c"ならループを抜ける
+                    } else {
+                        printf("Unknown command. Please type 'c' to resume execution.\n");
+                    }
                 } else {
-                    printf("Unknown command. Please type 'c' to resume execution.\n");
+                    // fgetsが失敗した場合
+                    fprintf(stderr, "Error reading input\n");
+                    // 必要に応じてエラー処理を追加
+                    break;  // エラーが発生したらループを抜ける
                 }
             }
         }
