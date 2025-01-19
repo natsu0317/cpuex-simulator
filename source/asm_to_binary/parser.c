@@ -27,7 +27,7 @@ double float_memory[256]; //メモリに浮動小数点の値を格納
 // bgt a b = blt b a
 
 const char* r_type_opcodes[] = {"add", "sub", "and", "xor", "div10", "rem", "sll", "sra", "srl", NULL};
-const char* i_type_opcodes[] = {"addi", "andi", "ori", "xori", "slli", NULL};
+const char* i_type_opcodes[] = {"addi", "uaddi", "andi", "ori", "xori", "slli", NULL};
 const char* s_type_opcodes[] = {"sw", NULL};
 const char* b_type_opcodes[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL}; 
 const char* u_type_opcodes[] = {"lui", NULL};
