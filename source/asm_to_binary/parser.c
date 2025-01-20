@@ -800,7 +800,7 @@ void parse_assembly(const char* assembly_code){
             //printf("operand1;%s\n",rd_bin);
             if(strcmp(opcode, "csrw") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s0000000010000001011",rd_bin);
             //sldファイルの値をx10に書き込む
-            if(strcmp(opcode, "csrr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000100010101011");
+            if(strcmp(opcode, "csrr") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000000000000000010%s1011",rd_bin);
 
         }
         // printf("Binary Code: %s\n",inst.binary_code);

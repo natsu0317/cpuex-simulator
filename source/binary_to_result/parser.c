@@ -677,8 +677,8 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int p
                     }
                     //csrr
                     if(func == 2){ // x10にsldファイルの内容を書きこむ
-                        //sldの中身はとりあえずdoubleと仮定
-                        double value = read_next_value_from_file(sld_file);
+                        int32_t value = read_next_value_from_file(sld_file);
+                        // printf("value:%d\n",value);
                         set_register(10, value);
                         counter.c_type[0]++;
                     }
