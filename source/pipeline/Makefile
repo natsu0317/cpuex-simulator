@@ -7,8 +7,8 @@ LDFLAGS = -lm
 
 all: pipeline
 
-pipeline: pipeline.o asm_parser.o binary_parser.o fadd.o fsub.o fmul.o fdiv.o finv.o fsqrt.o fabsf.o fcvtsw.o fcvtws.o feq.o flt.o fneg.o fsgnjn.o fsgnjx.o
-	$(CC) -o pipeline pipeline.o asm_parser.o binary_parser.o fadd.o fsub.o fmul.o fdiv.o finv.o fsqrt.o fabsf.o fcvtsw.o fcvtws.o feq.o flt.o fneg.o fsgnjn.o fsgnjx.o $(LDFLAGS)
+pipeline: pipeline.o asm_parser.o binary_parser.o fadd.o fsub.o fmul.o fdiv.o finv.o fsqrt.o fabsf.o fcvtsw.o fcvtws.o feq.o flt.o fneg.o fsgnjn.o fsgnjx.o floor.o
+	$(CC) -o pipeline pipeline.o asm_parser.o binary_parser.o fadd.o fsub.o fmul.o fdiv.o finv.o fsqrt.o fabsf.o fcvtsw.o fcvtws.o feq.o flt.o fneg.o fsgnjn.o fsgnjx.o floor.o $(LDFLAGS)
 
 # 各オブジェクトファイルのコンパイルルール（変更なし）
 pipeline.o: pipeline.c
@@ -61,6 +61,9 @@ fsgnjn.o: ../float/math/fsgnjn.c
 
 fsgnjx.o: ../float/math/fsgnjx.c
 	$(CC) $(CFLAGS) -c ../float/math/fsgnjx.c -o fsgnjx.o
+	
+floor.o: ../float/math/floor.c
+	$(CC) $(CFLAGS) -c ../float/math/floor.c -o floor.o
 
 clean:
 	rm -f pipeline *.o

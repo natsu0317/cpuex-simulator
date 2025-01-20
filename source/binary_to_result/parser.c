@@ -188,7 +188,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int p
                 {   
                     //printf("f_type\n");
                     pc_operand.pc = 1;
-                    //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv, 12:fabs, 13:fneg, 10:finv, 11: fsqrt, 4:fsgnjn/fsgnjx, 20: feq/flt, 24: fcvtws, 26: fcvtsw
+                    //func: 0:fadd, 1:fsub, 2:fmul, 3:fdiv, 12:fabs, 13:fneg, 10:finv, 11: fsqrt, 4:fsgnjn/fsgnjx, 20: feq/flt, 24: fcvtws, 26: fcvtsw, 28: floor
                     //printf("f形式");
                     uint32_t func7 = (instruction >> 27) & 0x1F;
                     uint32_t func3 = (instruction >> 10) & 0x7;
@@ -287,6 +287,11 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int p
                         result = fcvtsw(a1);
                         set_register(rd, result);
                         counter.f_type[13]++;
+                    }
+                    if(func7 == 28){
+                        result = floor(a1);
+                        set_register(rd, result);
+                        conter.f_type[14]++;
                     }
 
                     // rdにresultを格納

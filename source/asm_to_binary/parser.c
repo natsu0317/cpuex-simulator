@@ -35,7 +35,7 @@ const char* aui_type_opcodes[] = {"auipc", NULL};
 const char* j_type_opcodes[] = {"jal", NULL};
 const char* jalr_type_opcodes[] = {"jalr", NULL};
 const char* lw_type_opcodes[] = {"lw", NULL};
-const char* f_type_opcodes[] = {"fadd", "fsub", "fmul", "fdiv", "fabs", "fneg", "finv", "fsqrt", "fsgnjn", "fsgnjx", "feq", "flt", "fcvtws", "fcvtsw", NULL};
+const char* f_type_opcodes[] = {"fadd", "fsub", "fmul", "fdiv", "fabs", "fneg", "finv", "fsqrt", "fsgnjn", "fsgnjx", "feq", "flt", "fcvtws", "fcvtsw", "floor", NULL};
 const char* c_type_opcodes[] = {"csrr", "csrw", "csrw_int", NULL};
 
 int is_opcode_type(const char* opcode,const char** type_opcodes){
@@ -773,9 +773,9 @@ void parse_assembly(const char* assembly_code){
             //丸めモード: 最近傍
             // funct7[31:25] | rs2[24:19] | rs1[18:13] | funct3[12:10] | rd[9:4] | op[3:0]
             // funct7: { [fadd, 00000 00], [fsub, 00001 00], [fmul, 00010 00], [fdiv, 00011 00], [fsqrt, 01011 00], [fsgnjn, 00100 00], [fsgnjx, 00100 00],
-            // [feq, 10100 00], [flt, 10100 00], [fcvtws, 11000 00], [fcvtsw, 11010 00]}
+            // [feq, 10100 00], [flt, 10100 00], [fcvtws, 11000 00], [fcvtsw, 11010 00], [floor, 11100 00]}
             // funct3: { [fadd, 000], [fsub, 000], [fmul, 000], [fdiv, 000], [fsqrt, 000], [fsgnjn, 001], [fsgnjx, 010],
-            // [feq, 010], [flt, 001], [fcvtws, 000], [fcvtsw, 000]}
+            // [feq, 010], [flt, 001], [fcvtws, 000], [fcvtsw, 000], [floor, 000]}
             snprintf(inst.binary_code,sizeof(inst.binary_code),"%s%s%s000%s1010011",opcode_bin,r2_bin,r1_bin,rd_bin);
             if(strcmp(opcode, "fadd") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000000%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "fsub") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"0000100%s%s000%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
@@ -791,6 +791,7 @@ void parse_assembly(const char* assembly_code){
             if(strcmp(opcode, "flt") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"1010000%s%s001%s%s",r2_bin,r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "fcvtws") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"1100000000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
             if(strcmp(opcode, "fcvtsw") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"1101000000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
+            if(strcmp(opcode, "floor") == 0) snprintf(inst.binary_code, sizeof(inst.binary_code),"1110000000000%s000%s%s",r1_bin,rd_bin, opcode_bin);
 
         }
         if(is_c_type(opcode)){
