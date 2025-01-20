@@ -291,7 +291,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int p
                     if(func7 == 28){
                         result = floor(a1);
                         set_register(rd, result);
-                        conter.f_type[14]++;
+                        counter.f_type[14]++;
                     }
 
                     // rdにresultを格納
