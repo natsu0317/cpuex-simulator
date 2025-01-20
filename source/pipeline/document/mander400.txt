@@ -1,0 +1,244 @@
+	li x21, 2000
+	li	x10, 0 #line=30 from Set
+	la_1 x1, 12 #line=30 from Nontail CallDir3
+	la_1 x1, 12 #line=30 from Nontail CallDir3
+	la_1 x1, 12 #line=30 from Nontail CallDir3
+	sw x1, 0(x2) #line=30 from Nontail CallDir4
+	addi x2, x2, 8 #line=30 from Nontail CallDir2
+	j	yloop.53 #line=30 from Nontail CallDir5
+	addi x0, x0, 0
+	finish
+min_caml_print_int:
+	addi x10, x10, 48
+	csrw x10	
+	addi x2, x2, -8 #from min_caml_print_int
+	lw x1, 0(x2) #from min_caml_print_int
+	jalr x0, x1, 0 #from min_caml_print_int
+	addi x0, x0, 0
+dbl.49: #h is called
+	fadd	f0, f0, f0 #line=1 from Nontail FAddD1
+	addi x2, x2, -8 #from g'3
+	lw x1, 0(x2) #from g'3
+	jalr x0, x1, 0 #from g'3
+	addi x0, x0, 0
+aux.111: #h is called
+	li	x5, 0 #line=4 from Tail IfEq
+	sub	x5, x10, x5 #line=4 from Tail IfEq
+	bne x5, x0, je_else.158 from g'_tail_if0
+	addi x2, x2, -8 #from g'3
+	lw x1, 0(x2) #from g'3
+	jalr x0, x1, 0 #from g'3
+	addi x0, x0, 0
+je_else.158:
+	li	x5, 0 #line=5 from Tail IfLE
+	sub	x5, x10, x5 #line=5 from Tail IfLE
+	bgt x5, x0, jle_else.159 from g'_tail_if0
+	lui	x19, 0x3f800 #line=6 from Nontail SetL0, set 1.000000
+	addi x0, x0, 0
+	addi	x19, x19, 0x0 #line=6 from Nontail SetL1 set 1.000000
+	mv	 f1, x19 #line=6 from Nontail LdDF C
+	fsub	f0, f0, f1 #line=6 from Nontail FSubD5
+	addi	x10, x10, 1 #line=6 from Nontail Add2
+	j	 aux.111 #line=6 from Tail CallDir
+	addi x0, x0, 0
+jle_else.159:
+	lui	x19, 0x3f800 #line=5 from Nontail SetL0, set 1.000000
+	addi x0, x0, 0
+	addi	x19, x19, 0x0 #line=5 from Nontail SetL1 set 1.000000
+	mv	 f1, x19 #line=5 from Nontail LdDF C
+	fadd	f0, f0, f1 #line=5 from Nontail FAddD3
+	addi	x10, x10, -1 #line=5 from Nontail Sub2
+	j	 aux.111 #line=5 from Tail CallDir
+	addi x0, x0, 0
+float_of_int.51: #h is called
+	lui	x19, 0x0 #line=8 from Nontail SetL0, set 0.000000
+	addi x0, x0, 0
+	addi	x19, x19, 0x0 #line=8 from Nontail SetL1 set 0.000000
+	mv	 f0, x19 #line=8 from Nontail LdDF C
+	j	 aux.111 #line=8 from Tail CallDir
+	addi x0, x0, 0
+iloop.67: #h is called
+	li	x19, 0 #line=17 from Set
+	li	x5, 0 #line=17 from Tail IfEq
+	sub	x5, x10, x5 #line=17 from Tail IfEq
+	bne x5, x0, je_else.160 from g'_tail_if0
+	li	x10, 1 #line=17 from Set
+	j	 min_caml_print_int #line=17 from Tail CallDir
+	addi x0, x0, 0
+je_else.160:
+	fsub	f2, f2, f3 #line=18 from Nontail FSubD5
+	fadd	f2, f2, f4 #line=18 from Nontail FAddD3
+	sw	x19, 0(x2) #line=-1 from Nontail Save1
+	fsw	f4, 8(x2) #line=-1 from Nontail Save3
+	sw	x10, 16(x2) #line=-1 from Nontail Save1
+	fsw	f2, 24(x2) #line=-1 from Nontail Save3
+	fsw	f5, 32(x2) #line=-1 from Nontail Save3
+	fsw	f1, 40(x2) #line=-1 from Nontail Save3
+	addi	x2, x2, 48 #line=19 from Nontail CallDir1
+	la_1 x1, 12 #line=19 from Nontail CallDir3
+	la_1 x1, 12 #line=19 from Nontail CallDir3
+	la_1 x1, 12 #line=19 from Nontail CallDir3
+	sw x1, 0(x2) #line=19 from Nontail CallDir4
+	addi x2, x2, 8 #line=19 from Nontail CallDir2
+	j	dbl.49 #line=19 from Nontail CallDir5
+	addi x0, x0, 0
+	addi	x2, x2, -48 #line=19 from Nontail CallDir6
+	flw	f1, 40(x2) #line=-1 from Nontail Restore2
+	fmul	f0, f0, f1 #line=19 from Nontail FMulD3
+	flw	f5, 32(x2) #line=-1 from Nontail Restore2
+	mv	f1, f0 #line=19 from Nontail FAddD2
+	fadd	f1, f1, f5 #line=19 from Nontail FAddD3
+	flw	f0, 24(x2) #line=-1 from Nontail Restore2
+	mv	f2, f0 #line=22 from Nontail FMulD2
+	fmul	f2, f2, f0 #line=22 from Nontail FMulD3
+	mv	f3, f1 #line=23 from Nontail FMulD2
+	fmul	f3, f3, f1 #line=23 from Nontail FMulD3
+	mv	f4, f2 #line=24 from Nontail FAddD2
+	fadd	f4, f4, f3 #line=24 from Nontail FAddD3
+	lui	x10, 0x40800 #line=24 from Nontail SetL0, set 4.000000
+	addi x0, x0, 0
+	addi	x10, x10, 0x0 #line=24 from Nontail SetL1 set 4.000000
+	mv	 f6, x10 #line=24 from Nontail LdDF C
+	flt	x5, f6, f4 #line=24 from Tail IfFLE
+	bne x5, x0, jbe_else.163 from g'_tail_if0
+	lw	x10, 16(x2) #line=-1 from Nontail Restore1
+	addi	x10, x10, -1 #line=25 from Nontail Sub2
+	flw	f4, 8(x2) #line=-1 from Nontail Restore2
+	j	 iloop.67 #line=25 from Tail CallDir
+	addi x0, x0, 0
+jbe_else.163:
+	lw	x10, 0(x2) #line=-1 from Nontail Restore1
+	j	 min_caml_print_int #line=24 from Tail CallDir
+	addi x0, x0, 0
+xloop.57: #h is called
+	lw	x11, 4(x7) #line=12 from Nontail Ld C
+	sub	x5, x11, x10 #line=13 from Tail IfLE
+	bgt x5, x0, jle_else.164 from g'_tail_if0
+	addi x2, x2, -8 #from g'1
+	lw x1, 0(x2) #from g'1
+	jalr x0, x1, 0 #from g'1
+	addi x0, x0, 0
+jle_else.164:
+	sw	x7, 0(x2) #line=-1 from Nontail Save1
+	sw	x10, 4(x2) #line=-1 from Nontail Save1
+	sw	x19, 8(x2) #line=-1 from Nontail Save1
+	addi	x2, x2, 16 #line=14 from Nontail CallDir1
+	la_1 x1, 12 #line=14 from Nontail CallDir3
+	la_1 x1, 12 #line=14 from Nontail CallDir3
+	la_1 x1, 12 #line=14 from Nontail CallDir3
+	sw x1, 0(x2) #line=14 from Nontail CallDir4
+	addi x2, x2, 8 #line=14 from Nontail CallDir2
+	j	float_of_int.51 #line=14 from Nontail CallDir5
+	addi x0, x0, 0
+	addi	x2, x2, -16 #line=14 from Nontail CallDir6
+	addi	x2, x2, 16 #line=14 from Nontail CallDir1
+	la_1 x1, 12 #line=14 from Nontail CallDir3
+	la_1 x1, 12 #line=14 from Nontail CallDir3
+	la_1 x1, 12 #line=14 from Nontail CallDir3
+	sw x1, 0(x2) #line=14 from Nontail CallDir4
+	addi x2, x2, 8 #line=14 from Nontail CallDir2
+	j	dbl.49 #line=14 from Nontail CallDir5
+	addi x0, x0, 0
+	addi	x2, x2, -16 #line=14 from Nontail CallDir6
+	lui	x10, 0x43C80 #line=14 from Nontail SetL0, set 400.000000
+	addi x0, x0, 0
+	addi	x10, x10, 0x0 #line=14 from Nontail SetL1 set 400.000000
+	mv	 f1, x10 #line=14 from Nontail LdDF C
+	fdiv	f0, f0, f1 #line=14 from Nontail FDivD5
+	lui	x10, 0x3fc00 #line=14 from Nontail SetL0, set 1.500000
+	addi x0, x0, 0
+	addi	x10, x10, 0x0 #line=14 from Nontail SetL1 set 1.500000
+	mv	 f1, x10 #line=14 from Nontail LdDF C
+	fsub	f0, f0, f1 #line=14 from Nontail FSubD5
+	lw	x10, 8(x2) #line=-1 from Nontail Restore1
+	fsw	f0, 16(x2) #line=-1 from Nontail Save3
+	addi	x2, x2, 24 #line=15 from Nontail CallDir1
+	la_1 x1, 12 #line=15 from Nontail CallDir3
+	la_1 x1, 12 #line=15 from Nontail CallDir3
+	la_1 x1, 12 #line=15 from Nontail CallDir3
+	sw x1, 0(x2) #line=15 from Nontail CallDir4
+	addi x2, x2, 8 #line=15 from Nontail CallDir2
+	j	float_of_int.51 #line=15 from Nontail CallDir5
+	addi x0, x0, 0
+	addi	x2, x2, -24 #line=15 from Nontail CallDir6
+	addi	x2, x2, 24 #line=15 from Nontail CallDir1
+	la_1 x1, 12 #line=15 from Nontail CallDir3
+	la_1 x1, 12 #line=15 from Nontail CallDir3
+	la_1 x1, 12 #line=15 from Nontail CallDir3
+	sw x1, 0(x2) #line=15 from Nontail CallDir4
+	addi x2, x2, 8 #line=15 from Nontail CallDir2
+	j	dbl.49 #line=15 from Nontail CallDir5
+	addi x0, x0, 0
+	addi	x2, x2, -24 #line=15 from Nontail CallDir6
+	lui	x10, 0x43C80 #line=15 from Nontail SetL0, set 400.000000
+	addi x0, x0, 0
+	addi	x10, x10, 0x0 #line=15 from Nontail SetL1 set 400.000000
+	mv	 f1, x10 #line=15 from Nontail LdDF C
+	fdiv	f0, f0, f1 #line=15 from Nontail FDivD5
+	lui	x10, 0x3f800 #line=15 from Nontail SetL0, set 1.000000
+	addi x0, x0, 0
+	addi	x10, x10, 0x0 #line=15 from Nontail SetL1 set 1.000000
+	mv	 f1, x10 #line=15 from Nontail LdDF C
+	mv	f5, f0 #line=15 from Nontail FSubD4
+	fsub	f5, f5, f1 #line=15 from Nontail FSubD5
+	li	x10, 1000 #line=26 from Set
+	lui	x19, 0x0 #line=26 from Nontail SetL0, set 0.000000
+	addi x0, x0, 0
+	addi	x19, x19, 0x0 #line=26 from Nontail SetL1 set 0.000000
+	mv	 f0, x19 #line=26 from Nontail LdDF C
+	flw	f4, 16(x2) #line=-1 from Nontail Restore2
+	mv	f3, f0 #line=26 from g'_args2
+	mv	f2, f0 #line=26 from g'_args2
+	mv	f1, f0 #line=26 from g'_args2
+	addi	x2, x2, 24 #line=26 from Nontail CallDir1
+	la_1 x1, 12 #line=26 from Nontail CallDir3
+	la_1 x1, 12 #line=26 from Nontail CallDir3
+	la_1 x1, 12 #line=26 from Nontail CallDir3
+	sw x1, 0(x2) #line=26 from Nontail CallDir4
+	addi x2, x2, 8 #line=26 from Nontail CallDir2
+	j	iloop.67 #line=26 from Nontail CallDir5
+	addi x0, x0, 0
+	addi	x2, x2, -24 #line=26 from Nontail CallDir6
+	lw	x10, 4(x2) #line=-1 from Nontail Restore1
+	addi	x10, x10, 1 #line=27 from Nontail Add2
+	lw	x19, 8(x2) #line=-1 from Nontail Restore1
+	lw	x7, 0(x2) #line=-1 from Nontail Restore1
+	lw	x5, 0(x7) #line=27 from Tail CallCls1
+	jalr	x0, x5, 0 #line=27 from Tail CallCls2
+	addi x0, x0, 0
+yloop.53: #h is called
+	li	x19, 400 #line=11 from Set
+	li	x5, 400 #line=11 from Tail IfGE
+	sub	x5, x10, x5 #line=11 from Tail IfGE
+	blt x5, x0, jge_else.167 from g'_tail_if0
+	addi x2, x2, -8 #from g'1
+	lw x1, 0(x2) #from g'1
+	jalr x0, x1, 0 #from g'1
+	addi x0, x0, 0
+jge_else.167:
+	mv	x7, x21 #line=12 from Nontail Mov2
+	addi	x21, x21, 8 #line=12 from Nontail Add2
+	la	x11, xloop.57 #line=12 from Nontail SetL3
+	la	x11, xloop.57 #line=12 from Nontail SetL3
+	la	x11, xloop.57 #line=12 from Nontail SetL3
+	sw	x11, 0(x7) #line=12 from Nontail St C
+	sw	x19, 4(x7) #line=12 from Nontail St C
+	li	x19, 0 #line=28 from Set
+	sw	x10, 0(x2) #line=-1 from Nontail Save1
+	sw	x19, 8(x2) #line=28 from g'_args2
+	mv	x19, x10 #line=28 from g'_args3
+	lw	x10, 8(x2) #line=28 from g'_args1
+	addi	x2, x2, 16, #line=28 from Nontail CallCls1
+	la_1 x1, 16 #line=28 from Nontail CallCls3
+	la_1 x1, 16 #line=28 from Nontail CallCls3
+	la_1 x1, 16 #line=28 from Nontail CallCls3
+	sw x1, 0(x2) #line=28 from Nontail CallCls3
+	addi x2, x2, 8 #line=28 from Nontail CallCls3
+	lw x5, 0(x7) #line=28 from Nontail CallCls3
+	jalr x0, x5, 0 #line=28 from Nontail CallCls3
+	addi x0, x0, 0
+	addi	x2, x2, -16 #line=28 from callcls4
+	lw	x10, 0(x2) #line=-1 from Nontail Restore1
+	addi	x10, x10, 1 #line=29 from Nontail Add2
+	j	 yloop.53 #line=29 from Tail CallDir
+	addi x0, x0, 0
