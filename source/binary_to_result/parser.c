@@ -91,7 +91,7 @@ void handle_addi_case(uint32_t rd, uint32_t rs1, int32_t imm) {
 
 uint32_t previous_instruction = 0;
 // バイナリ命令をデコードして処理
-Pc_operand execute_binary_instruction(const char binary_instruction[][33], int previous_is_nop, int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
+Pc_operand execute_binary_instruction(const char binary_instruction[][33], int two_previous, int num_instructions, int current_line, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
     Pc_operand pc_operand;
     pc_operand.opcode = 0;
     pc_operand.pc = 1;
@@ -107,7 +107,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int p
         switch (opcode) { 
             case 0x2:  // I形式命令 (例: "addi", "andi", "ori", "xori")
                 {   
-                   //printf("i_type\n");
+                //    printf("i_type\n");
                     uint32_t funct3 = (instruction >> 10) & 0x7;
                     uint32_t rd = (instruction >> 4) & 0x3F;
                     uint32_t rs1 = (instruction >> 13) & 0x3F;
@@ -116,10 +116,13 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int p
                     pc_operand.operand2 = rs1;
                     
                     if(funct3 == 0x6){ //uaddi
-                        if(previous_is_nop == 1){
+                        // printf("previous rd = %d\n",get_register(rd));
+                        if(two_previous == 1){ //2つ前の命令がauipc
                             imm = imm/4; //la
                         }
+                        // printf("imm:%d\n",imm);
                         handle_addi_case(rd,rs1,imm);
+                        // printf("%d = %d + %d\n",get_register(rd),get_register(rs1), imm);
                     } else {
                         //負の計算
                         int minus = (imm & 0x800) ? 1 : 0;

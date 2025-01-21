@@ -116,16 +116,18 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         }
         int pc = 0;
         Pc_operand pc_opcode_operand1;
-        // 1個前の命令を記録するため
-        const char temporary_previous_instruction[1][33] = {"11111111111111111111111111111111"};
-        int previous_is_nop = 0;
+        // 2個前の命令を記録するため
+        int two_previous = 0;
         // printf("previous:%s\n",binary_instructions[current_line - 2].binary_code);
-        if(current_line > 1){
-            if(strcmp(binary_instructions[current_line - 2].binary_code, "00000000000000000000000000000010") == 0){
-                previous_is_nop = 1; //1つ前の命令がnop(laの分岐用)
+        if(current_line > 2){
+            if(strcmp(binary_instructions[current_line - 3].binary_code + 28, "0110") == 0){ //6
+                two_previous = 1; //2つ前の命令がauipc(laの分岐用)
+            }
+            if(strcmp(binary_instructions[current_line - 3].binary_code + 28, "0101") == 0){ //5
+                two_previous = 2; //2つ前の命令がlui
             }
         }
-        pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, previous_is_nop, 1, current_line - 1, sld_file, sld_result_file, memory_file);
+        pc_opcode_operand1 = execute_binary_instruction(&binary_instructions[current_line - 1].binary_code, two_previous, 1, current_line - 1, sld_file, sld_result_file, memory_file);
         pc = pc_opcode_operand1.pc;
         int opcode = pc_opcode_operand1.opcode;//1 = sw / lw, 2 = 分岐命令
         int operand2 = pc_opcode_operand1.operand2;
