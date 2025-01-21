@@ -19,13 +19,6 @@ int sp = MEMORY_SIZE - 1; //スタックポインタ
 // registerのsimulation
 double registers[NUM_REGISTERS] = {0};  // 64個のレジスタを初期化 0-31は整数　32-63はfloat
 
-// typedef struct{
-//     int pc;
-//     int opcode; //sw,lwなら1,分岐命令なら2,それ以外なら0
-//     int operand1;
-//     int operand2;
-//     int operand3;
-// }Pc_operand;
 extern InstructionCounter counter;
 
 // レジスタの値を設定するreg_numは0 ~ 63
@@ -35,7 +28,6 @@ void set_register(int reg_num, double value) {
     registers[0] = 0; //x0は常に0
     if (reg_num >= 1 && reg_num < NUM_REGISTERS) {
         registers[reg_num] = value;
-        //printf("reg_num:x%d = %lf\n",reg_num, value);
     }
 }
 
@@ -282,6 +274,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int t
                     counter.f_type[12]++;
                 }
                 if(func7 == 26){
+                    uint32_t a1 = get_register(rs1);
                     result = fcvtsw(a1);
                     set_register(rd, result);
                     counter.f_type[13]++;
