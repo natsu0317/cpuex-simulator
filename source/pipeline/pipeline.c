@@ -3,22 +3,16 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <stdbool.h>
 #include "../asm_to_binary/asm_to_binary.h"
 #include "../binary_to_result/binary_to_result.h"
 
-#define MAX_ASSEMBLY_SIZE 1048448  // アセンブリコードの最大サイズ
-#define MAX_INSTRUCTION_LENGTH 50 // 1行の長さ
+#define MAX_ASSEMBLY_SIZE 2096896  // アセンブリコードの最大サイズ
+#define MAX_INSTRUCTION_LENGTH 70 // 1行の長さ
 #define PIPELINE_STAGES 5
 #define INST_WIDTH 20
 #define CYCLE_WIDTH 5
 #define STAGE_WIDTH 5
-//計算機構成論week4
-//fetch : 命令を取ってくる
-//decode : レジスタファイルを読み出して命令をデコード
-//register fetch :
-//execute : 実行
-//memory access :
-//write back :
 
 //IF -> ID -> EX -> MEM -> WB
 void clean_instruction(char *dest, const char *src, size_t width) {
@@ -81,37 +75,61 @@ void print_stall(FILE* pipeline_file, int stall_cycle, int total_cycle){
 
 // 行数 - 1
 int instruction_count = 0;
-
 void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUCTION_LENGTH], BinaryInstruction binary_instructions[], int instruction_length, FILE* transition_file, FILE* float_transition_file, FILE* pipeline_file, FILE* sld_file, FILE* sld_result_file, FILE* memory_file, int use_register[64]) {
     int current_line = 1; // assembly codeの行数に対応
     int total_cycles = 1;
+    int break_count = 1;
+    const int MAX_BREAKS = 753; //(MAX_BREAKS+1回目のbreakで停止)
+    bool step_mode = false;
+    const int STOP_AT_INSTRUCTION = 353849; // この行数で停止
 
-    while (current_line < instruction_length) {   
-        // printf("pipeline start\n");
-        // printf("行数：%d\n",current_line); 
-        // printf("binary:%s\n",binary_instructions[current_line - 1].binary_code);
+    while (current_line < instruction_length) {
+        printf("\n\nnew instruction start\n");
+        printf("binary_code:%s\n",binary_instructions[current_line - 1].binary_code);
+        printf("%d行\n",current_line);
+        if(total_cycles >= STOP_AT_INSTRUCTION) {
+            printf("Type 'c' to continue, 's' for step-by-step execution, or 'q' to quit.\n");
+            step_mode = true;
+        }
+
+        if (step_mode || (break_count > MAX_BREAKS)) {
+            printf("Type 'c' to continue to next break, 's' for step-by-step execution, or 'q' to quit.\n");
+            char command[256];
+            if (fgets(command, sizeof(command), stdin) != NULL) {
+                command[strcspn(command, "\n")] = 0;  // 改行をヌル文字に置き換える
+                if (strcmp(command, "c") == 0) {
+                    step_mode = false;
+                    // 次のbreakまで実行を続ける
+                } else if (strcmp(command, "s") == 0) {
+                    step_mode = true;
+                    // 1命令だけ実行して再度停止
+                } else if (strcmp(command, "q") == 0) {
+                    printf("Execution terminated by user.\n");
+                    return;  // プログラムを終了
+                } else {
+                    printf("Unknown command. Please type 'c' to continue, 's' for step-by-step, or 'q' to quit.\n");
+                    continue;  // コマンド入力に戻る
+                }
+            } else {
+                fprintf(stderr, "Error reading input\n");
+                return;  // エラーが発生したら関数を終了
+            }
+        }
+
         //finish命令
-        if(strcmp(binary_instructions[current_line - 1].binary_code,"11111111111111111111111111111111") == 0){
+        if(strcmp(binary_instructions[current_line - 1].binary_code, "11111111111111111111111111111111") == 0){
+            printf("Finish instruction detected.\n");
             break;
         }
         //break命令
-        if(strcmp(binary_instructions[current_line - 1].binary_code,"11111111111111111111111111111110") == 0){
-            printf("Execution paused at line %d. Type 'c' to resume execution.\n", current_line);
-            char command[256];
-            while (1) {
-                if (fgets(command, sizeof(command), stdin) != NULL) {
-                    command[strcspn(command, "\n")] = 0;  // 改行をヌル文字に置き換える
-                    if (strcmp(command, "c") == 0) {
-                        break;  // 入力が"c"ならループを抜ける
-                    } else {
-                        printf("Unknown command. Please type 'c' to resume execution.\n");
-                    }
-                } else {
-                    // fgetsが失敗した場合
-                    fprintf(stderr, "Error reading input\n");
-                    // 必要に応じてエラー処理を追加
-                    break;  // エラーが発生したらループを抜ける
-                }
+        if(strcmp(binary_instructions[current_line - 1].binary_code, "11111111111111111111111111111110") == 0){
+            break_count++;
+            printf("Break %d at line %d.\n", break_count, current_line);
+            
+            if (break_count > MAX_BREAKS) {
+                printf("Maximum number of breaks (%d) reached. Execution paused.\n", MAX_BREAKS);
+                step_mode = true;
+                continue;  // ループの先頭に戻ってユーザー入力を待つ
             }
         }
         int pc = 0;
@@ -141,10 +159,11 @@ void execute_binary(int assembly_count, char assembly_instructions[][MAX_INSTRUC
         save_operand[1] = pc_opcode_operand1.operand1;// 現在のoperand1の値
 
         //register遷移の出力
-        // print_register_transition(transition_file, float_transition_file, current_line);
-        // print_use_register_transition(transition_file, current_line, use_register);
-        // print_use_float_register_transition(float_transition_file, current_line, use_register);
+        print_use_register_transition(transition_file, current_line, use_register);
+        print_use_float_register_transition(float_transition_file, current_line, use_register);
         fflush(transition_file); 
+
+
         // printf("binary_insturcinos[current_line]:%s\n",binary_instructions[current_line - 1].binary_code);
         // printf("assembly_code:%20s\n",assembly_instructions[current_line+assembly_count]);
         // if(strcmp(binary_instructions[current_line - 1].binary_code,"00000000000000000000000000000000") == 0){
