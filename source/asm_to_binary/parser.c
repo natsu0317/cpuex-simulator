@@ -8,15 +8,15 @@ extern int instruction_count;
 
 //アセンブリコードをバイナリコードにparse
 
-#define MAX_LENGTH 2000
-#define MAX_ASSEMBLY_SIZE 16382 //アセンブリコードの最大サイズ
+#define MAX_INSTRUCTIONS 50000
+#define MAX_ASSEMBLY_SIZE 2096896  // アセンブリコードの最大サイズ
 #define MAX_LABELS 1000 // ラベルの最大個数
 
 typedef struct{
     char binary_code[33];
 } BinaryInstruction;
 
-BinaryInstruction binary_instructions[MAX_LENGTH];
+BinaryInstruction binary_instructions[MAX_INSTRUCTIONS];
 int binary_instruction_count = 0;
 double float_memory[256]; //メモリに浮動小数点の値を格納
 
@@ -382,6 +382,7 @@ void parse_assembly(const char* assembly_code){
     char* code_copy = strdup(assembly_code);
     char* token = strtok(code_copy, delimiter);
     BinaryInstruction inst;
+    memset(binary_instructions, 0, sizeof(binary_instructions));
 
     while (token != NULL){
         // printf("token:%s\n",token);
@@ -510,7 +511,6 @@ void parse_assembly(const char* assembly_code){
         //printf("op_bin:%s, rd_bin:%s, r1_bin:%s, r2_bin:%s\n",opcode_bin,rd_bin,r1_bin,r2_bin);
         //printf("%d,%d,%d,%d\n",need_free_imm_1,need_free_imm_2,need_free_reg_1,need_free_reg_2);
 
-        BinaryInstruction inst;
         if(strcmp(opcode, "la") == 0 || strcmp(opcode, "la_1") == 0){
             //printf("opcode:%s\n",opcode);
             // la rd, symbolを変換すると下2行に対応
