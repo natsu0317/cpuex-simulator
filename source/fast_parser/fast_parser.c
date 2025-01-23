@@ -512,7 +512,7 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
         int total_output = (value & 0x3) + 1;
         for(int i=0; i < total_output; i++){
             int shift_count = 2+i*8;
-            uint8_t lower8bits = (value >> shift_count) & 0xF;
+            uint8_t lower8bits = ((value >> shift_count) & 0xF) - 48;
             fprintf(sld_result_file, "%u\n", lower8bits);
         }
     }
@@ -520,12 +520,12 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
     if(func3 == 1){ // x10の下位8bit値をファイルに書きこむ
         if( 0 <= rd && rd < 32){
             uint32_t value = (uint32_t)get_register(rd);
-            uint8_t lower8bits = value & 0xFF;
+            uint8_t lower8bits = (value & 0xFF) - 48;
             fprintf(sld_result_file, "%u\n", lower8bits);
             // counter.c_type[1]++;
         } else {
             uint32_t value = (uint32_t)get_float_register(rd);
-            uint8_t lower8bits = value & 0xFF;
+            uint8_t lower8bits = (value & 0xFF) - 48;
             fprintf(sld_result_file, "%u\n", lower8bits);
         }
     }
