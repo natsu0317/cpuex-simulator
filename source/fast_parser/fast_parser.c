@@ -15,7 +15,7 @@
 #define STACK_SIZE 4096
 #define MAX_ASSEMBLY_SIZE 1048448  // アセンブリコードの最大サイズ
 #define MAX_INSTRUCTION_LENGTH 50 // 1行の長さ
-#define BUFFER_SIZE 8192
+#define BUFFER_SIZE 32768
 
 typedef struct {
     char data[BUFFER_SIZE];
@@ -154,14 +154,6 @@ void print_use_float_register_transition(FILE *float_transition_file, int pc, in
         // fprintf(float_transition_file, "%3f | ", get_float_register(i));
     }
     fprintf(float_transition_file, "\n");
-}
-
-
-// 処理を関数ポインタで定義
-typedef int (*InstructionHandler)(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint32_t func3, int two_previous, int current_line, FILE* memory_file, FILE* sld_file, FILE* sld_result_file);
-
-int handle_label(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint32_t func3, int two_previous, int current_line, FILE* memory_file, FILE* sld_file, FILE* sld_result_file){
-    return 1;
 }
 
 int handle_r(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint32_t func3){
@@ -716,7 +708,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
     fflush(memory_file);
     // オペコードを取得
     //下4桁
-    int total_count = 0;
+    long long int total_count = 0;
     int previous = 0;
     int two_previous = 0;
     uint32_t instruction, opcode, rd, rs1, rs2, func3;
@@ -725,11 +717,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
         total_count++;
         int pc = 0;
         two_previous = previous;
-        if( opcode == 0x6 ){
-            previous = 1;
-        } else {
-            previous = 0;
-        }
+        previous = (opcode == 0x6);
         // printf("instruction:%s\n",binary_instruction[current_line].binary_code);
         instruction = strtol(binary_instruction[current_line].binary_code, NULL, 2); //2進数文字列を数値に変換
         opcode = instruction & 0xF;
@@ -781,12 +769,12 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 pc = 1;
                 break;
             case 0xe: //break
-                printf("Break point reached at instruction %d. Press Enter to continue...\n", total_count);
+                printf("Break point reached at instruction %lld. Press Enter to continue...\n", total_count);
                 while(getchar() != '\n'); // Enterキーが押されるまで待機
                 pc = 1;
                 break;
             case 0xf:  // Finish
-                printf("Finish instruction detected. Total instructions: %d\n", total_count);
+                printf("Finish instruction detected. Total instructions: %lld\n", total_count);
                 return 1;
             default:
                 pc = 1;
