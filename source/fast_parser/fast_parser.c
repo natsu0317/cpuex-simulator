@@ -160,30 +160,15 @@ int handle_r(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
     // printf("r_type\n");
     uint32_t funct3 = (instruction >>10) & 0x7;
     uint32_t funct7 = (instruction >> 25) & 0x7F;
-    // pc_operand.operand1 = rd;
-    // pc_operand.operand2 = rs1;
-    // pc_operand.operand3 = rs2;
-    double rs1_value;
-    double rs2_value;
-    if(0 <= rs1 & rs1 < 32){
-        //整数レジスタ
-        rs1_value = get_register(rs1);
-    } else {
-        rs1_value = get_float_register(rs1);
-    }
-    if(0 <= rs2 & rs2 < 32){
-        //整数レジスタ
-        rs2_value = get_register(rs2);
-    } else {
-        rs2_value = get_float_register(rs2);
-    }
+    double rs1_value = (rs1 < 32) ? get_register(rs1) : get_float_register(rs1);
+    double rs2_value = (rs2 < 32) ? get_register(rs2) : get_float_register(rs2);
 
-    if (funct3 == 0 && funct7 == 0) {  // add命令
-        set_register(rd, rs1_value + rs2_value);
-        // counter.r_type[0]++;
-    } else if (funct3 == 0 && funct7 == 0x20) {  // sub命令
-        set_register(rd, rs1_value - rs2_value);
-        // counter.r_type[1]++;
+    if (funct3 == 0) {
+        if (funct7 == 0) {
+            set_register(rd, rs1_value + rs2_value); // add命令
+        } else if (funct7 == 0x20) {
+            set_register(rd, rs1_value - rs2_value); // sub命令
+        }
     } else if (funct3 == 0x7){  // and
         set_register(rd, get_register(rs1) & get_register(rs2));
         // counter.r_type[2]++;
@@ -230,8 +215,6 @@ int handle_i(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t func3, in
     // printf("i_type\n");
     uint32_t funct3 = (instruction >> 10) & 0x7;
     int32_t imm = (instruction >> 20) & 0xFFF;
-    // pc_operand.operand1 = rd;
-    // pc_operand.operand2 = rs1;
     
     if(funct3 == 0x6){ //uaddi
         // printf("previous rd = %d\n",get_register(rd));
@@ -267,14 +250,10 @@ int handle_i(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t func3, in
 }
 
 int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line, FILE* memory_file){
-    // printf("sw\n");
-    // counter.s_type[0]++;
     uint32_t sw_offset_11_5 = (instruction >> 25) & 0x8F;
     uint32_t sw_offset_4_0 = (instruction >> 4) & 0x1F;
     uint32_t imm = 0;
-    // pc_operand.opcode = 1;
-    // pc_operand.operand2 = rs1;
-    // pc_operand.operand3 = rs2;
+
     imm |= (sw_offset_11_5 << 5);
     imm |= (sw_offset_4_0);
     if(imm && 0x800 == 1){//負の値
@@ -306,55 +285,17 @@ int handle_b(uint32_t instruction, uint32_t rs1, uint32_t rs2, uint32_t func3){
     uint32_t bit4_1 = (instruction >> 5) & 0xF;
     uint32_t bit11 = (instruction >> 4) & 0x1;
     uint32_t imm = 0;
-    // pc_operand.opcode = 2; 
-    // pc_operand.operand2 = rs1;
-    // pc_operand.operand3 = rs2;
+
     imm |= (bit12 << 12);
     imm |= (bit11 << 11);
     imm |= (bit10_5 << 5);
     imm |= (bit4_1 << 1);
     if(bit12 == 1){
-        //immは負の値
-        //2の補数
-        uint32_t mask = (1 << 12) -1;
+        uint32_t mask = (1 << 12) - 1;
         imm = ~imm & mask;
-        imm = imm + 1;
-        if (funct3 == 0) {  // beq
-            if(get_register(rs1) == get_register(rs2)){
-                //printf("beq: x%d, x%d, -%d\n", rs1, rs2, imm);
-                // counter.b_type[0]++;
-                pc -= imm/4;
-            }
-        } else if(funct3 == 0x1){  // bne
-            if(get_register(rs1) != get_register(rs2)){
-                //printf("bne: x%d, x%d, -%d\n", rs1, rs2, imm);
-                // counter.b_type[1]++;
-                //printf("pc:%d\n",pc);
-                pc -= imm/4;
-                //printf("after_pc:%d\n",pc);
-            }
-        } else if(funct3 == 0x4){  // blt
-            if(get_register(rs1) < get_register(rs2)){
-                //printf("blt: x%d, x%d, -%d\n", rs1, rs2, imm);
-                // counter.b_type[2]++;
-                pc -= imm/4;
-            }
-        } else if(funct3 == 0x5){  // bge
-            if(get_register(rs1) >= get_register(rs2)){
-                //printf("bge: x%d, x%d, -%d\n", rs1, rs2, imm);
-                // counter.b_type[3]++;
-                pc -= imm/4;
-            }
-        } else if(funct3 == 0x6){  // bgt
-            if(get_register(rs1) > get_register(rs2)){
-                //printf("bgt: x%d, x%d, -%d\n", rs1, rs2, imm);
-                // counter.b_type[4]++;
-                pc -= imm/4;
-            }
-        }  else {
-            pc = 1;
-        }
-    } else if (funct3 == 0) {  // beq
+        imm = -(imm + 1);
+    }
+    if (funct3 == 0) {  // beq
         //printf("beq\n");
         if(get_register(rs1) == get_register(rs2)){
             //printf("beq: x%d, x%d, %d\n", rs1, rs2, imm);
@@ -392,10 +333,6 @@ int handle_b(uint32_t instruction, uint32_t rs1, uint32_t rs2, uint32_t func3){
             pc += imm/4;
         }
     }
-    if(pc == 0){
-        pc = 1;
-    }
-    // pc_operand.pc = pc;
     return pc;
 }
 
