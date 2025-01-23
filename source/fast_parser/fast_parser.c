@@ -665,7 +665,7 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
         for(int i=0; i < total_output; i++){
             int shift_count = 2+i*8;
             uint8_t lower8bits = (value >> shift_count) & 0xF;
-            fprintf(sld_result_file, "%u\n", lower8bits);
+            fprintf(sld_result_file, "%u\n", lower8bits - 48);
         }
     }
     //csrw
@@ -677,12 +677,12 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
             // printf("x%dの中身%dの値をファイルに書き込む\n",rd,value);
             // printf("x%dの中身%dの値をファイルに書き込む\n",rd,lower8bits);
             // fprintf(sld_result_file, "%f\n", value);
-            fprintf(sld_result_file, "%u\n", lower8bits);
+            fprintf(sld_result_file, "%u\n", lower8bits - 48);
             // counter.c_type[1]++;
         } else {
             uint32_t value = (uint32_t)get_float_register(rd);
             uint8_t lower8bits = value & 0xFF;
-            fprintf(sld_result_file, "%u\n", lower8bits);
+            fprintf(sld_result_file, "%u\n", lower8bits - 48);
             // double value = get_float_register(rd);
             // printf("f%dの中身%dの値をファイルに書き込む\n",rd-32,value);
             // printf("x%dの中身%dの値をファイルに書き込む\n",rd,lower8bits);
@@ -706,8 +706,6 @@ int current_line = 0;
 int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int instruction_length, FILE* transition_file, FILE* float_transition_file, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
     //printf("current_line:%d\n",current_line);
     fflush(memory_file);
-    // オペコードを取得
-    //下4桁
     long long int total_count = 0;
     int previous = 0;
     int two_previous = 0;
@@ -729,56 +727,44 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
         switch (opcode) {
             case 0x2:  // I-type
                 handle_i(instruction, rd, rs1, func3, two_previous);
-                pc = 1;
                 break;
             case 0x3:  // SW
                 handle_sw(instruction, rs1, rs2, current_line, memory_file);
-                pc = 1;
                 break;
             case 0xa:  // F-type
                 handle_f(instruction, rd, rs1, rs2, func3);
-                pc = 1;
                 break;
             case 0x9:  // LW
                 handle_lw(instruction, rd, rs1, current_line, memory_file);
-                pc = 1;
                 break;
             case 0x7:  // J-type
                 pc = handle_j(instruction, rd, current_line);
                 break;
             case 0x1:  // R-type
                 handle_r(instruction, rd, rs1, rs2, func3);
-                pc = 1;
                 break;
             case 0x4:  // B-type
                 pc = handle_b(instruction, rs1, rs2, func3);
                 break;
             case 0x5:  // LUI
                 handle_lui(instruction, rd);
-                pc = 1;
                 break;
             case 0x6:  // AUIPC
                 handle_auipc(instruction, rd, current_line);
-                pc = 1;
                 break;
             case 0x8:  // JALR
                 pc = handle_jalr(instruction, rd, rs1, current_line);
                 break;
             case 0xb:  // CSR
                 handle_c(instruction, rd, func3, sld_file, sld_result_file);
-                pc = 1;
                 break;
-            case 0xe: //break
+            case 0xe: // Break
                 printf("Break point reached at instruction %lld. Press Enter to continue...\n", total_count);
-                while(getchar() != '\n'); // Enterキーが押されるまで待機
-                pc = 1;
+                while (getchar() != '\n');
                 break;
             case 0xf:  // Finish
                 printf("Finish instruction detected. Total instructions: %lld\n", total_count);
                 return 1;
-            default:
-                pc = 1;
-                break;
         }
 
         // print_use_register_transition(transition_file,current_line+1,use_register);
