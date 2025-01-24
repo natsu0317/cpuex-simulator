@@ -503,33 +503,40 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
     //csrw_int
     if(func3 == 4){
         uint32_t value = (uint32_t)registers[rd]; 
+        // printf("value:%d\n",value);
         //下位2bitで出力回数
         int total_output = (value & 0x3) + 1;
         for(int i=0; i <(3-total_output); i++){
             fprintf(sld_result_file, "0");
+            // printf("0");
         }
         for(int i=0; i < total_output; i++){
             int shift_count = 2+i*8;
             uint8_t lower8bits = ((value >> shift_count) & 0xF);
             fprintf(sld_result_file, "%u", lower8bits);
+            // printf("%u",lower8bits);
         }
         fprintf(sld_result_file, "\n");
+        // printf("\n");
     }
     //csrw
     if(func3 == 1){ // x10の下位8bit値をファイルに書きこむ
         if( 0 <= rd && rd < 32){
             uint32_t value = (uint32_t)get_register(rd);
-            // uint8_t lower8bits = (value & 0xFF) - 48;
+            // printf("csrw_value:%d\n",value);
             uint8_t lower8bits = (value & 0xFF);
-            lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
-            fprintf(sld_result_file, "%u\n", lower8bits);
-            // counter.c_type[1]++;
+            // uint8_t lower8bits = (value & 0xFF);
+            // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
+            fprintf(sld_result_file, "%c", lower8bits);
+            // printf("%c",lower8bits);
         } else {
             uint32_t value = (uint32_t)get_float_register(rd);
+            // printf("csrw_value:%d\n",value);
             // uint8_t lower8bits = (value & 0xFF) - 48;
             uint8_t lower8bits = (value & 0xFF);
-            lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
-            fprintf(sld_result_file, "%u\n", lower8bits);
+            // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
+            fprintf(sld_result_file, "%c", lower8bits);
+            // printf("%c",lower8bits);
         }
     }
     //csrr
@@ -614,7 +621,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
         }
 
         print_use_register_transition(transition_file,current_line+1,use_register);
-        // print_use_float_register_transition(float_transition_file,current_line+1,use_register);
+        print_use_float_register_transition(float_transition_file,current_line+1,use_register);
         current_line += (pc == 0) ? 1 : pc;
         // printf("current_line:%d\n",current_line);
     }
