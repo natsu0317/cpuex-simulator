@@ -402,12 +402,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int t
                     }
                     uint32_t result = 0;
                     for(int i=0; i<num_digits; i++){
-                        result |= ((digits[i] + '0') << ((3-i)*8));
-                    }
-                    if(num_digits < 4){
-                        result >>= (4 - num_digits) * 4 + 2;
-                    } else {
-                        result <<= 2;
+                        result |= ((digits[i] + '0') << ((num_digits-i-1)*8 + 2));
                     }
                     result |= ((num_digits - 1) & 0x3);
                     // result <<= (4 - num_digits) * 8;
@@ -641,12 +636,12 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int t
                         // double value = get_register(rd);
                         //printf("x%dの中身%fの値をファイルに書き込む",rd,value);
                         // fprintf(sld_result_file, "%f\n", value);
-                        fprintf(sld_result_file, "%u\n", lower8bits);
+                        fprintf(sld_result_file, "%u\n", lower8bits - 48);
                         counter.c_type[1]++;
                     } else {
                         uint32_t value = (uint32_t)get_float_register(rd);
                         uint8_t lower8bits = value & 0xFF;
-                        fprintf(sld_result_file, "%u\n", lower8bits);
+                        fprintf(sld_result_file, "%u\n", lower8bits - 48);
                         // double value = get_float_register(rd);
                         // printf("f%dの中身%fの値をファイルに書き込む",rd-32,value);
                         // fprintf(sld_result_file, "%f\n", value);
