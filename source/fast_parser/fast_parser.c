@@ -182,19 +182,14 @@ int handle_r(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         }
         uint32_t result = 0;
         for(int i=0; i<num_digits; i++){
-            result |= ((digits[i] + '0') << ((3-i)*8));
-        }
-        if(num_digits < 4){
-            result >>= (4 - num_digits) * 4 + 2;
-        } else {
-            result <<= 2;
+            result |= ((digits[i] + '0') << ((num_digits-i-1)*8 + 2));
         }
         result |= ((num_digits - 1) & 0x3);
         // result <<= (4 - num_digits) * 8;
         set_register(rd, result);
     } else if (func3 == 0x6){ //rem(余り)
         set_register(rd, get_register(rs1) % get_register(rs2));
-    } else if (func3 == 0x1){ //shift
+    } else if (func3 == 0x1){ //shift(sll)
         set_register(rd, get_register(rs1) << (get_register(rs2) & 0x1F));
     } else if (func3 == 0x5){
         if(func7 == 0){ //srl
@@ -238,7 +233,7 @@ int handle_i(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t func3, in
     return 1;
 }
 
-int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line, FILE* memory_file){
+int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line, FILE* memory_file, long long int total_count){
     // printf("sw\n");
     // counter.s_type[0]++;
     uint32_t sw_offset_11_5 = (instruction >> 25) & 0x8F;
@@ -255,13 +250,13 @@ int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line
     if (0 <= rs2 && rs2 < 32) {
         memory[get_register(rs1) + imm] = get_register(rs2);
         write_to_buffer(memory_file, &memory_buffer, 
-                        "%d行目 memory%dの中に%dが格納される\n",
-                        current_line+1, get_register(rs1)+imm, get_register(rs2));
+                        "%d命令目 %d行目 memory%dの中に%dが格納される\n",
+                        total_count, current_line+1, get_register(rs1)+imm, get_register(rs2));
     } else {
         memory[get_register(rs1) + imm] = get_float_register(rs2);
         write_to_buffer(memory_file, &memory_buffer, 
-                        "%d行目 memory%dの中に%lfが格納される\n",
-                        current_line+1, get_register(rs1)+imm, get_float_register(rs2));
+                        "%d命令目 %d行目 memory%dの中に%lfが格納される\n",
+                        total_count, current_line+1, get_register(rs1)+imm, get_float_register(rs2));
     }
     return 1;
 }
@@ -512,7 +507,7 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
         int total_output = (value & 0x3) + 1;
         for(int i=0; i < total_output; i++){
             int shift_count = 2+i*8;
-            uint8_t lower8bits = ((value >> shift_count) & 0xF) - 48;
+            uint8_t lower8bits = ((value >> shift_count) & 0xF);
             fprintf(sld_result_file, "%u\n", lower8bits);
         }
     }
@@ -552,6 +547,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
     uint32_t instruction, opcode, rd, rs1, rs2, func3;
 
     while(current_line < instruction_length){
+        // printf("total_count:%lld\n",total_count);
         total_count++;
         int pc = 0;
         two_previous = previous;
@@ -569,7 +565,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 handle_i(instruction, rd, rs1, func3, two_previous);
                 break;
             case 0x3:  // SW
-                handle_sw(instruction, rs1, rs2, current_line, memory_file);
+                handle_sw(instruction, rs1, rs2, current_line, memory_file, total_count);
                 break;
             case 0xa:  // F-type
                 handle_f(instruction, rd, rs1, rs2, func3);
@@ -609,7 +605,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 break;
         }
 
-        // print_use_register_transition(transition_file,current_line+1,use_register);
+        print_use_register_transition(transition_file,current_line+1,use_register);
         // print_use_float_register_transition(float_transition_file,current_line+1,use_register);
         current_line += (pc == 0) ? 1 : pc;
         // printf("current_line:%d\n",current_line);
