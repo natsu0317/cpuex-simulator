@@ -516,14 +516,13 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
             fprintf(sld_result_file, "%u", lower8bits);
             // printf("%u",lower8bits);
         }
-        fprintf(sld_result_file, "\n");
+        // fprintf(sld_result_file, "\n");
         // printf("\n");
     }
     //csrw
     if(func3 == 1){ // x10の下位8bit値をファイルに書きこむ
         if( 0 <= rd && rd < 32){
             uint32_t value = (uint32_t)get_register(rd);
-            // printf("csrw_value:%d\n",value);
             uint8_t lower8bits = (value & 0xFF);
             // uint8_t lower8bits = (value & 0xFF);
             // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
@@ -531,7 +530,6 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
             // printf("%c",lower8bits);
         } else {
             uint32_t value = (uint32_t)get_float_register(rd);
-            // printf("csrw_value:%d\n",value);
             // uint8_t lower8bits = (value & 0xFF) - 48;
             uint8_t lower8bits = (value & 0xFF);
             // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
@@ -541,9 +539,11 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
     }
     //csrr
     if(func3 == 2){ // x10にsldファイルの内容を書きこむ
+        rd = (instruction >> 4) & 0x3F;
+        // printf("regiter:%d\n",rd);
         int32_t value = read_next_value_from_file(sld_file);
         // printf("value:%d\n",value);
-        set_register(10, value);
+        set_register(rd, value);
     }
     return 1;
 }
@@ -610,7 +610,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 handle_c(instruction, rd, func3, sld_file, sld_result_file);
                 break;
             case 0xe: //break
-                printf("Break point reached at instruction %lld. Press Enter to continue...\n", total_count);
+                printf("\nBreak point reached at instruction %lld. Press Enter to continue...\n", total_count);
                 while(getchar() != '\n'); // Enterキーが押されるまで待機
                 break;
             case 0xf:  // Finish

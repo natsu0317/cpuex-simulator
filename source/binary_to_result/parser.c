@@ -652,7 +652,7 @@ Pc_operand execute_binary_instruction(const char binary_instruction[][33], int t
                 if(func3 == 2){ // x10にsldファイルの内容を書きこむ
                     int32_t value = read_next_value_from_file(sld_file);
                     // printf("value:%d\n",value);
-                    set_register(10, value);
+                    set_register(rd, value);
                     counter.c_type[0]++;
                 }
             }
