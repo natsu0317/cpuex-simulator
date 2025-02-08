@@ -328,34 +328,6 @@ void change(char *operand, const char *register_name, const char *x_register_nam
         memmove(found + x_reg_len, found + reg_len, strlen(found + reg_len) + 1);
         memcpy(found, x_register_name, x_reg_len);
     }
-}
-void convert_registerset_to_x(char *operand){
-    // "0x"で始まるかどうかを確認
-    if (strncmp(operand, "0x", 2) == 0) {
-        return; // "0x"で始まる場合は何もせずに戻る
-    }
-    change(operand, "%eax", "x10");
-    change(operand, "%ebx", "x19");
-    change(operand, "%ecx", "x11");
-    change(operand, "%edx", "x12");
-    change(operand, "%esi", "x6");
-    change(operand, "%edi", "x7");
-    change(operand, "%ebp", "x8");
-    change(operand, "%esp", "x2");
-    for(int i = 0; i <= 7; i++){
-        char reg_name[4];
-        char x_reg_name[4];
-        sprintf(reg_name, "a%d", i);
-        sprintf(x_reg_name, "x%d", 10 + i);
-        change(operand, reg_name, x_reg_name);
-    }
-    for(int i = 0; i <= 2; i++){
-        char reg_name[4];
-        char x_reg_name[4];
-        sprintf(reg_name, "t%d", i);
-        sprintf(x_reg_name, "x%d", 5 + i);
-        change(operand, reg_name, x_reg_name);
-    } 
     for(int i = 0; i <= 32; i++){
         char reg_name[4];
         char x_reg_name[4];
