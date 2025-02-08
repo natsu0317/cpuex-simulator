@@ -501,10 +501,6 @@ void parse_assembly(const char* assembly_code){
             //printf("label_name:%s\n", label_name);
             int offset = 0;
             if (strcmp(opcode, "la") == 0) {
-                if(strstr(label_name,"fast") != NULL){
-                    printf("label_name:%s\n",label_name);
-                    printf("offset:%d\n",offset+4);
-                }
                 offset = calculate_offset(assembly_code, label_name, current_line);
             }
             if (strcmp(opcode, "la_1") == 0) {
