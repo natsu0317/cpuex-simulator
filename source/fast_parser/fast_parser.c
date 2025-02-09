@@ -128,32 +128,40 @@ void handle_addi_case(uint32_t rd, uint32_t rs1, int32_t imm) {
     }
 }
 
-
 void print_use_register_transition(FILE *transition_file, int pc, int use_register[64]){
-    fprintf(transition_file, "| ");
-    fprintf(transition_file, "%2d行|",pc);   
-    fflush(transition_file); 
-    for(int i = 0; i< 32; i++) {
+    char buffer[1024];  // バッファを用意
+    int offset = 0;
+    
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "| %2d行|", pc);
+    
+    for(int i = 0; i < 32; i++) {
         if(use_register[i] > 0){
-            fprintf(transition_file, "%3d | ", get_register(i));
+            offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(i));
         }
-        // fprintf(transition_file, "%3d | ", get_register(i));
-    }    
-    fprintf(transition_file, "\n");
+    }
+    
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\n");
+    
+    // 一括書き出し
+    fwrite(buffer, 1, offset, transition_file);
 }
 
-void print_use_float_register_transition(FILE *float_transition_file, int pc, int use_register[64]){ 
-    fprintf(float_transition_file, "| ");
-    fprintf(float_transition_file, "%2d行|",pc);
-    fflush(float_transition_file);
-    //printf("current_line:%d\n",pc);
-    for(int i = 32; i< NUM_REGISTERS; i++) {
+void print_use_float_register_transition(FILE *float_transition_file, int pc, int use_register[64]){
+    char buffer[1024];
+    int offset = 0;
+
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "| %2d行|", pc);
+    
+    for(int i = 32; i < NUM_REGISTERS; i++) {
         if(use_register[i] > 0){
-            fprintf(float_transition_file, "%3f | ", get_float_register(i));
+            offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3f | ", get_float_register(i));
         }
-        // fprintf(float_transition_file, "%3f | ", get_float_register(i));
     }
-    fprintf(float_transition_file, "\n");
+    
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\n");
+
+    // 一括書き出し
+    fwrite(buffer, 1, offset, float_transition_file);
 }
 
 int handle_r(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint32_t func3){
@@ -552,7 +560,6 @@ uint32_t previous_instruction = 0;
 int current_line = 0;
 // バイナリ命令をデコードして処理
 int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int instruction_length, FILE* transition_file, FILE* float_transition_file, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
-    //printf("current_line:%d\n",current_line);
     fflush(memory_file);
     // オペコードを取得
     //下4桁
@@ -562,6 +569,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
     uint32_t instruction, opcode, rd, rs1, rs2, func3;
 
     while(current_line < instruction_length){
+        // printf("current_line:%d\n",current_line);
         // printf("total_count:%lld\n",total_count);
         total_count++;
         int pc = 0;
@@ -621,7 +629,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
         }
 
         print_use_register_transition(transition_file,current_line+1,use_register);
-        print_use_float_register_transition(float_transition_file,current_line+1,use_register);
+        // print_use_float_register_transition(float_transition_file,current_line+1,use_register);
         current_line += (pc == 0) ? 1 : pc;
         // printf("current_line:%d\n",current_line);
     }
@@ -674,8 +682,6 @@ void for_markdown(FILE *transition_file, FILE *float_transition_file, int use_re
 
 int instruction_count = 0;
 int main(){
-    clock_t start_time, end_time;
-    start_time = clock();
 
     //ファイルからassembly取得
     FILE *file;
@@ -772,6 +778,10 @@ int main(){
         return 1;
     }
     
+    clock_t start_time, end_time;
+    start_time = clock();
+
+    printf("start");
     fast_execute_binary_instruction(binary_instructions, instruction_length, transition_file, float_transition_file, sld_file, sld_result_file, memory_file);
     
     fclose(transition_file);
