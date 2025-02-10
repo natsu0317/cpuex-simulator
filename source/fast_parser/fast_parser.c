@@ -98,11 +98,28 @@ static inline double get_float_register(int reg_num) {
     return 0;
 }
 
-uint32_t read_next_value_from_file(FILE *file) {
+uint32_t read_next_value_from_file(FILE *file, int *is_float) {
     char line[50];
     if (fgets(line, sizeof(line), file)) {
-        return (uint32_t)atoi(line); // 行を数値に変換して返す
+        // 改行文字を削除
+        line[strcspn(line, "\n")] = 0;
+
+        // 小数点が含まれているかチェック
+        if (strchr(line, '.') != NULL) {
+            // 浮動小数点数として解釈
+            float f_value = strtof(line, NULL);
+            uint32_t i_value;
+            memcpy(&i_value, &f_value, sizeof(float));
+            *is_float = 1;
+            return i_value;
+        } else {
+            // 整数として解釈
+            int32_t i_value = atoi(line);
+            *is_float = 0;
+            return (uint32_t)i_value;
+        }
     }
+    *is_float = 0;
     return 0; // ファイルの終わりやエラーの場合
 }
   
@@ -219,7 +236,7 @@ int handle_i(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t func3, in
         }
         // printf("imm:%d\n",imm);
         handle_addi_case(rd,rs1,imm);
-        printf("rd(%d):%d\n",rd,get_register(rd));
+        // printf("rd(%d):%d\n",rd,get_register(rd));
     } else {
         //負の計算
         int minus = (imm & 0x800) ? 1 : 0;
@@ -551,8 +568,17 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
     //csrr
     if(func3 == 2){ // rdにsldファイルの内容を書きこむ
         rd = (instruction >> 4) & 0x3F;
-        int32_t value = read_next_value_from_file(sld_file);
-        set_register(rd, value);
+        int is_float;
+        uint32_t value = read_next_value_from_file(sld_file, &is_float);
+        if (is_float) {
+            float float_value;
+            memcpy(&float_value, &value, sizeof(float));
+            set_register(rd, float_value);
+            // printf("Float value: %f\n", float_value);
+        } else {
+            set_register(rd, value);
+            // printf("Integer value: %d\n", (int32_t)value);
+        }
     }
     return 1;
 }
@@ -630,7 +656,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
         }
 
         print_use_register_transition(transition_file,current_line+1,use_register);
-        // print_use_float_register_transition(float_transition_file,current_line+1,use_register);
+        print_use_float_register_transition(float_transition_file,current_line+1,use_register);
         current_line += (pc == 0) ? 1 : pc;
         // printf("current_line:%d\n",current_line);
     }
