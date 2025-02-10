@@ -98,7 +98,7 @@ static inline double get_float_register(int reg_num) {
     return 0;
 }
 
-uint32_t read_next_value_from_file(FILE *file, int *is_float) {
+int32_t read_next_value_from_file(FILE *file, int *is_float) {
     char line[50];
     if (fgets(line, sizeof(line), file)) {
         // 改行文字を削除
@@ -569,7 +569,8 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
     if(func3 == 2){ // rdにsldファイルの内容を書きこむ
         rd = (instruction >> 4) & 0x3F;
         int is_float;
-        uint32_t value = read_next_value_from_file(sld_file, &is_float);
+        int32_t value = read_next_value_from_file(sld_file, &is_float);
+        // printf("value:%d\n",value);
         if (is_float) {
             float float_value;
             memcpy(&float_value, &value, sizeof(float));
