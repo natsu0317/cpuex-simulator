@@ -589,6 +589,7 @@ int current_line = 0;
 // バイナリ命令をデコードして処理
 int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int instruction_length, FILE* transition_file, FILE* float_transition_file, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
     fflush(memory_file);
+    initialize_finv_table();
     // オペコードを取得
     //下4桁
     long long int total_count = 0;

@@ -3,15 +3,19 @@
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
+#include <stdbool.h>
 
 float fmul(float a, float b);
 float fsub(float a, float b);
 
-// グローバル変数として定義
+// グローバル変数
 float a_table[1024]; // 傾き
 float b_table[1024]; // y切片
+bool is_initialized = false; // 初期化フラグ
 
 void init_ab() {
+    if (is_initialized) return; // 既に初期化されている場合は何もしない
+
     float e = 1.0f / 1024.0f;
     for (int i = 0; i < 1024; i++) {
         float x1 = 1.0f + i * e;
@@ -21,10 +25,18 @@ void init_ab() {
         float x4 = ((1.0f / x1 + 1.0f / x2) / 2.0f + 1.0f / x3) / 2.0f; // 平均値
         b_table[i] = x4 - a_table[i] * x3; // y切片
     }
+
+    is_initialized = true; // 初期化完了
+}
+
+// プログラム開始時に呼び出す関数
+void initialize_finv_table() {
+    init_ab();
 }
 
 float finv(float a) {
-    init_ab();
+    // init_ab() の呼び出しを削除
+
     uint32_t a_bits;
     memcpy(&a_bits, &a, sizeof(a_bits));
 
@@ -57,7 +69,8 @@ float finv(float a) {
 }
 
 // int main() {
-//     init_ab();
+//     initialize_program(); // プログラム開始時に一度だけ初期化
+
 //     float a = 1.23f;
 //     float b = 2.34f;
 //     float result = finv(a);
