@@ -510,7 +510,7 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         // counter.f_type[12]++;
     }
     if(func7 == 26){
-        result = fcvtsw(a1);
+        result = fcvtsw(get_register(rs1));
         set_register(rd, result);
         // counter.f_type[13]++;
     }
