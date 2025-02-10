@@ -214,10 +214,12 @@ int handle_i(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t func3, in
     
     if(func3 == 0x6){ //uaddi
         if(two_previous == 1){ //2つ前の命令がauipc
+            // printf("uaddi\n");
             imm = imm/4; //la
         }
         // printf("imm:%d\n",imm);
         handle_addi_case(rd,rs1,imm);
+        printf("rd(%d):%d\n",rd,get_register(rd));
     } else {
         //負の計算
         int minus = (imm & 0x800) ? 1 : 0;
@@ -335,6 +337,7 @@ int handle_auipc(uint32_t instruction, uint32_t rd, int current_line){
     }
     int32_t value = (int32_t)(bit31_12 << 12) / 4 + current_line; // 符号付きの32ビット整数としてシフト
     set_register(rd,value);
+    // printf("value:%d\n",value);
     return 1;
 }
 
@@ -546,11 +549,9 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
         }
     }
     //csrr
-    if(func3 == 2){ // x10にsldファイルの内容を書きこむ
+    if(func3 == 2){ // rdにsldファイルの内容を書きこむ
         rd = (instruction >> 4) & 0x3F;
-        // printf("regiter:%d\n",rd);
         int32_t value = read_next_value_from_file(sld_file);
-        // printf("value:%d\n",value);
         set_register(rd, value);
     }
     return 1;
@@ -781,7 +782,6 @@ int main(){
     clock_t start_time, end_time;
     start_time = clock();
 
-    printf("start");
     fast_execute_binary_instruction(binary_instructions, instruction_length, transition_file, float_transition_file, sld_file, sld_result_file, memory_file);
     
     fclose(transition_file);
