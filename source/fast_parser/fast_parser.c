@@ -274,13 +274,14 @@ int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line
         imm = ~imm & mask + 1;
         imm = -imm;
     }
-    if (0 <= rs2 && rs2 < 32) {
-        memory[get_register(rs1) + imm] = get_register(rs2);
+    uint32_t address = get_register(rs1) + imm;
+    if (rs2 < 32) {
+        memory[address] = get_register(rs2);
         // write_to_buffer(memory_file, &memory_buffer, 
         //                 "%d命令目 %d行目 memory%dの中に%dが格納される\n",
         //                 total_count, current_line+1, get_register(rs1)+imm, get_register(rs2));
     } else {
-        memory[get_register(rs1) + imm] = get_float_register(rs2);
+        memory[address] = get_float_register(rs2);
         // write_to_buffer(memory_file, &memory_buffer, 
         //                 "%d命令目 %d行目 memory%dの中に%lfが格納される\n",
         //                 total_count, current_line+1, get_register(rs1)+imm, get_float_register(rs2));
@@ -657,8 +658,8 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 break;
         }
 
-        print_use_register_transition(transition_file,current_line+1,use_register);
-        print_use_float_register_transition(float_transition_file,current_line+1,use_register);
+        // print_use_register_transition(transition_file,current_line+1,use_register);
+        // print_use_float_register_transition(float_transition_file,current_line+1,use_register);
         current_line += (pc == 0) ? 1 : pc;
         // printf("current_line:%d\n",current_line);
     }
