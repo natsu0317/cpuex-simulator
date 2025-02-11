@@ -335,10 +335,10 @@ int handle_b(uint32_t instruction, uint32_t rs1, uint32_t rs2, uint32_t func3){
     return pc;
 }
 
-int handle_lui(uint32_t instruction, uint32_t rd){
+int handle_lui(uint32_t instruction, int32_t rd){
     //lui rd 0xa だったらrdにa * 16 * 16 * 16を格納
     // printf("u_type\n");
-    uint32_t value = (((instruction >> 12) & 0xFFFFF) << 12); //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
+    int32_t value = (((instruction >> 12) & 0xFFFFF) << 12); //これ4で割らないといけないかもしれない。4で割るなら行数と一致する
     set_register(rd,value);
     // counter.u_type[0]++;
     return 1;
