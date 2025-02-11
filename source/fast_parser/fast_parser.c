@@ -535,6 +535,7 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
         // printf("value:%d\n",value);
         //下位2bitで出力回数
         int total_output = (value & 0x3) + 1;
+        total_output = (total_output >= 3) ? 3 : total_output;
         for(int i=0; i <(3-total_output); i++){
             fprintf(sld_result_file, "0");
             // printf("0");
