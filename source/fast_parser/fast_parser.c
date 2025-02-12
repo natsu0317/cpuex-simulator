@@ -803,7 +803,7 @@ int main(){
     }
 
     //x10の値が格納
-    FILE *sld_result_file = fopen("./document/sld_result.txt","w");
+    FILE *sld_result_file = fopen("./document/sld_result.ppm","w");
     if (sld_result_file == NULL) {
         perror("Error opening sld_result file");
         return 1;
