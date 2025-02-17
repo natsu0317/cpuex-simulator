@@ -226,11 +226,11 @@ int handle_r(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
     return 1;
 }
 
-int handle_i(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t func3, int two_previous){
+int handle_i(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t func3, int previous){
     int32_t imm = (instruction >> 20) & 0xFFF;
     
     if(func3 == 0x6){ //uaddi
-        if(two_previous == 1){ //2つ前の命令がauipc
+        if(previous == 1){ //1つ前の命令がauipc
             // printf("uaddi\n");
             imm = imm/4; //la
         }
@@ -585,7 +585,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
     //下4桁
     long long int total_count = 0;
     int previous = 0;
-    int two_previous = 0;
+    // int two_previous = 0;
     uint32_t instruction, opcode, rd, rs1, rs2, func3;
 
     while(current_line < instruction_length){
@@ -593,7 +593,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
         // printf("total_count:%lld\n",total_count);
         total_count++;
         int pc = 0;
-        two_previous = previous;
+        // two_previous = previous;
         previous = (opcode == 0x6);
         // printf("instruction:%s\n",binary_instruction[current_line].binary_code);
         instruction = strtol(binary_instruction[current_line].binary_code, NULL, 2); //2進数文字列を数値に変換
@@ -605,7 +605,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
         
         switch (opcode) {
             case 0x2:  // I-type
-                handle_i(instruction, rd, rs1, func3, two_previous);
+                handle_i(instruction, rd, rs1, func3, previous);
                 break;
             case 0x3:  // SW
                 handle_sw(instruction, rs1, rs2, current_line, memory_file, total_count);

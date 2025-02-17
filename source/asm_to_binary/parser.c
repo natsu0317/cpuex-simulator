@@ -531,17 +531,17 @@ void parse_assembly(const char* assembly_code){
                 bit11_0_bin[11 - i] = (bit11_0 & (1 << i)) ? '1' : '0';
             }
 
-            //printf("bit31_12 (2進数): %s\n", bit31_12_bin);
-            //printf("bit11_0 (2進数): %s\n", bit11_0_bin);
+            // printf("bit31_12 (2進数): %s\n", bit31_12_bin);
+            // printf("bit11_0 (2進数): %s\n", bit11_0_bin);
             // //printf("%s00%s0110\n", bit31_12, rd_bin);
             snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0110", bit31_12_bin, rd_bin);
             //lui version(多分違う)
             // snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0101 ", bit31_12_bin, rd_bin);
 
             // nop(addi x0,x0,0)命令を追加
-            instruction_count++;
-            binary_instructions[binary_instruction_count++] = inst;
-            snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000000000000010");
+            // instruction_count++;
+            // binary_instructions[binary_instruction_count++] = inst;
+            // snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000000000000010");
 
             instruction_count++;
             binary_instructions[binary_instruction_count++] = inst;
@@ -806,13 +806,13 @@ void parse_assembly(const char* assembly_code){
         }
         // laとla_1はauipcとaddiの2命令に分かれるから調節
         if(strstr(before_token, "la") != NULL && strstr(token, "la") != NULL){
-            token = strtok(NULL,delimiter);
+            // token = strtok(NULL,delimiter);
             //printf("after_token:%s\n",token);
             token = strtok(NULL,delimiter);
             //printf("after_token:%s\n",token);
         }
         if(strstr(before_token, "la_1") != NULL && strstr(token, "la_1") != NULL){
-            token = strtok(NULL,delimiter);
+            // token = strtok(NULL,delimiter);
             //printf("after_token:%s\n",token);
             token = strtok(NULL,delimiter);
             //printf("after_token:%s\n",token);
