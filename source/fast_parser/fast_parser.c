@@ -467,8 +467,8 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         // counter.f_type[6]++;
     }
     if(func7 == 11){
-        // result = fsqrt(a1);
-        result = sqrtf(a1);
+        result = fsqrt(a1);
+        // printf("%.2f\t%.6f\t%.6f\t%.2e\n", a1, result, sqrtf(a1), result-sqrtf(a1));
         set_register(rd, result);
         // counter.f_type[7]++;
     }
