@@ -435,8 +435,7 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         // counter.f_type[2]++;
     }
     if(func7 == 3){
-        // result = fdiv(a1,a2);
-        result = a1 / a2;
+        result = fdiv(a1,a2);
         set_register(rd, result);
         // counter.f_type[3]++;
     }
