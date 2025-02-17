@@ -11,7 +11,7 @@
 
 #define NUM_REGISTERS 64
 #define INSTRUCTION_LENGTH 33 //32bit + 終端文字
-#define MEMORY_SIZE 16777216
+#define MEMORY_SIZE 8388608
 #define STACK_SIZE 4096
 #define MAX_ASSEMBLY_SIZE 1048448  // アセンブリコードの最大サイズ
 #define MAX_INSTRUCTION_LENGTH 50 // 1行の長さ
@@ -151,26 +151,12 @@ void print_use_register_transition(FILE *transition_file, int pc, int use_regist
     
     offset += snprintf(buffer + offset, sizeof(buffer) - offset, "| %2d行|", pc);
     
-    // for(int i = 0; i < 32; i++) {
-    //     if(use_register[i] > 0){
-    //         offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(i));
-    //     }
-    // }
+    for(int i = 0; i < 32; i++) {
+        if(use_register[i] > 0){
+            offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(i));
+        }
+    }
     
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(0));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(1));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(2));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(5));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(6));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(7));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(8));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(9));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(10));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(11));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(12));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(19));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3d | ", get_register(21));
-
     offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\n");
     
     // 一括書き出し
@@ -183,21 +169,12 @@ void print_use_float_register_transition(FILE *float_transition_file, int pc, in
 
     offset += snprintf(buffer + offset, sizeof(buffer) - offset, "| %2d行|", pc);
     
-    // for(int i = 32; i < NUM_REGISTERS; i++) {
-    //     if(use_register[i] > 0){
-    //         offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3f | ", get_float_register(i));
-    //     }
-    // }
+    for(int i = 32; i < NUM_REGISTERS; i++) {
+        if(use_register[i] > 0){
+            offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3f | ", get_float_register(i));
+        }
+    }
     
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3f | ", get_float_register(0));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3f | ", get_float_register(1));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3f | ", get_float_register(2));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3f | ", get_float_register(3));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3f | ", get_float_register(4));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3f | ", get_float_register(5));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3f | ", get_float_register(6));
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%3f | ", get_float_register(7));
-
     offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\n");
 
     // 一括書き出し
@@ -350,6 +327,10 @@ int handle_b(uint32_t instruction, uint32_t rs1, uint32_t rs2, uint32_t func3){
         if(get_register(rs1) >= get_register(rs2)){
             pc += imm/4;
         }
+    } else if(funct3 == 0x6){  // bgt
+        if(get_register(rs1) > get_register(rs2)){
+            pc += imm/4;
+        }
     }
     return pc;
 }
@@ -433,28 +414,6 @@ int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line,
     return 1;
 }
 
-//     if(func7 == 3){
-//         result = fdiv(a1,a2);
-//         set_register(rd, result);
-//         // counter.f_type[3]++;
-//     }
-//     if(func7 == 10){
-//         result = finv(a1);
-//         set_register(rd, result);
-//         // counter.f_type[6]++;
-//     }
-//     if(func7 == 11){
-//         // printf("fsqrt");
-//         // result = fsqrt(a1);
-//         result = sqrtf(a1);
-//         set_register(rd, result);
-//         // counter.f_type[7]++;
-//         // printf("\nBreak point reached at instruction %d. Press Enter to continue...\n", current_line+1);
-//         // while(getchar() != '\n'); // Enterキーが押されるまで待機
-//     }
-
-
-
 int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint32_t func3){
     uint32_t func7 = (instruction >> 27) & 0x1F;
     float a1 = get_float_register(rs1);
@@ -476,6 +435,7 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         // counter.f_type[2]++;
     }
     if(func7 == 3){
+        // result = fdiv(a1,a2);
         result = a1 / a2;
         set_register(rd, result);
         // counter.f_type[3]++;
@@ -503,18 +463,15 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         // counter.f_type[5]++;
     }
     if(func7 == 10){
-        result = 1.0 / a1;
+        result = finv(a1);
         set_register(rd, result);
         // counter.f_type[6]++;
     }
     if(func7 == 11){
-        // printf("fsqrt");
         // result = fsqrt(a1);
         result = sqrtf(a1);
         set_register(rd, result);
         // counter.f_type[7]++;
-        // printf("\nBreak point reached at instruction %d. Press Enter to continue...\n", current_line+1);
-        // while(getchar() != '\n'); // Enterキーが押されるまで待機
     }
     if(func7 == 20){
         if(func3 == 1){//flt
@@ -691,8 +648,8 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 break;
         }
 
-        // print_use_register_transition(transition_file,current_line+1,use_register);
-        // print_use_float_register_transition(float_transition_file,current_line+1,use_register);
+        print_use_register_transition(transition_file,current_line+1,use_register);
+        print_use_float_register_transition(float_transition_file,current_line+1,use_register);
         current_line += (pc == 0) ? 1 : pc;
         // printf("current_line:%d\n",current_line);
     }
