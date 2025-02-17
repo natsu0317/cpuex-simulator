@@ -8,24 +8,24 @@
 float fadd(float a, float b);
 float fmul(float a, float b);
 
-typedef struct {
-    float a[NUM_INTERVALS];
-    float b[NUM_INTERVALS];
-} BlockRAM;
+// typedef struct {
+//     float a[NUM_INTERVALS];
+//     float b[NUM_INTERVALS];
+// } BlockRAM;
 
-BlockRAM ram;
+// BlockRAM ram;
 
-void initBlockRAM() {
-    for (int i = 0; i < NUM_INTERVALS; i++) {
-        float x1 = 1.0f + (float)i / NUM_INTERVALS;
-        float x2 = 1.0f + (float)(i + 1) / NUM_INTERVALS;
-        float y1 = 1.0f / x1;
-        float y2 = 1.0f / x2;
+// void initBlockRAM() {
+//     for (int i = 0; i < NUM_INTERVALS; i++) {
+//         float x1 = 1.0f + (float)i / NUM_INTERVALS;
+//         float x2 = 1.0f + (float)(i + 1) / NUM_INTERVALS;
+//         float y1 = 1.0f / x1;
+//         float y2 = 1.0f / x2;
         
-        ram.a[i] = (y2 - y1) / (x2 - x1);
-        ram.b[i] = y1 - ram.a[i] * x1;
-    }
-}
+//         ram.a[i] = (y2 - y1) / (x2 - x1);
+//         ram.b[i] = y1 - ram.a[i] * x1;
+//     }
+// }
 
 // float finv(float a) {
 //     // 入力を [1, 2) の範囲に正規化
