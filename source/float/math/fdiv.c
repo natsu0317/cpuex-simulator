@@ -1,29 +1,12 @@
 #include "math_functions.h"
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include <float.h>
 
-// fdivの要素としてfinvも定義
+BlockRAM ram;
+int ram_initialized = 0;
 
-#define NUM_INTERVALS 1024
-
-typedef struct {
-    float a[NUM_INTERVALS];
-    float b[NUM_INTERVALS];
-} BlockRAM;
-
-// グローバル変数として BlockRAM を定義
-static BlockRAM ram;
-static int ram_initialized = 0;
-
-float fadd(float a, float b);
-float fsub(float a, float b);
-float fmul(float a, float b);
-
-// BlockRAM の初期化関数
-static void initBlockRAM() {
+void initBlockRAM() {
     for (int i = 0; i < NUM_INTERVALS; i++) {
         float x1 = 1.0f + (float)i / NUM_INTERVALS;
         float x2 = 1.0f + (float)(i + 1) / NUM_INTERVALS;
@@ -42,6 +25,12 @@ float finv(float a) {
         initBlockRAM();
     }
 
+    // 入力の符号を保存
+    int sign = (*(uint32_t*)&a) & 0x80000000;
+
+    // 絶対値を取る
+    a = fabsf(a);
+
     // 入力を [1, 2) の範囲に正規化
     uint32_t bits;
     memcpy(&bits, &a, sizeof(float));
@@ -58,18 +47,16 @@ float finv(float a) {
     float result = ram.a[index] * x + ram.b[index];
     
     // 結果を元のスケールに戻す
-    return ldexpf(result, -exp);
+    result = ldexpf(result, -exp);
+
+    // 元の符号を復元
+    *(uint32_t*)&result ^= sign;
+
+    return result;
 }
 
 float fdiv(float a, float b){
-    return fmul(a, finv(b));
+    float result = fmul(a, finv(b));
+    // printf("%f / %f = %f error = %e\n", a, b, result, a/b - result);
+    return result;
 }
-
-// int main(){
-//     float a = 1.23f;
-//     float b = 2.34f;
-//     printf("finv(%f):%f\n",b,finv(b));
-//     float result = fdiv(a,b);
-//     printf("Result of fdiv(%f, %f) = %f\n", a, b, result);
-//     return 0;
-// }
