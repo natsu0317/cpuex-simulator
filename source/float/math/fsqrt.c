@@ -3,78 +3,79 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <float.h>
 
-// グローバル変数として定義
-float a_table_sqrt[1024]; // 傾き
-float b_table_sqrt[1024]; // y切片
+#define NUM_INTERVALS 1024
 
-void init_ab_sqrt() {
-    float e = 3.0f / 1024.0f;
-    for (int i = 0; i < 1024; i++) {
-        float x1 = 1.0f + i * e;
-        float x2 = 1.0f + (i + 1) * e;
-        float x3 = 1.0f + (i + 0.5f) * e;
-        a_table_sqrt[i] = (sqrt(x2) - sqrt(x1)) / e; // 傾き
-        float x4 = (sqrt(x1) + sqrt(x2)) / 2.0f; // 平均値
-        b_table_sqrt[i] = x4 - a_table_sqrt[i] * x3; // y切片
+typedef struct {
+    float a[NUM_INTERVALS];
+    float b[NUM_INTERVALS];
+} BlockRAM;
+
+static BlockRAM ram;
+static int ram_initialized = 0;
+
+// BlockRAM の初期化関数
+static void initBlockRAM() {
+    for (int i = 0; i < NUM_INTERVALS; i++) {
+        float x1 = 1.0f + (float)i * 3.0f / NUM_INTERVALS;
+        float x2 = 1.0f + (float)(i + 1) * 3.0f / NUM_INTERVALS;
+        float y1 = sqrtf(x1); 
+        float y2 = sqrtf(x2); 
+        float xmid = (x1 + x2) / 2.0f;
+        float ymid = sqrtf(xmid);  
+        float yavg = (y1 + y2) / 2.0f;
+        
+        ram.a[i] = (y2 - y1) / (x2 - x1);
+        ram.b[i] = (ymid + yavg) / 2.0f - ram.a[i] * xmid;
     }
+    ram_initialized = 1;
+}
+
+// 2の累乗を計算する関数
+float pow2(int exp) {
+    uint32_t result = 1 << (exp + 127);
+    float f;
+    memcpy(&f, &result, sizeof(float));
+    return f;
 }
 
 float fsqrt(float x) {
-    if (x < 0.0f) {
-        return NAN; // 負の数は平方根が定義されない
-    }
-    if (x == 0.0f) {
-        return 0.0f; // 0 の平方根は 0
-    }
+    if (x == 0.0f) return 0.0f;
 
-    // 初期化
-    static int initialized = 0;
-    if (!initialized) {
-        init_ab_sqrt();
-        initialized = 1;
+    if (!ram_initialized) {
+        initBlockRAM();
     }
 
-    uint32_t x_bits;
-    memcpy(&x_bits, &x, sizeof(x_bits));
+    uint32_t bits;
+    memcpy(&bits, &x, sizeof(float));
+    int exp = ((bits >> 23) & 0xFF) - 127;
+    int exp_adj = exp / 2;
+    uint32_t mantissa = (bits & 0x007FFFFF) | 0x00800000;
+    float x_norm = (float)mantissa / (1 << 23);
+    if (exp % 2) x_norm *= 2.0f;
 
-    uint32_t s = (x_bits >> 31) & 0x1; // 符号ビット
-    uint32_t e = (x_bits >> 23) & 0xFF; // 指数部
-    uint32_t m = x_bits & 0x7FFFFF; // 仮数部
+    int index = (int)((x_norm - 1.0f) * NUM_INTERVALS / 3.0f);
+    if (index < 0) index = 0;
+    if (index >= NUM_INTERVALS) index = NUM_INTERVALS - 1;
 
-    // 正規化
-    float x_prime = 1.0f + (m / (float)(1 << 23)); // [1.0, 2.0) に変換
-    uint32_t index = (uint32_t)((x_prime - 1.0f) * 1024.0f); // テーブルのインデックス計算
+    float result = ram.a[index] * x_norm + ram.b[index];
 
-    float a_value = a_table_sqrt[index];
-    float b_value = b_table_sqrt[index];
-
-    // 近似値
-    float sqrt_x_prime = a_value * x_prime + b_value;
-
-    // 指数の調整
-    int exp_adjust = (e - 127) / 2 + 127;
-    if ((e - 127) % 2 != 0) { // 奇数の指数の場合
-        sqrt_x_prime *= sqrt(2.0f);
-    }
-
-    // 結果を再構築
-    uint32_t result_bits;
-    memcpy(&result_bits, &sqrt_x_prime, sizeof(sqrt_x_prime));
-    result_bits = (s << 31) | (exp_adjust << 23) | (result_bits & 0x7FFFFF);
-
-    float result;
-    memcpy(&result, &result_bits, sizeof(result));
+    // powfの代わりに自作の pow2 関数を使用
+    result *= pow2(exp_adj);
 
     return result;
 }
 
 // int main() {
-//     float a = 1.23f;
-//     float b = 2.34f;
-//     float result = fsqrt(a);
-//     printf("Result of fsqrt(%f) = %f\n", a, result);
-//     result = fsqrt(b);
-//     printf("Result of fsqrt(%f) = %f\n", b, result);
+//     float test_values[] = {0.0f, 1.0f, 2.0f, 4.0f, 9.0f, 16.0f, 25.0f, 100.0f};
+//     int num_tests = sizeof(test_values) / sizeof(float);
+
+//     for (int i = 0; i < num_tests; i++) {
+//         float x = test_values[i];
+//         float approx = fsqrt(x);
+//         printf("sqrt(%f) = %f (Approximation)\n", x, approx);
+//     }
+
 //     return 0;
 // }
