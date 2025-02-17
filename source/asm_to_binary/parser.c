@@ -539,9 +539,9 @@ void parse_assembly(const char* assembly_code){
             // snprintf(inst.binary_code, sizeof(inst.binary_code),"%s00%s0101 ", bit31_12_bin, rd_bin);
 
             // nop(addi x0,x0,0)命令を追加
-            // instruction_count++;
-            // binary_instructions[binary_instruction_count++] = inst;
-            // snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000000000000010");
+            instruction_count++;
+            binary_instructions[binary_instruction_count++] = inst;
+            snprintf(inst.binary_code, sizeof(inst.binary_code),"00000000000000000000000000000010");
 
             instruction_count++;
             binary_instructions[binary_instruction_count++] = inst;
@@ -808,8 +808,12 @@ void parse_assembly(const char* assembly_code){
         if(strstr(before_token, "la") != NULL && strstr(token, "la") != NULL){
             token = strtok(NULL,delimiter);
             //printf("after_token:%s\n",token);
+            token = strtok(NULL,delimiter);
+            //printf("after_token:%s\n",token);
         }
         if(strstr(before_token, "la_1") != NULL && strstr(token, "la_1") != NULL){
+            token = strtok(NULL,delimiter);
+            //printf("after_token:%s\n",token);
             token = strtok(NULL,delimiter);
             //printf("after_token:%s\n",token);
         }
