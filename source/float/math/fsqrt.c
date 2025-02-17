@@ -1,81 +1,109 @@
-#include "math_functions.h"
-#include <stdint.h>
 #include <stdio.h>
-#include <string.h>
+#include <stdint.h>
 #include <math.h>
 #include <float.h>
+#include <stdbool.h>
 
-#define NUM_INTERVALS 1024
-
-typedef struct {
-    float a[NUM_INTERVALS];
-    float b[NUM_INTERVALS];
-} BlockRAM;
-
-static BlockRAM ram;
-static int ram_initialized = 0;
-
-// BlockRAM の初期化関数
-static void initBlockRAM() {
-    for (int i = 0; i < NUM_INTERVALS; i++) {
-        float x1 = 1.0f + (float)i * 3.0f / NUM_INTERVALS;
-        float x2 = 1.0f + (float)(i + 1) * 3.0f / NUM_INTERVALS;
-        float y1 = sqrtf(x1); 
-        float y2 = sqrtf(x2); 
-        float xmid = (x1 + x2) / 2.0f;
-        float ymid = sqrtf(xmid);  
-        float yavg = (y1 + y2) / 2.0f;
-        
-        ram.a[i] = (y2 - y1) / (x2 - x1);
-        ram.b[i] = (ymid + yavg) / 2.0f - ram.a[i] * xmid;
-    }
-    ram_initialized = 1;
-}
-
-// 2の累乗を計算する関数
-float pow2(int exp) {
-    uint32_t result = 1 << (exp + 127);
+// IEEE 754 single-precision floating-point format
+typedef union {
     float f;
-    memcpy(&f, &result, sizeof(float));
-    return f;
+    uint32_t i;
+} FloatInt;
+
+// Constants
+#define SQRT_TABLE_SIZE 1024
+#define SQRT_RANGE_MIN 1.0f
+#define SQRT_RANGE_MAX 4.0f
+
+// Pre-computed coefficients (a and b) for linear approximation
+static float sqrt_coeffs[SQRT_TABLE_SIZE][2];
+static bool table_initialized = false;
+
+// Initialize the sqrt_coeffs table
+static void init_sqrt_table() {
+    for (int i = 0; i < SQRT_TABLE_SIZE; i++) {
+        float x1 = SQRT_RANGE_MIN + (float)i * (SQRT_RANGE_MAX - SQRT_RANGE_MIN) / SQRT_TABLE_SIZE;
+        float x2 = x1 + (SQRT_RANGE_MAX - SQRT_RANGE_MIN) / SQRT_TABLE_SIZE;
+        float y1 = sqrtf(x1);
+        float y2 = sqrtf(x2);
+        float xm = (x1 + x2) / 2;
+        float ym = sqrtf(xm);
+        
+        float a = (y2 - y1) / (x2 - x1);
+        float b = ((y1 + y2) / 2 + ym) / 2 - a * xm;
+        
+        sqrt_coeffs[i][0] = a;
+        sqrt_coeffs[i][1] = b;
+    }
+    table_initialized = true;
 }
 
 float fsqrt(float x) {
-    if (x == 0.0f) return 0.0f;
-
-    if (!ram_initialized) {
-        initBlockRAM();
+    if (!table_initialized) {
+        init_sqrt_table();
     }
 
-    uint32_t bits;
-    memcpy(&bits, &x, sizeof(float));
-    int exp = ((bits >> 23) & 0xFF) - 127;
-    int exp_adj = exp / 2;
-    uint32_t mantissa = (bits & 0x007FFFFF) | 0x00800000;
-    float x_norm = (float)mantissa / (1 << 23);
-    if (exp % 2) x_norm *= 2.0f;
+    if (x == 0.0f) return 0.0f;
+    if (x < 0.0f) return NAN;  // Return NaN for negative inputs
 
-    int index = (int)((x_norm - 1.0f) * NUM_INTERVALS / 3.0f);
-    if (index < 0) index = 0;
-    if (index >= NUM_INTERVALS) index = NUM_INTERVALS - 1;
+    FloatInt fi;
+    fi.f = x;
 
-    float result = ram.a[index] * x_norm + ram.b[index];
+    int exp = ((fi.i >> 23) & 0xFF) - 127;
+    fi.i = (fi.i & 0x007FFFFF) | 0x3F800000;
+    
+    while (fi.f >= 4.0f) {
+        fi.f *= 0.25f;
+        exp += 2;
+    }
 
-    // powfの代わりに自作の pow2 関数を使用
-    result *= pow2(exp_adj);
+    int index = (int)((fi.f - SQRT_RANGE_MIN) * SQRT_TABLE_SIZE / (SQRT_RANGE_MAX - SQRT_RANGE_MIN));
+    if (index >= SQRT_TABLE_SIZE) index = SQRT_TABLE_SIZE - 1;
 
-    return result;
+    float a = sqrt_coeffs[index][0];
+    float b = sqrt_coeffs[index][1];
+    float result = a * fi.f + b;
+
+    int new_exp = 127 + (exp >> 1);
+    if (exp & 1) result *= 1.4142135623730950488f;  // sqrt(2)
+    
+    fi.f = result;
+    fi.i = (fi.i & 0x007FFFFF) | (new_exp << 23);
+
+    // float our_result = fi.f;
+    // float lib_result = sqrtf(x);
+    // float rel_error = fabsf(our_result - lib_result) / lib_result;
+
+    // printf("%.2f\t%.6f\t%.6f\t%.2e\n", x, our_result, lib_result, rel_error);
+
+    return fi.f;
 }
 
 // int main() {
-//     float test_values[] = {0.0f, 1.0f, 2.0f, 4.0f, 9.0f, 16.0f, 25.0f, 100.0f};
-//     int num_tests = sizeof(test_values) / sizeof(float);
+//     printf("Testing fsqrt function:\n");
+//     printf("x\tfsqrt(x)\tsqrt(x)\tRelative Error\n");
 
-//     for (int i = 0; i < num_tests; i++) {
-//         float x = test_values[i];
-//         float approx = fsqrt(x);
-//         printf("sqrt(%f) = %f (Approximation)\n", x, approx);
+//     float max_error = 0.0f;
+//     float total_error = 0.0f;
+//     int num_tests = 0;
+
+//     for (float x = 0.0f; x <= 100.0f; x += 0.1f) {
+//         float our_result = fsqrt(x);
+//         float lib_result = sqrtf(x);
+//         float rel_error = fabsf(our_result - lib_result) / lib_result;
+
+//         printf("%.2f\t%.6f\t%.6f\t%.2e\n", x, our_result, lib_result, rel_error);
+
+//         max_error = fmaxf(max_error, rel_error);
+//         total_error += rel_error;
+//         num_tests++;
 //     }
+
+//     float avg_error = total_error / num_tests;
+
+//     printf("\nError analysis:\n");
+//     printf("Maximum relative error: %.2e\n", max_error);
+//     printf("Average relative error: %.2e\n", avg_error);
 
 //     return 0;
 // }
