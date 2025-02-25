@@ -6,12 +6,13 @@
 #include <math.h>
 #include <time.h>
 #include <stdarg.h>
+#include <assert.h>
 #include "../float/math/math_functions.h"
 #include "../asm_to_binary/asm_to_binary.h"
+#include "../cache/set_associative.h"
 
 #define NUM_REGISTERS 64
 #define INSTRUCTION_LENGTH 33 //32bit + 終端文字
-#define MEMORY_SIZE 8388608
 #define STACK_SIZE 4096
 #define MAX_ASSEMBLY_SIZE 1048448  // アセンブリコードの最大サイズ
 #define MAX_INSTRUCTION_LENGTH 50 // 1行の長さ
@@ -61,7 +62,7 @@ void write_to_buffer(FILE *file, Buffer *buffer, const char *format, ...) {
     }
 }
 
-float memory[MEMORY_SIZE];
+// float memory[MEMORY_SIZE];
 int sp = MEMORY_SIZE - 1; //スタックポインタ
 
 // registerのsimulation
@@ -275,17 +276,47 @@ int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line
         imm = -imm;
     }
     uint32_t address = get_register(rs1) + imm;
+    printf("sw address: %d\n",address);
+    uint8_t data[4];
     if (rs2 < 32) {
-        memory[address] = get_register(rs2);
-        // write_to_buffer(memory_file, &memory_buffer, 
-        //                 "%d命令目 %d行目 memory%dの中に%dが格納される\n",
-        //                 total_count, current_line+1, get_register(rs1)+imm, get_register(rs2));
+        *(uint32_t*)data = get_register(rs2);
+        printf("%d\n",get_register(rs2));
     } else {
-        memory[address] = get_float_register(rs2);
-        // write_to_buffer(memory_file, &memory_buffer, 
-        //                 "%d命令目 %d行目 memory%dの中に%lfが格納される\n",
-        //                 total_count, current_line+1, get_register(rs1)+imm, get_float_register(rs2));
+        *(uint32_t*)data = get_float_register(rs2);
     }
+    printf("SW: Writing value 0x%08x to address 0x%08x\n", *(uint32_t*)data, address);
+    cache_write(address, data, 4);
+
+    return 1;
+}
+
+int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line, FILE* memory_file){
+    // printf("lw\n");
+    uint32_t lw_offset = (instruction >> 20) & 0xFFF;
+    // float lw = 0; //setする値
+
+    uint32_t address;
+
+    if(lw_offset && 0x800 == 1){//負の値
+        uint32_t mask = (1<<12) - 1;
+        lw_offset = ~lw_offset & mask;
+        lw_offset = lw_offset + 1;
+        address = get_register(rs1) - lw_offset;
+    }else{
+        //printf("正\n");
+        address = get_register(rs1) + lw_offset;
+    }
+    // lw = memory[address];
+    printf("lw address: %d\n",address);
+
+    uint8_t data[4];
+    cache_read(address, data, 4);
+    uint32_t lw = *(uint32_t*)data;
+    printf("LW: Read value 0x%08x from address 0x%08x\n", lw, address);
+
+    //printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
+    // fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%f\n",current_line+1, get_register(rs1) + lw_offset,lw);
+    set_register(rd,lw);
     return 1;
 }
 
@@ -392,26 +423,6 @@ int handle_jalr(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_lin
     set_register(rd, current_line+2);
     pc = get_register(rs1) + imm/4 - current_line - 1;
     return pc;
-}
-
-int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line, FILE* memory_file){
-    // printf("lw\n");
-    uint32_t lw_offset = (instruction >> 20) & 0xFFF;
-    float lw = 0; //setする値
-
-    if(lw_offset && 0x800 == 1){//負の値
-        uint32_t mask = (1<<12) - 1;
-        lw_offset = ~lw_offset & mask;
-        lw_offset = lw_offset + 1;
-        lw = memory[get_register(rs1) - lw_offset];
-    }else{
-        //printf("正\n");
-        lw = memory[get_register(rs1) + lw_offset];
-    }
-    //printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
-    // fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%f\n",current_line+1, get_register(rs1) + lw_offset,lw);
-    set_register(rd,lw);
-    return 1;
 }
 
 int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint32_t func3){
@@ -588,6 +599,9 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
     // int two_previous = 0;
     uint32_t instruction, opcode, rd, rs1, rs2, func3;
 
+    init_set_associative_cache();
+    init_memory();
+
     while(current_line < instruction_length){
         // printf("current_line:%d\n",current_line);
         // printf("total_count:%lld\n",total_count);
@@ -654,6 +668,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
         // printf("current_line:%d\n",current_line);
     }
     // flush_buffer(memory_file, &memory_buffer);
+    print_stats();
     return 0;
 }
 
