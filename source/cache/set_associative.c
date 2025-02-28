@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define MEMORY_SIZE 131072
+#define MEMORY_SIZE 8388608
 #define CACHE_LINES 1024
 #define WAYS 4
 #define BLOCK_SIZE 128

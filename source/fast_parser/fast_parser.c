@@ -276,7 +276,7 @@ int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line
         imm = -imm;
     }
     uint32_t address = get_register(rs1) + imm;
-    printf("sw address: %d\n",address);
+    // printf("sw address: %d\n",address);
     uint8_t data[4];
     if (rs2 < 32) {
         *(uint32_t*)data = get_register(rs2);
@@ -284,7 +284,7 @@ int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line
     } else {
         *(uint32_t*)data = get_float_register(rs2);
     }
-    printf("SW: Writing value 0x%08x to address 0x%08x\n", *(uint32_t*)data, address);
+    fprintf(memory_file,"SW: Writing value %d to address %d\n", *(uint32_t*)data, address);
     cache_write(address, data, 4);
 
     return 1;
@@ -312,7 +312,7 @@ int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line,
     uint8_t data[4];
     cache_read(address, data, 4);
     uint32_t lw = *(uint32_t*)data;
-    printf("LW: Read value 0x%08x from address 0x%08x\n", lw, address);
+    fprintf(memory_file,"LW: Read value %d from address %d\n", lw, address);
 
     //printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
     // fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%f\n",current_line+1, get_register(rs1) + lw_offset,lw);
