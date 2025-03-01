@@ -277,14 +277,14 @@ int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line
     uint32_t address = get_register(rs1) + imm;
     if (rs2 < 32) {
         memory[address] = get_register(rs2);
-        // write_to_buffer(memory_file, &memory_buffer, 
-        //                 "%d命令目 %d行目 memory%dの中に%dが格納される\n",
-        //                 total_count, current_line+1, get_register(rs1)+imm, get_register(rs2));
-    } else {
+        fprintf(memory_file, 
+                            "%lld命令目 %d行目 memory%dの中に%dが格納される\n",
+                            total_count, current_line+1, get_register(rs1)+imm, get_register(rs2));
+        } else {
         memory[address] = get_float_register(rs2);
-        // write_to_buffer(memory_file, &memory_buffer, 
-        //                 "%d命令目 %d行目 memory%dの中に%lfが格納される\n",
-        //                 total_count, current_line+1, get_register(rs1)+imm, get_float_register(rs2));
+        fprintf(memory_file, 
+                        "%lld命令目 %d行目 memory%dの中に%lfが格納される\n",
+                        total_count, current_line+1, get_register(rs1)+imm, get_float_register(rs2));
     }
     return 1;
 }
@@ -409,7 +409,7 @@ int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line,
         lw = memory[get_register(rs1) + lw_offset];
     }
     //printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
-    // fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%f\n",current_line+1, get_register(rs1) + lw_offset,lw);
+    fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%f\n",current_line+1, get_register(rs1) + lw_offset,lw);
     set_register(rd,lw);
     return 1;
 }
