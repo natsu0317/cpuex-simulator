@@ -531,31 +531,28 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
             int shift_count = 2+i*8;
             uint8_t lower8bits = ((value >> shift_count) & 0xF);
             fprintf(sld_result_file, "%u", lower8bits);
-            // printf("%u",lower8bits);
+            printf("%u",lower8bits);
         }
         // fprintf(sld_result_file, "\n");
         // printf("\n");
     }
     //csrw
     if(func3 == 1){ // x10の下位8bit値をファイルに書きこむ
-        // if( 0 <= rd && rd < 32){
-        //     uint32_t value = (uint32_t)get_register(rd);
-        //     uint8_t lower8bits = (value & 0xFF);
-        //     // uint8_t lower8bits = (value & 0xFF);
-        //     // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
-        //     fprintf(sld_result_file, "%c", lower8bits);
-        //     // printf("%c",lower8bits);
-        // } else {
-        //     uint32_t value = (uint32_t)get_float_register(rd);
-        //     // uint8_t lower8bits = (value & 0xFF) - 48;
-        //     uint8_t lower8bits = (value & 0xFF);
-        //     // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
-        //     fprintf(sld_result_file, "%c", lower8bits);
-        //     // printf("%c",lower8bits);
-        // }
-        uint32_t value = (uint32_t)get_register(10);
-        uint8_t lower8bits = (value & 0xFF);
-        fprintf(sld_result_file, "%c", lower8bits);
+        if( 0 <= rd && rd < 32){
+            uint32_t value = (uint32_t)get_register(rd);
+            uint8_t lower8bits = (value & 0xFF);
+            // uint8_t lower8bits = (value & 0xFF);
+            // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
+            fprintf(sld_result_file, "%c", lower8bits);
+            printf("%c",lower8bits);
+        } else {
+            uint32_t value = (uint32_t)get_float_register(rd);
+            // uint8_t lower8bits = (value & 0xFF) - 48;
+            uint8_t lower8bits = (value & 0xFF);
+            // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
+            fprintf(sld_result_file, "%c", lower8bits);
+            printf("%c",lower8bits);
+        }
     }
     //csrr
     if(func3 == 2){ // rdにsldファイルの内容を書きこむ
