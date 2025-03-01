@@ -286,9 +286,6 @@ int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line
         //                 "%d命令目 %d行目 memory%dの中に%lfが格納される\n",
         //                 total_count, current_line+1, get_register(rs1)+imm, get_float_register(rs2));
     }
-    
-    fprintf(memory_file, "%lld命令目 %d行目 memory%dの中に%dが格納される\n",
-        total_count, current_line + 1, address, get_register(rs2));
     return 1;
 }
 
@@ -405,14 +402,14 @@ int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line,
     if(lw_offset && 0x800 == 1){//負の値
         uint32_t mask = (1<<12) - 1;
         lw_offset = ~lw_offset & mask;
-        lw_offset = -(lw_offset + 1);
+        lw_offset = lw_offset + 1;
+        lw = memory[get_register(rs1) - lw_offset];
+    }else{
+        //printf("正\n");
+        lw = memory[get_register(rs1) + lw_offset];
     }
-    uint32_t address = get_register(rs1) + lw_offset;
-    lw = memory[address];
     //printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
     // fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%f\n",current_line+1, get_register(rs1) + lw_offset,lw);
-    
-    fprintf(memory_file, "%d行目 memory%dの中に格納されている値:%f\n", current_line + 1, address, lw);
     set_register(rd,lw);
     return 1;
 }
@@ -534,28 +531,31 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
             int shift_count = 2+i*8;
             uint8_t lower8bits = ((value >> shift_count) & 0xF);
             fprintf(sld_result_file, "%u", lower8bits);
-            printf("%u",lower8bits);
+            // printf("%u",lower8bits);
         }
         // fprintf(sld_result_file, "\n");
         // printf("\n");
     }
     //csrw
     if(func3 == 1){ // x10の下位8bit値をファイルに書きこむ
-        if( 0 <= rd && rd < 32){
-            uint32_t value = (uint32_t)get_register(rd);
-            uint8_t lower8bits = (value & 0xFF);
-            // uint8_t lower8bits = (value & 0xFF);
-            // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
-            fprintf(sld_result_file, "%c", lower8bits);
-            printf("%c",lower8bits);
-        } else {
-            uint32_t value = (uint32_t)get_float_register(rd);
-            // uint8_t lower8bits = (value & 0xFF) - 48;
-            uint8_t lower8bits = (value & 0xFF);
-            // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
-            fprintf(sld_result_file, "%c", lower8bits);
-            printf("%c",lower8bits);
-        }
+        // if( 0 <= rd && rd < 32){
+        //     uint32_t value = (uint32_t)get_register(rd);
+        //     uint8_t lower8bits = (value & 0xFF);
+        //     // uint8_t lower8bits = (value & 0xFF);
+        //     // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
+        //     fprintf(sld_result_file, "%c", lower8bits);
+        //     // printf("%c",lower8bits);
+        // } else {
+        //     uint32_t value = (uint32_t)get_float_register(rd);
+        //     // uint8_t lower8bits = (value & 0xFF) - 48;
+        //     uint8_t lower8bits = (value & 0xFF);
+        //     // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
+        //     fprintf(sld_result_file, "%c", lower8bits);
+        //     // printf("%c",lower8bits);
+        // }
+        uint32_t value = (uint32_t)get_register(10);
+        uint8_t lower8bits = (value & 0xFF);
+        fprintf(sld_result_file, "%c", lower8bits);
     }
     //csrr
     if(func3 == 2){ // rdにsldファイルの内容を書きこむ
