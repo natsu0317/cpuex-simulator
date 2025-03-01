@@ -9,7 +9,6 @@
 #include <assert.h>
 #include "../float/math/math_functions.h"
 #include "../asm_to_binary/asm_to_binary.h"
-#include "../cache/set_associative.h"
 
 #define NUM_REGISTERS 64
 #define INSTRUCTION_LENGTH 33 //32bit + 終端文字
@@ -17,6 +16,102 @@
 #define MAX_ASSEMBLY_SIZE 1048448  // アセンブリコードの最大サイズ
 #define MAX_INSTRUCTION_LENGTH 50 // 1行の長さ
 #define BUFFER_SIZE 32768
+#define MEMORY_SIZE 8388608
+
+#define CACHE_LINES 1024
+#define WAYS 4
+#define SETS (CACHE_LINES / WAYS)
+#define BLOCK_SIZE 4
+
+typedef struct {
+    uint8_t data[BLOCK_SIZE];
+    uint32_t tag;
+    int valid;
+    int lru;
+} CacheLine;
+
+CacheLine cache[SETS][WAYS];
+
+void init_cache() {
+    for (int i = 0; i < SETS; i++) {
+        for (int j = 0; j < WAYS; j++) {
+            cache[i][j].valid = 0;
+            cache[i][j].lru = 0;
+        }
+    }
+}
+
+uint32_t get_set_index(uint32_t address) {
+    return (address / BLOCK_SIZE) % SETS;
+}
+
+uint32_t get_tag(uint32_t address) {
+    return (address / BLOCK_SIZE) / SETS;
+}
+
+int find_cache_line(uint32_t set_index, uint32_t tag) {
+    for (int i = 0; i < WAYS; i++) {
+        if (cache[set_index][i].valid && cache[set_index][i].tag == tag) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int find_lru_line(uint32_t set_index) {
+    int lru_index = 0;
+    for (int i = 1; i < WAYS; i++) {
+        if (cache[set_index][i].lru > cache[set_index][lru_index].lru) {
+            lru_index = i;
+        }
+    }
+    return lru_index;
+}
+
+
+void update_lru(uint32_t set_index, int accessed_way) {
+    for (int i = 0; i < WAYS; i++) {
+        if (i != accessed_way) {
+            cache[set_index][i].lru++;
+        } else {
+            cache[set_index][i].lru = 0;
+        }
+    }
+}
+
+void cache_write(uint32_t address, uint8_t *data, int size) {
+    uint32_t set_index = get_set_index(address);
+    uint32_t tag = get_tag(address);
+
+    int line = find_cache_line(set_index, tag);
+    if (line == -1) {
+        line = find_lru_line(set_index);
+    }
+
+    cache[set_index][line].valid = 1;
+    cache[set_index][line].tag = tag;
+    for (int i = 0; i < size; i++) {
+        cache[set_index][line].data[i] = data[i];
+    }
+
+    update_lru(set_index, line);
+}
+
+void cache_read(uint32_t address, uint8_t *data, int size) {
+    uint32_t set_index = get_set_index(address);
+    uint32_t tag = get_tag(address);
+
+    int line = find_cache_line(set_index, tag);
+    if (line == -1) {
+        printf("Cache miss\n");
+        // Handle cache miss (e.g., load from memory)
+    } else {
+        for (int i = 0; i < size; i++) {
+            data[i] = cache[set_index][line].data[i];
+        }
+        update_lru(set_index, line);
+    }
+}
 
 typedef struct {
     char data[BUFFER_SIZE];
@@ -280,11 +375,12 @@ int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line
     uint8_t data[4];
     if (rs2 < 32) {
         *(uint32_t*)data = get_register(rs2);
-        printf("%d\n",get_register(rs2));
+        // printf("%d\n",get_register(rs2));
     } else {
-        *(uint32_t*)data = get_float_register(rs2);
+        float temp_float = get_register(rs2);
+        *(uint32_t*)data = *(uint32_t*)&temp_float;
     }
-    fprintf(memory_file,"SW: Writing value %d to address %d\n", *(uint32_t*)data, address);
+    fprintf(memory_file,"%d行: Writing value %d to address %d\n", current_line+1, *(uint32_t*)data, address);
     cache_write(address, data, 4);
 
     return 1;
@@ -300,23 +396,24 @@ int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line,
     if(lw_offset && 0x800 == 1){//負の値
         uint32_t mask = (1<<12) - 1;
         lw_offset = ~lw_offset & mask;
-        lw_offset = lw_offset + 1;
-        address = get_register(rs1) - lw_offset;
-    }else{
-        //printf("正\n");
-        address = get_register(rs1) + lw_offset;
+        lw_offset = -(lw_offset + 1);
     }
+    address = get_register(rs1) + lw_offset;
     // lw = memory[address];
-    printf("lw address: %d\n",address);
+    // printf("lw address: %d\n",address);
 
     uint8_t data[4];
     cache_read(address, data, 4);
     uint32_t lw = *(uint32_t*)data;
-    fprintf(memory_file,"LW: Read value %d from address %d\n", lw, address);
+    fprintf(memory_file,"%d行: Read value %d from address %d\n", current_line+1, lw, address);
 
     //printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
     // fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%f\n",current_line+1, get_register(rs1) + lw_offset,lw);
-    set_register(rd,lw);
+    if(rd < 32){
+        set_register(rd, lw);
+    } else {
+        set_register(rd, *(float*)&lw);
+    }
     return 1;
 }
 
@@ -599,8 +696,6 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
     // int two_previous = 0;
     uint32_t instruction, opcode, rd, rs1, rs2, func3;
 
-    init_set_associative_cache();
-    init_memory();
 
     while(current_line < instruction_length){
         // printf("current_line:%d\n",current_line);
@@ -668,7 +763,6 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
         // printf("current_line:%d\n",current_line);
     }
     // flush_buffer(memory_file, &memory_buffer);
-    print_stats();
     return 0;
 }
 
