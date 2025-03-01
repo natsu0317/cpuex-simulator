@@ -39,66 +39,97 @@ void memory_write(uint32_t address, uint8_t *data, int size) {
 }
 
 typedef struct {
-    uint8_t data[BLOCK_SIZE];
-    uint32_t tag;
-    int valid;
-    int lru;
-} CacheLine;
+    int valid;         // 有効ビット
+    int dirty;         // ダーティビット（ライトバック方式用）
+    uint32_t tag;      // タグ
+    uint32_t lru;      // LRUカウンタ
+    uint8_t data[BLOCK_SIZE]; // データブロック
+} cache_line;
 
-CacheLine cache[SETS][WAYS];
+cache_line cache[SETS][WAYS]; // キャッシュ配列
 
 void init_cache() {
-    for(int i=0; i<SETS; i++){
-        for(int j=0; j<WAYS; j++){
+    for (int i = 0; i < SETS; i++) {
+        for (int j = 0; j < WAYS; j++) {
             cache[i][j].valid = 0;
-            cache[i][j].lru = 0;
+            cache[i][j].dirty = 0;
+            cache[i][j].tag = 0;
+            cache[i][j].lru = j; // 初期LRU値を設定（0がMRU、WAYS-1がLRU）
+            memset(cache[i][j].data, 0, BLOCK_SIZE);
         }
     }
 }
 
+// アドレスからセットインデックスを取得
 uint32_t get_set_index(uint32_t address) {
     return (address / BLOCK_SIZE) % SETS;
-    }
+}
 
-//memory addressからset indexを計算
-uint32_t get_tag(uint32_t address){
-    return (address / BLOCK_SIZE) / SETS;
+// アドレスからタグを取得
+uint32_t get_tag(uint32_t address) {
+    return address / (BLOCK_SIZE * SETS);
+}
+
+// アドレスからブロック内オフセットを取得
+uint32_t get_offset(uint32_t address) {
+    return address % BLOCK_SIZE;
 }
 
 // set_indexとtagからcache line検索
 int find_cache_line(uint32_t set_index, uint32_t tag) {
-    for(int i=0; i<WAYS; i++){
-        if(cache[set_index][i].valid && cache[set_index][i].tag == tag){
+    for (int i = 0; i < WAYS; i++) {
+        if (cache[set_index][i].valid && cache[set_index][i].tag == tag) {
             return i;
         }
     }
+    return -1; // キャッシュミス
 }
 
 // 最も使用されていないキャッシュラインのindexをreturn
-int find_lru_line(uint32_t set_index){
-    int lru_index = 0;
-    for(int i=0; i<WAYS; i++){
-        if(cache[set_index][i].lru > cache[set_index][lru_index].lru) {
-            lru_index = i;
+void update_lru(uint32_t set_index, int accessed_line) {
+    // アクセスされたラインのLRU値を0（最も最近使用）に設定
+    uint32_t old_lru = cache[set_index][accessed_line].lru;
+    
+    // 他のラインのLRU値を調整
+    for (int i = 0; i < WAYS; i++) {
+        if (cache[set_index][i].valid && i != accessed_line) {
+            if (cache[set_index][i].lru < old_lru) {
+                // 古いLRU値より小さい値は1増やす
+                cache[set_index][i].lru++;
+            }
         }
     }
-    return lru_index;
+    
+    // アクセスされたラインを最も最近使用したものとしてマーク
+    cache[set_index][accessed_line].lru = 0;
 }
 
-// set_indexでアクセスされたwayのlru = 0,他のwayのlru++
-void update_lru(uint32_t set_index, int accessed_way) {
-    for(int i=0; i<WAYS; i++){
-        if(i != accessed_way){
-            cache[set_index][i].lru++;
-        } else {
-            cache[set_index][i].lru = 0;
+int find_lru_line(uint32_t set_index) {
+    int lru_line = 0;
+    int max_lru = -1;
+    
+    // 最初に無効なラインを探す
+    for (int i = 0; i < WAYS; i++) {
+        if (!cache[set_index][i].valid) {
+            return i;
         }
     }
+    
+    // 全てのラインが有効な場合、LRU値が最大のラインを探す
+    for (int i = 0; i < WAYS; i++) {
+        if (cache[set_index][i].lru > max_lru) {
+            max_lru = cache[set_index][i].lru;
+            lru_line = i;
+        }
+    }
+    
+    return lru_line;
 }
 
 void cache_write(uint32_t address, uint8_t *data, int size) {
     uint32_t set_index = get_set_index(address);
     uint32_t tag = get_tag(address);
+    uint32_t offset = get_offset(address);
 
     int line = find_cache_line(set_index, tag);
     if (line == -1) {
@@ -106,41 +137,28 @@ void cache_write(uint32_t address, uint8_t *data, int size) {
         line = find_lru_line(set_index);
 
         // 追い出すラインが有効であれば、メモリに書き戻す
-        if (cache[set_index][line].valid) {
+        if (cache[set_index][line].valid && cache[set_index][line].dirty) {
             uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
             memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
         }
+        
+        // 新しいブロックをメモリから読み込む（書き込みの前に全体を読み込む）
+        uint32_t block_start = address - offset;
+        memory_read(block_start, cache[set_index][line].data, BLOCK_SIZE);
     }
 
-    // キャッシュにデータを書き込み
+    // キャッシュにデータを書き込み（オフセットを考慮）
     cache[set_index][line].valid = 1;
     cache[set_index][line].tag = tag;
-    for (int i = 0; i < size; i++) {
-        cache[set_index][line].data[i] = data[i];
-    }
-
-    update_lru(set_index, line);
-}
-
-void cache_write_float(uint32_t address, float value) {
-    uint32_t set_index = get_set_index(address);
-    uint32_t tag = get_tag(address);
-
-    int line = find_cache_line(set_index, tag);
-    if (line == -1) {
-        line = find_lru_line(set_index);
-
-        if (cache[set_index][line].valid) {
-            uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
-            memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
-        }
-    }
-
-    cache[set_index][line].valid = 1;
-    cache[set_index][line].tag = tag;
+    cache[set_index][line].dirty = 1; // ダーティビットを設定
     
-    // 浮動小数点数をキャッシュラインに書き込む
-    memcpy(cache[set_index][line].data, &value, sizeof(float));
+    for (int i = 0; i < size && (offset + i) < BLOCK_SIZE; i++) {
+        cache[set_index][line].data[offset + i] = data[i];
+    }
+
+    // ライトバック方式の場合はここでメモリに書き込まない
+    // ライトスルー方式の場合のみ以下を有効に
+    // memory_write(address, data, size);
 
     update_lru(set_index, line);
 }
@@ -148,56 +166,38 @@ void cache_write_float(uint32_t address, float value) {
 void cache_read(uint32_t address, uint8_t *data, int size) {
     uint32_t set_index = get_set_index(address);
     uint32_t tag = get_tag(address);
+    uint32_t offset = get_offset(address);
 
     int line = find_cache_line(set_index, tag);
     if (line == -1) {
-        printf("Cache miss\n");
-        
+        printf("Cache miss at address %u\n", address);
+
         // LRUポリシーに基づいて置き換えるラインを決定
         line = find_lru_line(set_index);
 
-        // 追い出すラインが有効で、かつ変更されている場合はメモリに書き戻す
-        if (cache[set_index][line].valid) {
+        // 追い出すラインが有効で、かつダーティビットがセットされている場合はメモリに書き戻す
+        if (cache[set_index][line].valid && cache[set_index][line].dirty) {
             uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
             memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
+            printf("Writing back to memory at address %u\n", old_address);
         }
 
         // メモリから新しいデータを読み込む
-        memory_read(address, cache[set_index][line].data, BLOCK_SIZE);
+        uint32_t block_start = address - offset;
+        memory_read(block_start, cache[set_index][line].data, BLOCK_SIZE);
+        printf("Loaded data from memory to cache line %d\n", line);
 
         // 新しいタグを設定し、ラインを有効にする
         cache[set_index][line].tag = tag;
         cache[set_index][line].valid = 1;
+        cache[set_index][line].dirty = 0; // 読み込んだだけなのでダーティではない
     }
 
-    // キャッシュからデータを読み込む
-    for (int i = 0; i < size; i++) {
-        data[i] = cache[set_index][line].data[i];
+    // キャッシュからデータを読み込む（オフセットを考慮）
+    for (int i = 0; i < size && (offset + i) < BLOCK_SIZE; i++) {
+        data[i] = cache[set_index][line].data[offset + i];
     }
-    update_lru(set_index, line);
-}
-
-void cache_read_float(uint32_t address, float *value) {
-    uint32_t set_index = get_set_index(address);
-    uint32_t tag = get_tag(address);
-
-    int line = find_cache_line(set_index, tag);
-    if (line == -1) {
-        printf("Cache miss\n");
-        line = find_lru_line(set_index);
-
-        if (cache[set_index][line].valid) {
-            uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
-            memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
-        }
-
-        memory_read(address, cache[set_index][line].data, BLOCK_SIZE);
-        cache[set_index][line].tag = tag;
-        cache[set_index][line].valid = 1;
-    }
-
-    // キャッシュラインから浮動小数点数を読み込む
-    memcpy(value, cache[set_index][line].data, sizeof(float));
+    
     update_lru(set_index, line);
 }
 
@@ -548,6 +548,30 @@ int handle_jalr(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_lin
     return pc;
 }
 
+void print_cache_line(uint32_t address) {
+    uint32_t set_index = get_set_index(address);
+    uint32_t tag = get_tag(address);
+
+    printf("Checking cache line for address %u:\n", address);
+    for (int way = 0; way < WAYS; way++) {
+        cache_line *line = &cache[set_index][way];
+        printf("Way %d: Valid=%d, Tag=%u, LRU=%d, Data=",
+               way, line->valid, line->tag, line->lru);
+        for (int i = 0; i < BLOCK_SIZE; i++) {
+            printf("%02x ", line->data[i]);
+        }
+        printf("\n");
+    }
+}
+
+void print_memory_content(uint32_t address, int size) {
+    printf("Memory content at address %u:\n", address);
+    for (int i = 0; i < size; i++) {
+        printf("%02x ", memory[address + i]);
+    }
+    printf("\n");
+}
+
 int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line, FILE* memory_file, long long int total_count){
     // printf("sw\n");
     // counter.s_type[0]++;
@@ -565,16 +589,35 @@ int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line
     uint32_t address = get_register(rs1) + imm;
     uint8_t data[4];
 
+    // デバッグログ: 即値とアドレスの計算
+    // fprintf(memory_file, "Debug: Immediate=%d, Address=%u\n", imm, address);
+
     if (rs2 < 32) {
+        // 整数レジスタからのデータ取得
         *(uint32_t*)data = get_register(rs2);
+        fprintf(memory_file, "%lld命令目 %d行目 memory%dの中に%dが格納される\n",
+            total_count, current_line + 1, address, *(uint32_t*)data);
+
+        // デバッグログ: 整数データの書き込み
+        // fprintf(memory_file, "Debug: Writing integer %d to address %u\n", *(uint32_t*)data, address);
     } else {
-        *(float*)data = get_float_register(rs2);
+        // 浮動小数点レジスタからのデータ取得
+        float value = get_float_register(rs2);
+        memcpy(data, &value, sizeof(float));
+        fprintf(memory_file, "%lld命令目 %d行目 memory%dの中に%fが格納される\n",
+            total_count, current_line + 1, address, value);
+
+        // デバッグログ: 浮動小数点データの書き込み
+        // fprintf(memory_file, "Debug: Writing float %f to address %u\n", value, address);
     }
 
+    // キャッシュへの書き込み
     cache_write(address, data, 4);
+    // print_cache_line(144);  // アドレス144に対応するキャッシュラインを確認
+    // print_memory_content(144, 4);  // アドレス144のメモリ内容を確認
 
-    fprintf(memory_file, "%lld命令目 %d行目 memory%dの中に%dが格納される\n",
-        total_count, current_line + 1, address, *(uint32_t*)data);
+    // デバッグログ: キャッシュ書き込み後の確認
+    // fprintf(memory_file, "Debug: Cache write completed for address %u\n", address);
 
     return 1;
 }
@@ -591,21 +634,35 @@ int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line,
     }
     uint32_t address = get_register(rs1) + lw_offset;
     uint8_t data[4];
-    
+    // デバッグログ: 即値とアドレスの計算
+    // fprintf(memory_file,"Debug: Immediate=%d, Address=%u\n", lw_offset, address);
+
     if (rd < 32) {
         // 整数レジスタにロード
         cache_read(address, data, 4);
         uint32_t lw = *(uint32_t*)data;
         set_register(rd, lw);
-        fprintf(memory_file, "%d行目 memory%dの中に格納されている値:%d\n", current_line + 1, address, lw);
+        fprintf(memory_file, "%d行目 memory%dの中に格納されている値:%.6f\n", current_line + 1, address, (float)lw);
+
+        // デバッグログ: 整数データの読み込み
+        // fprintf(memory_file,"Debug: Read integer %d from address %u\n", lw, address);
     } else {
         // 浮動小数点レジスタにロード
         float lw;
-        cache_read(address, data, 4);
+        cache_read(address, data, 4); // cache_readを使用
         memcpy(&lw, data, sizeof(float));
-        set_register(rd, lw);
+        set_register(rd - 32, lw);
         fprintf(memory_file, "%d行目 memory%dの中に格納されている値:%f\n", current_line + 1, address, lw);
+
+        // デバッグログ: 浮動小数点データの読み込み
+        // fprintf(memory_file,"Debug: Read float %f from address %u\n", lw, address);
     }
+    // print_cache_line(144);  // アドレス144に対応するキャッシュラインを確認
+    // print_memory_content(144, 4);  // アドレス144のメモリ内容を確認
+    // if(address == 144){
+    //     printf("\nBreak point reached at instruction %d. Press Enter to continue...\n", current_line+1);
+    //     while(getchar() != '\n'); // Enterキーが押されるまで待機
+    // }
     return 1;
 }
 
