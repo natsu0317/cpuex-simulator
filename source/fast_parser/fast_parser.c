@@ -17,6 +17,195 @@
 #define MAX_INSTRUCTION_LENGTH 50 // 1行の長さ
 #define BUFFER_SIZE 32768
 
+#define CACHE_LINES 1024
+#define WAYS 4
+#define SETS (CACHE_LINES / WAYS)
+#define BLOCK_SIZE 4
+
+uint8_t memory[MEMORY_SIZE];
+
+// メモリからデータを読み込む
+void memory_read(uint32_t address, uint8_t *data, int size) {
+    for (int i = 0; i < size; i++) {
+        data[i] = memory[address + i];
+    }
+}
+
+// メモリにデータを書き込む
+void memory_write(uint32_t address, uint8_t *data, int size) {
+    for (int i = 0; i < size; i++) {
+        memory[address + i] = data[i];
+    }
+}
+
+// キャッシュ統計情報を保持する変数
+long long total_accesses = 0;   // 総アクセス回数
+long long cache_hits = 0;       // キャッシュヒット回数
+long long cache_misses = 0;     // キャッシュミス回数
+
+typedef struct {
+    int valid;         // 有効ビット
+    int dirty;         // ダーティビット（ライトバック方式用）
+    uint32_t tag;      // タグ
+    uint32_t lru;      // LRUカウンタ
+    uint8_t data[BLOCK_SIZE]; // データブロック
+} cache_line;
+
+cache_line cache[SETS][WAYS]; // キャッシュ配列
+
+void init_cache() {
+    for (int i = 0; i < SETS; i++) {
+        for (int j = 0; j < WAYS; j++) {
+            cache[i][j].valid = 0;
+            cache[i][j].dirty = 0;
+            cache[i][j].tag = 0;
+            cache[i][j].lru = j; // 初期LRU値を設定（0がMRU、WAYS-1がLRU）
+            memset(cache[i][j].data, 0, BLOCK_SIZE);
+        }
+    }
+}
+
+// アドレスからセットインデックスを取得
+uint32_t get_set_index(uint32_t address) {
+    return (address / BLOCK_SIZE) % SETS;
+}
+
+// アドレスからタグを取得
+uint32_t get_tag(uint32_t address) {
+    return address / (BLOCK_SIZE * SETS);
+}
+
+// アドレスからブロック内オフセットを取得
+uint32_t get_offset(uint32_t address) {
+    return address % BLOCK_SIZE;
+}
+
+// set_indexとtagからcache line検索
+int find_cache_line(uint32_t set_index, uint32_t tag) {
+    for (int i = 0; i < WAYS; i++) {
+        if (cache[set_index][i].valid && cache[set_index][i].tag == tag) {
+            return i;
+        }
+    }
+    return -1; // キャッシュミス
+}
+
+// 最も使用されていないキャッシュラインのindexをreturn
+void update_lru(uint32_t set_index, int accessed_line) {
+    // アクセスされたラインのLRU値を0（最も最近使用）に設定
+    uint32_t old_lru = cache[set_index][accessed_line].lru;
+    
+    // 他のラインのLRU値を調整
+    for (int i = 0; i < WAYS; i++) {
+        if (cache[set_index][i].valid && i != accessed_line) {
+            if (cache[set_index][i].lru < old_lru) {
+                // 古いLRU値より小さい値は1増やす
+                cache[set_index][i].lru++;
+            }
+        }
+    }
+    
+    // アクセスされたラインを最も最近使用したものとしてマーク
+    cache[set_index][accessed_line].lru = 0;
+}
+
+int find_lru_line(uint32_t set_index) {
+    int lru_line = 0;
+    int max_lru = -1;
+    
+    // 最初に無効なラインを探す
+    for (int i = 0; i < WAYS; i++) {
+        if (!cache[set_index][i].valid) {
+            return i;
+        }
+    }
+    
+    // 全てのラインが有効な場合、LRU値が最大のラインを探す
+    for (int i = 0; i < WAYS; i++) {
+        if (cache[set_index][i].lru > max_lru) {
+            max_lru = cache[set_index][i].lru;
+            lru_line = i;
+        }
+    }
+    
+    return lru_line;
+}
+
+void cache_write(uint32_t address, uint8_t *data, int size) {
+    uint32_t set_index = get_set_index(address);
+    uint32_t tag = get_tag(address);
+    uint32_t offset = get_offset(address);
+
+    int line = find_cache_line(set_index, tag);
+    if (line == -1) {
+        // LRUポリシーに基づいて置き換えるラインを決定
+        line = find_lru_line(set_index);
+
+        // 追い出すラインが有効であれば、メモリに書き戻す
+        if (cache[set_index][line].valid && cache[set_index][line].dirty) {
+            uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
+            memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
+        }
+        
+        // 新しいブロックをメモリから読み込む（書き込みの前に全体を読み込む）
+        uint32_t block_start = address - offset;
+        memory_read(block_start, cache[set_index][line].data, BLOCK_SIZE);
+    }
+
+    // キャッシュにデータを書き込み（オフセットを考慮）
+    cache[set_index][line].valid = 1;
+    cache[set_index][line].tag = tag;
+    cache[set_index][line].dirty = 1; // ダーティビットを設定
+    
+    for (int i = 0; i < size && (offset + i) < BLOCK_SIZE; i++) {
+        cache[set_index][line].data[offset + i] = data[i];
+    }
+
+    // ライトバック方式の場合はここでメモリに書き込まない
+    // ライトスルー方式の場合のみ以下を有効に
+    // memory_write(address, data, size);
+
+    update_lru(set_index, line);
+}
+
+void cache_read(uint32_t address, uint8_t *data, int size) {
+    uint32_t set_index = get_set_index(address);
+    uint32_t tag = get_tag(address);
+    uint32_t offset = get_offset(address);
+
+    int line = find_cache_line(set_index, tag);
+    if (line == -1) {
+        // printf("Cache miss at address %u\n", address);
+
+        // LRUポリシーに基づいて置き換えるラインを決定
+        line = find_lru_line(set_index);
+
+        // 追い出すラインが有効で、かつダーティビットがセットされている場合はメモリに書き戻す
+        if (cache[set_index][line].valid && cache[set_index][line].dirty) {
+            uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
+            memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
+            // printf("Writing back to memory at address %u\n", old_address);
+        }
+
+        // メモリから新しいデータを読み込む
+        uint32_t block_start = address - offset;
+        memory_read(block_start, cache[set_index][line].data, BLOCK_SIZE);
+        // printf("Loaded data from memory to cache line %d\n", line);
+
+        // 新しいタグを設定し、ラインを有効にする
+        cache[set_index][line].tag = tag;
+        cache[set_index][line].valid = 1;
+        cache[set_index][line].dirty = 0; // 読み込んだだけなのでダーティではない
+    }
+
+    // キャッシュからデータを読み込む（オフセットを考慮）
+    for (int i = 0; i < size && (offset + i) < BLOCK_SIZE; i++) {
+        data[i] = cache[set_index][line].data[offset + i];
+    }
+    
+    update_lru(set_index, line);
+}
+
 typedef struct {
     char data[BUFFER_SIZE];
     size_t used;
@@ -61,7 +250,6 @@ void write_to_buffer(FILE *file, Buffer *buffer, const char *format, ...) {
     }
 }
 
-float memory[MEMORY_SIZE];
 int sp = MEMORY_SIZE - 1; //スタックポインタ
 
 // registerのsimulation
@@ -260,35 +448,6 @@ int handle_i(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t func3, in
     return 1;
 }
 
-int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line, FILE* memory_file, long long int total_count){
-    // printf("sw\n");
-    // counter.s_type[0]++;
-    uint32_t sw_offset_11_5 = (instruction >> 25) & 0x8F;
-    uint32_t sw_offset_4_0 = (instruction >> 4) & 0x1F;
-    uint32_t imm = 0;
-
-    imm |= (sw_offset_11_5 << 5);
-    imm |= (sw_offset_4_0);
-    if(imm && 0x800 == 1){//負の値
-        uint32_t mask = (1<<12) - 1;
-        imm = ~imm & mask + 1;
-        imm = -imm;
-    }
-    uint32_t address = get_register(rs1) + imm;
-    if (rs2 < 32) {
-        memory[address] = get_register(rs2);
-        fprintf(memory_file, 
-                            "%lld命令目 %d行目 memory%dの中に%dが格納される\n",
-                            total_count, current_line+1, get_register(rs1)+imm, get_register(rs2));
-        } else {
-        memory[address] = get_float_register(rs2);
-        fprintf(memory_file, 
-                        "%lld命令目 %d行目 memory%dの中に%lfが格納される\n",
-                        total_count, current_line+1, get_register(rs1)+imm, get_float_register(rs2));
-    }
-    return 1;
-}
-
 int handle_b(uint32_t instruction, uint32_t rs1, uint32_t rs2, uint32_t func3){
     
     // printf("b_type\n");
@@ -394,6 +553,66 @@ int handle_jalr(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_lin
     return pc;
 }
 
+void print_cache_line(uint32_t address) {
+    uint32_t set_index = get_set_index(address);
+    uint32_t tag = get_tag(address);
+
+    // printf("Checking cache line for address %u:\n", address);
+    for (int way = 0; way < WAYS; way++) {
+        cache_line *line = &cache[set_index][way];
+        printf("Way %d: Valid=%d, Tag=%u, LRU=%d, Data=",
+               way, line->valid, line->tag, line->lru);
+        for (int i = 0; i < BLOCK_SIZE; i++) {
+            printf("%02x ", line->data[i]);
+        }
+        printf("\n");
+    }
+}
+
+void print_memory_content(uint32_t address, int size) {
+    // printf("Memory content at address %u:\n", address);
+    for (int i = 0; i < size; i++) {
+        // printf("%02x ", memory[address + i]);
+    }
+    // printf("\n");
+}
+
+int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line, FILE* memory_file, long long int total_count){
+    // printf("sw\n");
+    // counter.s_type[0]++;
+    uint32_t sw_offset_11_5 = (instruction >> 25) & 0x8F;
+    uint32_t sw_offset_4_0 = (instruction >> 4) & 0x1F;
+    uint32_t imm = 0;
+
+    imm |= (sw_offset_11_5 << 5);
+    imm |= (sw_offset_4_0);
+    if(imm && 0x800 == 1){//負の値
+        uint32_t mask = (1<<12) - 1;
+        imm = ~imm & mask + 1;
+        imm = -imm;
+    }
+    uint32_t address = get_register(rs1) + imm;
+    uint8_t data[4];
+
+    if (rs2 < 32) {
+        // 整数レジスタからのデータ取得
+        *(uint32_t*)data = get_register(rs2);
+        // fprintf(memory_file, "%lld命令目 %d行目 memory%dの中に%dが格納される\n",
+        //     total_count, current_line + 1, address, *(uint32_t*)data);
+    } else {
+        // 浮動小数点レジスタからのデータ取得
+        float value = get_float_register(rs2);
+        memcpy(data, &value, sizeof(float));
+        // fprintf(memory_file, "%lld命令目 %d行目 memory%dの中に%fが格納される\n",
+        //     total_count, current_line + 1, address, value);
+    }
+
+    // キャッシュへの書き込み
+    cache_write(address, data, 4);
+
+    return 1;
+}
+
 int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line, FILE* memory_file){
     // printf("lw\n");
     uint32_t lw_offset = (instruction >> 20) & 0xFFF;
@@ -402,15 +621,22 @@ int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line,
     if(lw_offset && 0x800 == 1){//負の値
         uint32_t mask = (1<<12) - 1;
         lw_offset = ~lw_offset & mask;
-        lw_offset = lw_offset + 1;
-        lw = memory[get_register(rs1) - lw_offset];
-    }else{
-        //printf("正\n");
-        lw = memory[get_register(rs1) + lw_offset];
+        lw_offset = -(lw_offset + 1);
     }
-    //printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
-    fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%f\n",current_line+1, get_register(rs1) + lw_offset,lw);
-    set_register(rd,lw);
+    uint32_t address = get_register(rs1) + lw_offset;
+    uint8_t data[4];
+    cache_read(address, data, 4);
+
+    if (rd < 32) {
+        // 整数レジスタにロード - 符号付き整数として解釈
+        int32_t signed_value = *(int32_t*)data;
+        set_register(rd, signed_value);
+    } else {
+        // 浮動小数点レジスタにロード
+        float value;
+        memcpy(&value, data, sizeof(float));
+        set_register(rd, value);
+    }
     return 1;
 }
 
@@ -531,31 +757,28 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
             int shift_count = 2+i*8;
             uint8_t lower8bits = ((value >> shift_count) & 0xF);
             fprintf(sld_result_file, "%u", lower8bits);
-            // printf("%u",lower8bits);
+            printf("%u",lower8bits);
         }
         // fprintf(sld_result_file, "\n");
         // printf("\n");
     }
     //csrw
     if(func3 == 1){ // x10の下位8bit値をファイルに書きこむ
-        // if( 0 <= rd && rd < 32){
-        //     uint32_t value = (uint32_t)get_register(rd);
-        //     uint8_t lower8bits = (value & 0xFF);
-        //     // uint8_t lower8bits = (value & 0xFF);
-        //     // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
-        //     fprintf(sld_result_file, "%c", lower8bits);
-        //     // printf("%c",lower8bits);
-        // } else {
-        //     uint32_t value = (uint32_t)get_float_register(rd);
-        //     // uint8_t lower8bits = (value & 0xFF) - 48;
-        //     uint8_t lower8bits = (value & 0xFF);
-        //     // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
-        //     fprintf(sld_result_file, "%c", lower8bits);
-        //     // printf("%c",lower8bits);
-        // }
-        uint32_t value = (uint32_t)get_register(10);
-        uint8_t lower8bits = (value & 0xFF);
-        fprintf(sld_result_file, "%c", lower8bits);
+        if( 0 <= rd && rd < 32){
+            uint32_t value = (uint32_t)get_register(rd);
+            uint8_t lower8bits = (value & 0xFF);
+            // uint8_t lower8bits = (value & 0xFF);
+            // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
+            fprintf(sld_result_file, "%c", lower8bits);
+            printf("%c",lower8bits);
+        } else {
+            uint32_t value = (uint32_t)get_float_register(rd);
+            // uint8_t lower8bits = (value & 0xFF) - 48;
+            uint8_t lower8bits = (value & 0xFF);
+            // lower8bits = (lower8bits >= 48) ? lower8bits-48 : lower8bits;
+            fprintf(sld_result_file, "%c", lower8bits);
+            printf("%c",lower8bits);
+        }
     }
     //csrr
     if(func3 == 2){ // rdにsldファイルの内容を書きこむ
@@ -648,8 +871,8 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 break;
         }
 
-        print_use_register_transition(transition_file,current_line+1,use_register);
-        print_use_float_register_transition(float_transition_file,current_line+1,use_register);
+        // print_use_register_transition(transition_file,current_line+1,use_register);
+        // print_use_float_register_transition(float_transition_file,current_line+1,use_register);
         current_line += (pc == 0) ? 1 : pc;
         // printf("current_line:%d\n",current_line);
     }

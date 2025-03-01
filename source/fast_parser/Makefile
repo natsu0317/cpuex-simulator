@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -I../asm_to_binary -I../binary_to_result -I../float/math -O2 -pg -march=native -mtune=native -ffast-math -funroll-loops
+CFLAGS = -I../asm_to_binary -I../binary_to_result -I../cache -I../float/math -O2 -pg -march=native -mtune=native -ffast-math -funroll-loops
 LDFLAGS = -lm -pg
 
 all: fast_parser
