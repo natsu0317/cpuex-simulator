@@ -38,6 +38,11 @@ void memory_write(uint32_t address, uint8_t *data, int size) {
     }
 }
 
+// キャッシュ統計情報を保持する変数
+long long total_accesses = 0;   // 総アクセス回数
+long long cache_hits = 0;       // キャッシュヒット回数
+long long cache_misses = 0;     // キャッシュミス回数
+
 typedef struct {
     int valid;         // 有効ビット
     int dirty;         // ダーティビット（ライトバック方式用）
@@ -170,7 +175,7 @@ void cache_read(uint32_t address, uint8_t *data, int size) {
 
     int line = find_cache_line(set_index, tag);
     if (line == -1) {
-        printf("Cache miss at address %u\n", address);
+        // printf("Cache miss at address %u\n", address);
 
         // LRUポリシーに基づいて置き換えるラインを決定
         line = find_lru_line(set_index);
@@ -179,13 +184,13 @@ void cache_read(uint32_t address, uint8_t *data, int size) {
         if (cache[set_index][line].valid && cache[set_index][line].dirty) {
             uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
             memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
-            printf("Writing back to memory at address %u\n", old_address);
+            // printf("Writing back to memory at address %u\n", old_address);
         }
 
         // メモリから新しいデータを読み込む
         uint32_t block_start = address - offset;
         memory_read(block_start, cache[set_index][line].data, BLOCK_SIZE);
-        printf("Loaded data from memory to cache line %d\n", line);
+        // printf("Loaded data from memory to cache line %d\n", line);
 
         // 新しいタグを設定し、ラインを有効にする
         cache[set_index][line].tag = tag;
@@ -552,7 +557,7 @@ void print_cache_line(uint32_t address) {
     uint32_t set_index = get_set_index(address);
     uint32_t tag = get_tag(address);
 
-    printf("Checking cache line for address %u:\n", address);
+    // printf("Checking cache line for address %u:\n", address);
     for (int way = 0; way < WAYS; way++) {
         cache_line *line = &cache[set_index][way];
         printf("Way %d: Valid=%d, Tag=%u, LRU=%d, Data=",
@@ -565,11 +570,11 @@ void print_cache_line(uint32_t address) {
 }
 
 void print_memory_content(uint32_t address, int size) {
-    printf("Memory content at address %u:\n", address);
+    // printf("Memory content at address %u:\n", address);
     for (int i = 0; i < size; i++) {
-        printf("%02x ", memory[address + i]);
+        // printf("%02x ", memory[address + i]);
     }
-    printf("\n");
+    // printf("\n");
 }
 
 int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line, FILE* memory_file, long long int total_count){
@@ -589,35 +594,21 @@ int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line
     uint32_t address = get_register(rs1) + imm;
     uint8_t data[4];
 
-    // デバッグログ: 即値とアドレスの計算
-    // fprintf(memory_file, "Debug: Immediate=%d, Address=%u\n", imm, address);
-
     if (rs2 < 32) {
         // 整数レジスタからのデータ取得
         *(uint32_t*)data = get_register(rs2);
-        fprintf(memory_file, "%lld命令目 %d行目 memory%dの中に%dが格納される\n",
-            total_count, current_line + 1, address, *(uint32_t*)data);
-
-        // デバッグログ: 整数データの書き込み
-        // fprintf(memory_file, "Debug: Writing integer %d to address %u\n", *(uint32_t*)data, address);
+        // fprintf(memory_file, "%lld命令目 %d行目 memory%dの中に%dが格納される\n",
+        //     total_count, current_line + 1, address, *(uint32_t*)data);
     } else {
         // 浮動小数点レジスタからのデータ取得
         float value = get_float_register(rs2);
         memcpy(data, &value, sizeof(float));
-        fprintf(memory_file, "%lld命令目 %d行目 memory%dの中に%fが格納される\n",
-            total_count, current_line + 1, address, value);
-
-        // デバッグログ: 浮動小数点データの書き込み
-        // fprintf(memory_file, "Debug: Writing float %f to address %u\n", value, address);
+        // fprintf(memory_file, "%lld命令目 %d行目 memory%dの中に%fが格納される\n",
+        //     total_count, current_line + 1, address, value);
     }
 
     // キャッシュへの書き込み
     cache_write(address, data, 4);
-    // print_cache_line(144);  // アドレス144に対応するキャッシュラインを確認
-    // print_memory_content(144, 4);  // アドレス144のメモリ内容を確認
-
-    // デバッグログ: キャッシュ書き込み後の確認
-    // fprintf(memory_file, "Debug: Cache write completed for address %u\n", address);
 
     return 1;
 }
@@ -634,35 +625,18 @@ int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line,
     }
     uint32_t address = get_register(rs1) + lw_offset;
     uint8_t data[4];
-    // デバッグログ: 即値とアドレスの計算
-    // fprintf(memory_file,"Debug: Immediate=%d, Address=%u\n", lw_offset, address);
+    cache_read(address, data, 4);
 
     if (rd < 32) {
-        // 整数レジスタにロード
-        cache_read(address, data, 4);
-        uint32_t lw = *(uint32_t*)data;
-        set_register(rd, lw);
-        fprintf(memory_file, "%d行目 memory%dの中に格納されている値:%.6f\n", current_line + 1, address, (float)lw);
-
-        // デバッグログ: 整数データの読み込み
-        // fprintf(memory_file,"Debug: Read integer %d from address %u\n", lw, address);
+        // 整数レジスタにロード - 符号付き整数として解釈
+        int32_t signed_value = *(int32_t*)data;
+        set_register(rd, signed_value);
     } else {
         // 浮動小数点レジスタにロード
-        float lw;
-        cache_read(address, data, 4); // cache_readを使用
-        memcpy(&lw, data, sizeof(float));
-        set_register(rd - 32, lw);
-        fprintf(memory_file, "%d行目 memory%dの中に格納されている値:%f\n", current_line + 1, address, lw);
-
-        // デバッグログ: 浮動小数点データの読み込み
-        // fprintf(memory_file,"Debug: Read float %f from address %u\n", lw, address);
+        float value;
+        memcpy(&value, data, sizeof(float));
+        set_register(rd, value);
     }
-    // print_cache_line(144);  // アドレス144に対応するキャッシュラインを確認
-    // print_memory_content(144, 4);  // アドレス144のメモリ内容を確認
-    // if(address == 144){
-    //     printf("\nBreak point reached at instruction %d. Press Enter to continue...\n", current_line+1);
-    //     while(getchar() != '\n'); // Enterキーが押されるまで待機
-    // }
     return 1;
 }
 
@@ -897,8 +871,8 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 break;
         }
 
-        print_use_register_transition(transition_file,current_line+1,use_register);
-        print_use_float_register_transition(float_transition_file,current_line+1,use_register);
+        // print_use_register_transition(transition_file,current_line+1,use_register);
+        // print_use_float_register_transition(float_transition_file,current_line+1,use_register);
         current_line += (pc == 0) ? 1 : pc;
         // printf("current_line:%d\n",current_line);
     }
