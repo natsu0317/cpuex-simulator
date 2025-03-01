@@ -286,6 +286,9 @@ int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line
         //                 "%d命令目 %d行目 memory%dの中に%lfが格納される\n",
         //                 total_count, current_line+1, get_register(rs1)+imm, get_float_register(rs2));
     }
+    
+    fprintf(memory_file, "%lld命令目 %d行目 memory%dの中に%dが格納される\n",
+        total_count, current_line + 1, address, get_register(rs2));
     return 1;
 }
 
@@ -402,14 +405,14 @@ int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line,
     if(lw_offset && 0x800 == 1){//負の値
         uint32_t mask = (1<<12) - 1;
         lw_offset = ~lw_offset & mask;
-        lw_offset = lw_offset + 1;
-        lw = memory[get_register(rs1) - lw_offset];
-    }else{
-        //printf("正\n");
-        lw = memory[get_register(rs1) + lw_offset];
+        lw_offset = -(lw_offset + 1);
     }
+    uint32_t address = get_register(rs1) + lw_offset;
+    lw = memory[address];
     //printf("memory%dの中に格納されている値:%f\n",get_register(rs1) + lw_offset,lw);
     // fprintf(memory_file,"%d行目 memory%dの中に格納されている値:%f\n",current_line+1, get_register(rs1) + lw_offset,lw);
+    
+    fprintf(memory_file, "%d行目 memory%dの中に格納されている値:%f\n", current_line + 1, address, lw);
     set_register(rd,lw);
     return 1;
 }
