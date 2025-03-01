@@ -4,17 +4,14 @@ LDFLAGS = -lm -pg
 
 all: fast_parser
 
-fast_parser: fast_parser.o asm_parser.o set_associative.o fadd.o fsub.o fmul.o fdiv.o finv.o fsqrt.o fabsf.o fcvtsw.o fcvtws.o feq.o flt.o fneg.o fsgnjn.o fsgnjx.o floor.o
-	$(CC) -o fast_parser fast_parser.o asm_parser.o set_associative.o fadd.o fsub.o fmul.o fdiv.o finv.o fsqrt.o fabsf.o fcvtsw.o fcvtws.o feq.o flt.o fneg.o fsgnjn.o fsgnjx.o floor.o $(LDFLAGS)
+fast_parser: fast_parser.o asm_parser.o fadd.o fsub.o fmul.o fdiv.o finv.o fsqrt.o fabsf.o fcvtsw.o fcvtws.o feq.o flt.o fneg.o fsgnjn.o fsgnjx.o floor.o
+	$(CC) -o fast_parser fast_parser.o asm_parser.o fadd.o fsub.o fmul.o fdiv.o finv.o fsqrt.o fabsf.o fcvtsw.o fcvtws.o feq.o flt.o fneg.o fsgnjn.o fsgnjx.o floor.o $(LDFLAGS)
 
 fast_parser.o: fast_parser.c
 	$(CC) $(CFLAGS) -c fast_parser.c
 
 asm_parser.o: ../asm_to_binary/parser.c
 	$(CC) $(CFLAGS) -c ../asm_to_binary/parser.c -o asm_parser.o
-
-set_associative.o: ../cache/direct.c
-	$(CC) $(CFLAGS) -c ../cache/set_associative.c -o set_associative.o
 
 fadd.o: ../float/math/fadd.c
 	$(CC) $(CFLAGS) -c ../float/math/fadd.c
