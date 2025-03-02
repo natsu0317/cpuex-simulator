@@ -23,6 +23,8 @@
 #define BLOCK_SIZE 4
 
 uint8_t memory[MEMORY_SIZE];
+//clock数
+long long int total_clock = 0;
 
 // メモリからデータを読み込む
 void memory_read(uint32_t address, uint8_t *data, int size) {
@@ -149,6 +151,9 @@ void cache_write(uint32_t address, uint8_t *data, int size) {
         if (cache[set_index][line].valid && cache[set_index][line].dirty) {
             uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
             memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
+            total_clock += 2;
+        } else {
+            total_clock += 1;
         }
     } else {
         // キャッシュヒット
@@ -521,7 +526,7 @@ int handle_jalr(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_lin
     return pc;
 }
 
-int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line, FILE* memory_file, long long int total_count){
+int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line, FILE* memory_file, long long int total_clock){
     // printf("sw\n");
     // counter.s_type[0]++;
     uint32_t sw_offset_11_5 = (instruction >> 25) & 0x8F;
@@ -589,21 +594,25 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         result = fadd(a1,a2);
         set_register(rd, result);
         // counter.f_type[0]++;
+        total_clock += 4;
     }
     if(func7 == 1){
         result = fsub(a1,a2);
         set_register(rd, result);
         // counter.f_type[1]++;
+        total_clock += 4;
     }
     if(func7 == 2){
         result = fmul(a1,a2);
         set_register(rd, result);
         // counter.f_type[2]++;
+        total_clock += 2;
     }
     if(func7 == 3){
         result = fdiv(a1,a2);
         set_register(rd, result);
         // counter.f_type[3]++;
+        total_clock += 11;
     }
     if(func7 == 4){
         if(func3 == 1){// fsgnjn
@@ -638,6 +647,7 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         // result = sqrtf(a1);
         set_register(rd, result);
         // counter.f_type[7]++;
+        total_clock += 8;
     }
     if(func7 == 20){
         if(func3 == 1){//flt
@@ -662,11 +672,13 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         //printf("result: %f\n", result);  // %f を使用して double を表示
         set_register(rd, result);
         // counter.f_type[12]++;
+        total_clock += 1;
     }
     if(func7 == 26){
         result = fcvtsw(get_register(rs1));
         set_register(rd, result);
         // counter.f_type[13]++;
+        total_clock += 1;
     }
     if(func7 == 28){
         result = floor(a1);
@@ -693,7 +705,7 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
             int shift_count = 2+i*8;
             uint8_t lower8bits = ((value >> shift_count) & 0xF);
             fprintf(sld_result_file, "%u", lower8bits);
-            printf("%u",lower8bits);
+            // printf("%u",lower8bits);
         }
     }
     //csrw
@@ -702,12 +714,12 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
             uint32_t value = (uint32_t)get_register(rd);
             uint8_t lower8bits = (value & 0xFF);
             fprintf(sld_result_file, "%c", lower8bits);
-            printf("%c",lower8bits);
+            // printf("%c",lower8bits);
         } else {
             uint32_t value = (uint32_t)get_float_register(rd);
             uint8_t lower8bits = (value & 0xFF);
             fprintf(sld_result_file, "%c", lower8bits);
-            printf("%c",lower8bits);
+            // printf("%c",lower8bits);
         }
     }
     //csrr
@@ -731,7 +743,6 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
 
 uint32_t previous_instruction = 0;
 int current_line = 0;
-long long int total_count = 0;
 // バイナリ命令をデコードして処理
 int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int instruction_length, FILE* transition_file, FILE* float_transition_file, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
     // fflush(memory_file);
@@ -742,7 +753,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
     uint32_t instruction, opcode, rd, rs1, rs2, func3;
 
     while(current_line < instruction_length){
-        total_count++;
+        total_clock++;
         int pc = 0;
         previous = (opcode == 0x6);
         instruction = strtol(binary_instruction[current_line].binary_code, NULL, 2); //2進数文字列を数値に変換
@@ -757,7 +768,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 handle_i(instruction, rd, rs1, func3, previous);
                 break;
             case 0x3:  // SW
-                handle_sw(instruction, rs1, rs2, current_line, memory_file, total_count);
+                handle_sw(instruction, rs1, rs2, current_line, memory_file, total_clock);
                 break;
             case 0xa:  // F-type
                 handle_f(instruction, rd, rs1, rs2, func3);
@@ -791,7 +802,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 while(getchar() != '\n'); // Enterキーが押されるまで待機
                 break;
             case 0xf:  // Finish
-                printf("Finish instruction detected. Total instructions: %lld\n", total_count);
+                printf("Finish instruction detected. Total instructions: %lld\n", total_clock);
                 return 1;
             default:
                 break;
@@ -803,7 +814,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
     return 0;
 }
 
-double cpu_frequency = 0.065;  // 65MHzを0.065GHzとして設定      // CPUの周波数（GHz）
+double cpu_frequency = 0.075;  // 65MHzを0.065GHzとして設定      // CPUの周波数（GHz）
 double average_cpi = 1.0;            // 平均CPI（初期値として1.0を設定）
 
 void print_execution_time_prediction() {
@@ -811,7 +822,7 @@ void print_execution_time_prediction() {
     double clock_cycle_time_ns = 1.0 / (cpu_frequency * 1.0e9) * 1.0e9;
     
     // 総サイクル数
-    double total_cycles = (total_count + cache_misses * 1) * average_cpi;
+    double total_cycles = total_clock + cache_misses * 60;
     
     // 実行時間（ナノ秒）
     double execution_time_ns = total_cycles * clock_cycle_time_ns;
@@ -823,7 +834,6 @@ void print_execution_time_prediction() {
     
     printf("\n===== 実行時間予測 =====\n");
     printf("CPU周波数: %.3f GHz\n", cpu_frequency);
-    printf("総命令数: %lld\n", total_count);
     printf("平均CPI: %.2f\n", average_cpi);
     printf("総クロックサイクル数: %.0f\n", total_cycles);
     
