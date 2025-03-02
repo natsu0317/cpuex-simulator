@@ -43,13 +43,12 @@ long long total_accesses = 0;   // 総アクセス回数
 long long cache_hits = 0;       // キャッシュヒット回数
 long long cache_misses = 0;     // キャッシュミス回数
 
-// キャッシュラインのデータ構造を最適化
 typedef struct {
-    uint32_t tag;
-    uint8_t valid : 1;
-    uint8_t dirty : 1;
-    uint8_t lru;  // LRU情報をバイト型に
-    uint8_t data[BLOCK_SIZE] __attribute__((aligned(16)));  // アライメント最適化
+    int valid;         // 有効ビット
+    int dirty;         // ダーティビット（ライトバック方式用）
+    uint32_t tag;      // タグ
+    uint32_t lru;      // LRUカウンタ
+    uint8_t data[BLOCK_SIZE]; // データブロック
 } cache_line;
 
 cache_line cache[SETS][WAYS]; // キャッシュ配列
@@ -67,22 +66,22 @@ void init_cache() {
 }
 
 // アドレスからセットインデックスを取得
-static inline uint32_t get_set_index(uint32_t address) {
+uint32_t get_set_index(uint32_t address) {
     return (address / BLOCK_SIZE) % SETS;
 }
 
 // アドレスからタグを取得
-static inline uint32_t get_tag(uint32_t address) {
+uint32_t get_tag(uint32_t address) {
     return address / (BLOCK_SIZE * SETS);
 }
 
 // アドレスからブロック内オフセットを取得
-static inline uint32_t get_offset(uint32_t address) {
+uint32_t get_offset(uint32_t address) {
     return address % BLOCK_SIZE;
 }
 
 // set_indexとtagからcache line検索
-static inline int find_cache_line(uint32_t set_index, uint32_t tag) {
+int find_cache_line(uint32_t set_index, uint32_t tag) {
     for (int i = 0; i < WAYS; i++) {
         if (cache[set_index][i].valid && cache[set_index][i].tag == tag) {
             return i;
@@ -172,71 +171,43 @@ void cache_write(uint32_t address, uint8_t *data, int size) {
 void cache_read(uint32_t address, uint8_t *data, int size) {
     total_accesses++;
     
-    // アドレス計算を一度に行う
-    uint32_t set_index = (address / BLOCK_SIZE) % SETS;
-    uint32_t tag = address / (BLOCK_SIZE * SETS);
-    uint32_t offset = address % BLOCK_SIZE;
-    
-    // キャッシュセットへの参照をローカル変数に保存
-    cache_line *set = cache[set_index];
-    
-    // キャッシュラインを検索
-    int line = -1;
-    for (int i = 0; i < WAYS; i++) {
-        if (set[i].valid && set[i].tag == tag) {
-            line = i;
-            break;
-        }
-    }
-    
-    if (line != -1) {
-        cache_hits++;
-    } else {
+    uint32_t set_index = get_set_index(address);
+    uint32_t tag = get_tag(address);
+    uint32_t offset = get_offset(address);
+
+    int line = find_cache_line(set_index, tag);
+    if (line == -1) {
+        // キャッシュミス
         cache_misses++;
         
         // LRUポリシーに基づいて置き換えるラインを決定
-        uint8_t max_lru = 0;
-        line = 0;
-        for (int i = 0; i < WAYS; i++) {
-            if (!set[i].valid) {
-                line = i;
-                break;
-            }
-            if (set[i].lru > max_lru) {
-                max_lru = set[i].lru;
-                line = i;
-            }
+        line = find_lru_line(set_index);
+
+        // 追い出すラインが有効で、かつダーティビットがセットされている場合はメモリに書き戻す
+        if (cache[set_index][line].valid && cache[set_index][line].dirty) {
+            uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
+            memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
         }
-        
-        // 参照するキャッシュラインをローカル変数に保存
-        cache_line *current_line = &set[line];
-        
-        // 追い出し処理
-        if (current_line->valid && current_line->dirty) {
-            uint32_t old_address = (current_line->tag * SETS + set_index) * BLOCK_SIZE;
-            memory_write(old_address, current_line->data, BLOCK_SIZE);
-        }
-        
+
         // メモリから新しいデータを読み込む
         uint32_t block_start = address - offset;
-        memory_read(block_start, current_line->data, BLOCK_SIZE);
-        
-        // 新しいタグを設定
-        current_line->tag = tag;
-        current_line->valid = 1;
-        current_line->dirty = 0;
+        memory_read(block_start, cache[set_index][line].data, BLOCK_SIZE);
+
+        // 新しいタグを設定し、ラインを有効にする
+        cache[set_index][line].tag = tag;
+        cache[set_index][line].valid = 1;
+        cache[set_index][line].dirty = 0;  // 読み込んだだけなのでダーティではない
+    } else {
+        // キャッシュヒット
+        cache_hits++;
+    }
+
+    // キャッシュからデータを読み込む
+    for (int i = 0; i < size && (offset + i) < BLOCK_SIZE; i++) {
+        data[i] = cache[set_index][line].data[offset + i];
     }
     
-    cache_line *current_line = &set[line];
-    memcpy(data, &current_line->data[offset], size);
-    
-    // LRU更新（シンプル化）
-    for (int i = 0; i < WAYS; i++) {
-        if (set[i].valid && i != line && set[i].lru < set[line].lru) {
-            set[i].lru++;
-        }
-    }
-    set[line].lru = 0;
+    update_lru(set_index, line);
 }
 
 // キャッシュの統計情報を表示する関数
@@ -722,7 +693,7 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
             int shift_count = 2+i*8;
             uint8_t lower8bits = ((value >> shift_count) & 0xF);
             fprintf(sld_result_file, "%u", lower8bits);
-            // printf("%u",lower8bits);
+            printf("%u",lower8bits);
         }
     }
     //csrw
@@ -731,12 +702,12 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
             uint32_t value = (uint32_t)get_register(rd);
             uint8_t lower8bits = (value & 0xFF);
             fprintf(sld_result_file, "%c", lower8bits);
-            // printf("%c",lower8bits);
+            printf("%c",lower8bits);
         } else {
             uint32_t value = (uint32_t)get_float_register(rd);
             uint8_t lower8bits = (value & 0xFF);
             fprintf(sld_result_file, "%c", lower8bits);
-            // printf("%c",lower8bits);
+            printf("%c",lower8bits);
         }
     }
     //csrr
@@ -832,8 +803,8 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
     return 0;
 }
 
-double cpu_frequency = 0.065;  
-double average_cpi = 1.0;            // 平均CPI
+double cpu_frequency = 0.065;  // 65MHzを0.065GHzとして設定      // CPUの周波数（GHz）
+double average_cpi = 1.0;            // 平均CPI（初期値として1.0を設定）
 
 void print_execution_time_prediction() {
     // クロックサイクル時間（ナノ秒）
@@ -856,6 +827,7 @@ void print_execution_time_prediction() {
     printf("平均CPI: %.2f\n", average_cpi);
     printf("総クロックサイクル数: %.0f\n", total_cycles);
     
+    // 適切な単位で表示
     if (execution_time_s >= 1.0) {
         printf("予測実行時間: %.6f 秒\n", execution_time_s);
     } else if (execution_time_ms >= 1.0) {
@@ -1011,7 +983,7 @@ int main(){
     clock_t start_time, end_time;
     start_time = clock();
 
-    // fast_execute_binary_instruction(binary_instructions, instruction_length, transition_file, float_transition_file, sld_file, sld_result_file, memory_file);
+    fast_execute_binary_instruction(binary_instructions, instruction_length, transition_file, float_transition_file, sld_file, sld_result_file, memory_file);
 
     print_cache_stats();
     print_execution_time_prediction();
