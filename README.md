@@ -1,5 +1,7 @@
 # cpuex Simulator
 
+![alt text](image.png)
+
 ## Usage
 
 ### Pipeline Simulation
