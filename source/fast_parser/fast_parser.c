@@ -817,7 +817,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
     uint32_t instruction, opcode, rd, rs1, rs2, func3;
 
     while(current_line < instruction_length){
-        instruction_count++;
+        total_instruction++;
         total_clock++;
         int pc = 0;
         previous = (opcode == 0x6);
