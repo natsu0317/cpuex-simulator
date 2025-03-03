@@ -25,13 +25,11 @@
 
 uint8_t memory[MEMORY_SIZE];
 //clock数
-long long int total_clock = 0;
+long long int total_stall = 0;
 
 // メモリからデータを読み込む
-void memory_read(uint32_t address, uint8_t *data, int size) {
-    for (int i = 0; i < size; i++) {
-        data[i] = memory[address + i];
-    }
+static inline void memory_read(uint32_t address, uint8_t *data, int size) {
+    memcpy(data, &memory[address], size);
 }
 
 // メモリにデータを書き込む
@@ -47,14 +45,16 @@ long long cache_hits = 0;       // キャッシュヒット回数
 long long cache_misses = 0;     // キャッシュミス回数
 
 typedef struct {
-    int valid;         // 有効ビット
-    int dirty;         // ダーティビット（ライトバック方式用）
-    uint32_t tag;      // タグ
-    uint32_t lru;      // LRUカウンタ
-    uint8_t data[BLOCK_SIZE]; // データブロック
+    uint8_t valid;          // 有効ビット
+    uint8_t dirty;          // ダーティビット
+    uint16_t padding;       // パディング（アラインメント用）
+    uint32_t tag;           // タグ
+    uint8_t data[BLOCK_SIZE]; // データ
 } cache_line;
 
 cache_line cache[SETS][WAYS]; // キャッシュ配列
+
+uint8_t plru_bits[SETS];
 
 void init_cache() {
     for (int i = 0; i < SETS; i++) {
@@ -62,9 +62,9 @@ void init_cache() {
             cache[i][j].valid = 0;
             cache[i][j].dirty = 0;
             cache[i][j].tag = 0;
-            cache[i][j].lru = j; // 初期LRU値を設定（0がMRU、WAYS-1がLRU）
             memset(cache[i][j].data, 0, BLOCK_SIZE);
         }
+        plru_bits[i] = 0;
     }
 }
 
@@ -93,45 +93,43 @@ int find_cache_line(uint32_t set_index, uint32_t tag) {
     return -1; // キャッシュミス
 }
 
-// 最も使用されていないキャッシュラインのindexをreturn
-void update_lru(uint32_t set_index, int accessed_line) {
-    // アクセスされたラインのLRU値を0（最も最近使用）に設定
-    uint32_t old_lru = cache[set_index][accessed_line].lru;
-    
-    // 他のラインのLRU値を調整
-    for (int i = 0; i < WAYS; i++) {
-        if (cache[set_index][i].valid && i != accessed_line) {
-            if (cache[set_index][i].lru < old_lru) {
-                // 古いLRU値より小さい値は1増やす
-                cache[set_index][i].lru++;
-            }
-        }
+void update_plru(uint32_t set_index, int accessed_line) {
+    switch (accessed_line) {
+        case 0:
+            plru_bits[set_index] &= ~(1 << 0); // bit0を0に（左側を選択）
+            plru_bits[set_index] &= ~(1 << 1); // bit1を0に（左側を選択）
+            break;
+        case 1:
+            plru_bits[set_index] &= ~(1 << 0); // bit0を0に（左側を選択）
+            plru_bits[set_index] |=  (1 << 1); // bit1を1に（右側を選択）
+            break;
+        case 2:
+            plru_bits[set_index] |=  (1 << 0); // bit0を1に（右側を選択）
+            plru_bits[set_index] &= ~(1 << 2); // bit2を0に（左側を選択）
+            break;
+        case 3:
+            plru_bits[set_index] |=  (1 << 0); // bit0を1に（右側を選択）
+            plru_bits[set_index] |=  (1 << 2); // bit2を1に（右側を選択）
+            break;
     }
-    
-    // アクセスされたラインを最も最近使用したものとしてマーク
-    cache[set_index][accessed_line].lru = 0;
 }
 
-int find_lru_line(uint32_t set_index) {
-    int lru_line = 0;
-    int max_lru = -1;
+int find_plru_line(uint32_t set_index) {
+    uint8_t bits = plru_bits[set_index];
     
-    // 最初に無効なラインを探す
-    for (int i = 0; i < WAYS; i++) {
-        if (!cache[set_index][i].valid) {
-            return i;
+    if ((bits & (1 << 0)) == 0) { // bit0=0なら左のサブツリー
+        if ((bits & (1 << 1)) == 0) {
+            return 0; // 左-左
+        } else {
+            return 1; // 左-右
+        }
+    } else { // bit0=1なら右のサブツリー
+        if ((bits & (1 << 2)) == 0) {
+            return 2; // 右-左
+        } else {
+            return 3; // 右-右
         }
     }
-    
-    // 全てのラインが有効な場合、LRU値が最大のラインを探す
-    for (int i = 0; i < WAYS; i++) {
-        if (cache[set_index][i].lru > max_lru) {
-            max_lru = cache[set_index][i].lru;
-            lru_line = i;
-        }
-    }
-    
-    return lru_line;
 }
 
 void cache_write(uint32_t address, uint8_t *data, int size) {
@@ -139,6 +137,7 @@ void cache_write(uint32_t address, uint8_t *data, int size) {
     
     uint32_t set_index = get_set_index(address);
     uint32_t tag = get_tag(address);
+    uint32_t offset = get_offset(address);
 
     int line = find_cache_line(set_index, tag);
     if (line == -1) {
@@ -146,15 +145,15 @@ void cache_write(uint32_t address, uint8_t *data, int size) {
         cache_misses++;
         
         // LRUポリシーに基づいて置き換えるラインを決定
-        line = find_lru_line(set_index);
+        line = find_plru_line(set_index);
 
         // 追い出すラインが有効であれば、メモリに書き戻す
         if (cache[set_index][line].valid && cache[set_index][line].dirty) {
             uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
             memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
-            total_clock += 2;
+            total_stall += 3;
         } else {
-            total_clock += 1;
+            total_stall += 2;
         }
     } else {
         // キャッシュヒット
@@ -166,12 +165,11 @@ void cache_write(uint32_t address, uint8_t *data, int size) {
     cache[set_index][line].tag = tag;
     cache[set_index][line].dirty = 1;  // ダーティビットを設定
     
-    uint32_t offset = get_offset(address);
     for (int i = 0; i < size && (offset + i) < BLOCK_SIZE; i++) {
         cache[set_index][line].data[offset + i] = data[i];
     }
 
-    update_lru(set_index, line);
+    update_plru(set_index, line);
 }
 
 void cache_read(uint32_t address, uint8_t *data, int size) {
@@ -187,12 +185,15 @@ void cache_read(uint32_t address, uint8_t *data, int size) {
         cache_misses++;
         
         // LRUポリシーに基づいて置き換えるラインを決定
-        line = find_lru_line(set_index);
+        line = find_plru_line(set_index);
 
         // 追い出すラインが有効で、かつダーティビットがセットされている場合はメモリに書き戻す
         if (cache[set_index][line].valid && cache[set_index][line].dirty) {
             uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
             memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
+            total_stall += 3;
+        } else {
+            total_stall += 2;
         }
 
         // メモリから新しいデータを読み込む
@@ -213,7 +214,7 @@ void cache_read(uint32_t address, uint8_t *data, int size) {
         data[i] = cache[set_index][line].data[offset + i];
     }
     
-    update_lru(set_index, line);
+    update_plru(set_index, line);
 }
 
 // キャッシュの統計情報を表示する関数
@@ -527,7 +528,7 @@ int handle_jalr(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_lin
     return pc;
 }
 
-int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line, FILE* memory_file, long long int total_clock){
+int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line, long long int total_stall){
     // printf("sw\n");
     // counter.s_type[0]++;
     uint32_t sw_offset_11_5 = (instruction >> 25) & 0x8F;
@@ -559,7 +560,7 @@ int handle_sw(uint32_t instruction, uint32_t rs1, uint32_t rs2, int current_line
     return 1;
 }
 
-int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line, FILE* memory_file){
+int handle_lw(uint32_t instruction, uint32_t rd, uint32_t rs1, int current_line){
     // printf("lw\n");
     uint32_t lw_offset = (instruction >> 20) & 0xFFF;
     float lw = 0; //setする値
@@ -603,25 +604,25 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         result = fadd(a1,a2);
         set_register(rd, result);
         // counter.f_type[0]++;
-        total_clock += 4;
+        total_stall += 4;
     }
     if(func7 == 1){
         result = fsub(a1,a2);
         set_register(rd, result);
         // counter.f_type[1]++;
-        total_clock += 4;
+        total_stall += 4;
     }
     if(func7 == 2){
         result = fmul(a1,a2);
         set_register(rd, result);
         // counter.f_type[2]++;
-        total_clock += 2;
+        total_stall += 2;
     }
     if(func7 == 3){
         result = fdiv(a1,a2);
         set_register(rd, result);
         // counter.f_type[3]++;
-        total_clock += 11;
+        total_stall += 11;
     }
     if(func7 == 4){
         if(func3 == 1){// fsgnjn
@@ -649,7 +650,7 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         result = fsqrts(a1);
         set_register(rd, result);
         // counter.f_type[7]++;
-        total_clock += 8;
+        total_stall += 8;
     }
     if(func7 == 20){
         if(func3 == 1){//flt
@@ -672,14 +673,14 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         
         set_register(rd, result);
         // counter.f_type[12]++;
-        total_clock += 1;
+        total_stall += 1;
     }
     if(func7 == 26){
         float input_val = get_register(rs1);
         result = fcvtsw(input_val);
         set_register(rd, result);
         // counter.f_type[13]++;
-        total_clock += 1;
+        total_stall += 1;
     }
     if(func7 == 28){
         int a1_value = fcvtws(a1);
@@ -752,17 +753,14 @@ long long int total_instruction = 0;
 uint32_t previous_instruction = 0;
 int current_line = 0;
 // バイナリ命令をデコードして処理
-int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int instruction_length, FILE* transition_file, FILE* float_transition_file, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
-    // fflush(memory_file);
+int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int instruction_length, FILE* sld_file, FILE* sld_result_file) {
     // オペコードを取得
     //下4桁
     int previous = 0;
-    // int two_previous = 0;
     uint32_t instruction, opcode, rd, rs1, rs2, func3;
 
     while(current_line < instruction_length){
         total_instruction++;
-        total_clock++;
         int pc = 0;
         previous = (opcode == 0x6);
         instruction = strtol(binary_instruction[current_line].binary_code, NULL, 2); //2進数文字列を数値に変換
@@ -777,16 +775,17 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 handle_i(instruction, rd, rs1, func3, previous);
                 break;
             case 0x3:  // SW
-                handle_sw(instruction, rs1, rs2, current_line, memory_file, total_clock);
+                handle_sw(instruction, rs1, rs2, current_line, total_stall);
                 break;
             case 0xa:  // F-type
                 handle_f(instruction, rd, rs1, rs2, func3);
                 break;
             case 0x9:  // LW
-                handle_lw(instruction, rd, rs1, current_line, memory_file);
+                handle_lw(instruction, rd, rs1, current_line);
                 break;
             case 0x7:  // J-type
                 pc = handle_j(instruction, rd, current_line);
+                total_instruction--;//j/jalrの次のnop命令はコアでは考慮しない
                 break;
             case 0x1:  // R-type
                 handle_r(instruction, rd, rs1, rs2, func3);
@@ -796,6 +795,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 break;
             case 0x5:  // LUI
                 handle_lui(instruction, rd);
+                total_instruction--; //luiの次のnop命令はコアでは考慮しない
                 break;
             case 0x6:  // AUIPC
                 handle_auipc(instruction, rd, current_line);
@@ -811,13 +811,11 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 while(getchar() != '\n'); // Enterキーが押されるまで待機
                 break;
             case 0xf:  // Finish
-                printf("Finish instruction detected. Total instructions: %lld\n", total_clock);
+                printf("Finish instruction detected. Total instructions: %lld\n", total_stall);
                 return 1;
             default:
                 break;
         }
-        // print_use_register_transition(transition_file,current_line+1,use_register);
-        // print_use_float_register_transition(float_transition_file,current_line+1,use_register);
         current_line += (pc == 0) ? 1 : pc;
     }
     return 0;
@@ -830,8 +828,8 @@ void print_execution_time_prediction() {
     // クロックサイクル時間（ナノ秒）
     double clock_cycle_time_ns = 1.0 / (cpu_frequency * 1.0e9) * 1.0e9;
     
-    // 総サイクル数
-    double total_cycles = total_clock + cache_misses * 60;
+    // 総サイクル数 = 命令数 + ストール数 + キャッシュミス時のストール + キャッシュヒット時のストール
+    double total_cycles = total_instruction + total_stall + cache_misses * 60 + cache_hits;
     
     // 実行時間（ナノ秒）
     double execution_time_ns = total_cycles * clock_cycle_time_ns;
@@ -845,6 +843,7 @@ void print_execution_time_prediction() {
     printf("総命令数: %lld\n",total_instruction);
     printf("CPU周波数: %.3f GHz\n", cpu_frequency);
     printf("平均CPI: %.2f\n", average_cpi);
+    printf("ストール数: %lld\n", total_stall);
     printf("総クロックサイクル数: %.0f\n", total_cycles);
     
     // 適切な単位で表示
@@ -857,49 +856,6 @@ void print_execution_time_prediction() {
     } else {
         printf("予測実行時間: %.6f ナノ秒\n", execution_time_ns);
     }
-}
-
-
-void print_register(FILE* output_file){
-    for(int i=0;i<32;i++){
-        fprintf(output_file, "x%d = %d\n", i, get_register(i));
-    }
-}
-
-void for_markdown(FILE *transition_file, FILE *float_transition_file, int use_regiser[64]){
-    // Markdownの表ヘッダーを出力
-    fprintf(transition_file, "| ");
-    fprintf(transition_file, "実行命令|");
-    fprintf(float_transition_file, "| ");
-    fprintf(float_transition_file, "実行命令|");
-    int int_count = 0;
-    int float_count = 0;
-    for (int i = 0; i < 32; i++) {
-        if(use_register[i] > 0){
-            int_count++;
-            fprintf(transition_file, "x%-2d | ", i);
-        }
-    }    
-    for (int i = 32; i < 64; i++) {
-        if(use_register[i] > 0){
-            float_count++;
-            fprintf(float_transition_file, "f%-2d | ", i-32);
-        }
-    }
-    fprintf(transition_file, "\n|");
-    fprintf(float_transition_file, "\n|");
-
-    // 区切り線を出力
-    for (int i = 0; i < int_count+1; i++) {
-        fprintf(transition_file, "---:|");
-    }    
-    for (int i = 0; i < float_count+1; i++) {
-        fprintf(float_transition_file, "---:|");
-    }
-    fprintf(transition_file, "\n");
-    fflush(transition_file);
-    fprintf(float_transition_file, "\n");
-    fflush(float_transition_file);
 }
 
 int instruction_count = 0;
@@ -955,41 +911,9 @@ int main(){
     int assembly_count =  instruction_count - instruction_length;
     //printf("assembly_code:%20s",assembly_instructions[assembly_count]);
 
-    //register遷移
-    FILE *transition_file = fopen("./document/transition.md", "w");
-    if (transition_file == NULL) {
-        perror("Error opening transition file");
-        return 1;
-    }
-
-    // for_markdown(transition_file, use_register);
-
-    FILE *float_transition_file = fopen("./document/float_transition.md", "w");
-    if (float_transition_file == NULL) {
-        perror("Error opening float_transition file");
-        return 1;
-    }
-
-    for_markdown(transition_file, float_transition_file, use_register);
-
-    //pipeline
-    //binary codeを受け取ってpipelineにする
-    FILE *pipeline_file = fopen("./document/pipeline.txt","w");
-    if (pipeline_file == NULL) {
-        perror("Error opening transition file");
-        return 1;
-    }
-
     FILE *sld_file = fopen("./document/formatted_sld_data.txt","r");
     if (sld_file == NULL) {
         perror("Error opening sld file");
-        return 1;
-    }
-
-    //memoryの値の遷移を表示
-    FILE *memory_file = fopen("./document/memory_transition.txt","w");
-    if (memory_file == NULL) {
-        perror("Error opening memory file");
         return 1;
     }
 
@@ -1003,15 +927,14 @@ int main(){
     clock_t start_time, end_time;
     start_time = clock();
 
-    fast_execute_binary_instruction(binary_instructions, instruction_length, transition_file, float_transition_file, sld_file, sld_result_file, memory_file);
+    fast_execute_binary_instruction(binary_instructions, instruction_length, sld_file, sld_result_file);
+
+    end_time = clock();
 
     print_cache_stats();
     print_execution_time_prediction();
 
-    fclose(transition_file);
     fclose(sld_file);
-
-    end_time = clock();
 
     printf("Execution Time = %lf [s]\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
 
