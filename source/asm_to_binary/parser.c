@@ -117,9 +117,10 @@ const char* get_opcode_binary(const char* opcode){
     if(is_c_type(opcode)) return "1011";
     //FINISH
     if(strcmp(opcode,"finish") == 0) return "1111111";
+    return NULL;
 }
 
-char* get_register_binary(const char* reg) {
+const char* get_register_binary(const char* reg) {
     char* binary = (char*)malloc(7*sizeof(char));
     if(binary == NULL){
         return NULL;
@@ -189,7 +190,7 @@ char* get_immediate_binary(const char* imm) {
         // number |= (1 << 30);  // 最上位2ビットを"01"に設定
 
         // バイナリ文字列への変換
-        char *binary_str = malloc(33); // 32ビット + 終端文字
+        char *binary_str = (char*)malloc(33); // 32ビット + 終端文字
         if (!binary_str) {
             fprintf(stderr, "Memory allocation failed\n");
             exit(1);
@@ -229,7 +230,7 @@ typedef struct {
 LabelEntry labels[MAX_LABELS];
 int label_count = 0;
 
-LabelEntry found_labels(const char* assembly_code){
+void found_labels(const char* assembly_code){
     const char* delimiter = "\n";
     char* code_copy = strdup(assembly_code);
     char* token = strtok(code_copy, delimiter);
@@ -449,13 +450,13 @@ void parse_assembly(const char* assembly_code){
         using_register(operand3);
 
         const char* opcode_bin = get_opcode_binary(opcode);//opcodeを生成 add -> r_type -> 0001
-        char* rd_bin = get_register_binary(operand1); 
+        const char* rd_bin = get_register_binary(operand1); 
         int not_rd_free = 0;
         if(!strchr(operand1, 'x')){
             //0ならfree
             not_rd_free = 1;
         }
-        char* r1_bin;
+        const char* r1_bin = NULL;
         int need_free_reg_1 = 0;
         int need_free_imm_1 = 0;
         if(operand2[0] == 'x'){ //operand2がレジスタ
@@ -471,7 +472,7 @@ void parse_assembly(const char* assembly_code){
                 need_free_imm_1 = 1;
             }
         }
-        char* r2_bin;
+        const char* r2_bin = NULL;
         int need_free_reg_2 = 0;
         int need_free_imm_2 = 0;
         if(operand3[0] == 'x'){
@@ -620,7 +621,7 @@ void parse_assembly(const char* assembly_code){
             *reg_ptr = '\0';
 
             char *offset_bin = get_immediate_binary(offset);
-            char *r1_bin = get_register_binary(reg_num);
+            const char *r1_bin = get_register_binary(reg_num);
 
             char bit11_5[8], bit4_0[6];
             get_substring(offset_bin, bit11_5, strlen(offset_bin) - 12, 7);
@@ -738,7 +739,7 @@ void parse_assembly(const char* assembly_code){
             *reg_ptr = '\0';
 
             char *offset_bin = get_immediate_binary(offset);
-            char *r1_bin = get_register_binary(reg_num);
+            const char *r1_bin = get_register_binary(reg_num);
 
             char bit11_0[13];
             get_substring(offset_bin, bit11_0, strlen(offset_bin) - 12, 12);
