@@ -7,6 +7,8 @@
 #include <time.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <float.h>
+
 #include "../float/fpu.hpp"
 #include "../asm_to_binary/asm_to_binary.h"
 
@@ -646,13 +648,240 @@ void print_float_as_32bit(FILE* file, float value) {
     }
 }
 
+uint32_t fpu_fadd(float a, float b){
+    uint32_t a_bits, b_bits;
+    memcpy(&a_bits, &a, sizeof(a_bits));
+    memcpy(&b_bits, &b, sizeof(b_bits));
+
+    uint32_t s1 = (a_bits >> 31) & 0x1;
+    uint32_t s2 = (b_bits >> 31) & 0x1;
+    uint32_t e1 = (a_bits >> 23) & 0xFF;
+    uint32_t e2 = (b_bits >> 23) & 0xFF;
+    uint32_t m1 = a_bits & 0x7FFFFF;
+    uint32_t m2 = b_bits & 0x7FFFFF;
+
+    // printf("s1: %x, e1: %x, m1: %x\n",s1, e1, m1);
+    // printf("s2: %x, e2: %x, m2: %x\n",s2, e2, m2);
+
+    int32_t m1a, m2a;
+    int16_t e1a, e2a;
+    if (e1 == 0) {
+        m1a = m1;
+        e1a = 1;
+    } else {
+        m1a = m1 | 0x800000;
+        e1a = e1;
+    }
+    if (e2 == 0) {
+        m2a = m2;
+        e2a = 1;
+    } else {
+        m2a = m2 | 0x800000;
+        e2a = e2;
+    }
+
+    int ce;
+    int16_t tde;
+    if (e1a > e2a) {
+        ce = 0;
+        tde = e1a - e2a;
+    } else {
+        ce = 1;
+        tde = e2a - e1a;
+    }
+
+    int32_t de;
+    if (tde > 31) {
+        de = 31;
+    } else {
+        de = tde & 0x1F;
+    }
+
+    int sel = ce;
+    if (de == 0) {
+        if (m1a > m2a) {
+            sel = 0;
+        } else {
+            sel = 1;
+        }
+    }
+
+    uint32_t ms;
+    uint64_t mi;
+    uint16_t es;
+    int ss;
+    if (sel == 0) {
+        ms = m1a;
+        mi = m2a;
+        es = e1a;
+        ss = s1;
+    } else {
+        ms = m2a;
+        mi = m1a;
+        es = e2a;
+        ss = s2;
+    }
+
+    uint64_t mia = mi << 31;
+    mia = mia >> de;
+    int tstck = 0;
+    if ((mia & 0x1FFFFFFF) != 0) {
+        tstck = 1;
+    }
+
+    uint32_t mye;
+    if (s1 == s2) {
+        mye = (ms << 2) + (mia >> 29);
+    } else {
+        mye = (ms << 2) - (mia >> 29);
+    }
+
+    uint16_t esi = es + 1;
+
+    uint32_t myd;
+    uint16_t eyd;
+    int stck;
+    if (((mye >> 26) & 0x1) == 0) {
+        myd = mye;
+        eyd = es;
+        stck = tstck;
+    } else {
+        eyd = esi;
+        if (esi == 0xFF) {
+            myd = 1 << 25;
+            stck = 0;
+        } else {
+            myd = mye >> 1;
+            stck = tstck || (mye & 0x1);
+        }
+    }
+
+    uint16_t se;
+    if (((myd >> 25) & 0x1) != 0) {
+        se = 0;
+    } else if (((myd >> 24) & 0x1) != 0) {
+        se = 1;
+    } else if (((myd >> 23) & 0x1) != 0) {
+        se = 2;
+    } else if (((myd >> 22) & 0x1) != 0) {
+        se = 3;
+    } else if (((myd >> 21) & 0x1) != 0) {
+        se = 4;
+    } else if (((myd >> 20) & 0x1) != 0) {
+        se = 5;
+    } else if (((myd >> 19) & 0x1) != 0) {
+        se = 6;
+    } else if (((myd >> 18) & 0x1) != 0) {
+        se = 7;
+    } else if (((myd >> 17) & 0x1) != 0) {
+        se = 8;
+    } else if (((myd >> 16) & 0x1) != 0) {
+        se = 9;
+    } else if (((myd >> 15) & 0x1) != 0) {
+        se = 10;
+    } else if (((myd >> 14) & 0x1) != 0) {
+        se = 11;
+    } else if (((myd >> 13) & 0x1) != 0) {
+        se = 12;
+    } else if (((myd >> 12) & 0x1) != 0) {
+        se = 13;
+    } else if (((myd >> 11) & 0x1) != 0) {
+        se = 14;
+    } else if (((myd >> 10) & 0x1) != 0) {
+        se = 15;
+    } else if (((myd >> 9) & 0x1) != 0) {
+        se = 16;
+    } else if (((myd >> 8) & 0x1) != 0) {
+        se = 17;
+    } else if (((myd >> 7) & 0x1) != 0) {
+        se = 18;
+    } else if (((myd >> 6) & 0x1) != 0) {
+        se = 19;
+    } else if (((myd >> 5) & 0x1) != 0) {
+        se = 20;
+    } else if (((myd >> 4) & 0x1) != 0) {
+        se = 21;
+    } else if (((myd >> 3) & 0x1) != 0) {
+        se = 22;
+    } else if (((myd >> 2) & 0x1) != 0) {
+        se = 23;
+    } else if (((myd >> 1) & 0x1) != 0) {
+        se = 24;
+    } else if ((myd & 0x1) != 0) {
+        se = 25;
+    } else {
+        se = 26;
+    }
+
+    uint32_t myf_f, myf_s;
+    myf_f = myd << se;
+    myf_s = myd << ((eyd - 1) & 0x1F);
+
+    uint16_t eyf = eyd - se;
+    uint16_t eyr;
+    uint32_t myf;
+    if (eyd > se) {
+        eyr = eyf & 0xFF;
+        myf = myf_f;
+    } else {
+        eyr = 0;
+        myf = myf_s;
+    }
+
+    uint32_t myr;
+    if (((myf & 0x2) != 0 && (myf & 0x1) == 0 && stck == 0 && (myf & 0x4) != 0) ||
+        ((myf & 0x2) != 0 && (myf & 0x1) == 0 && s1 == s2 && stck == 1) ||
+        ((myf & 0x2) != 0 && (myf & 0x1) != 0)) {
+        myr = (myf >> 2) + 1;
+    } else {
+        myr = myf >> 2;
+    }
+
+    uint16_t eyri, ey;
+    uint32_t my;
+    eyri = eyr + 1;
+    if (((myr >> 24) & 0x1) != 0) {
+        ey = eyri;
+        my = 0;
+    } else if ((myr & 0xFFFFFF) == 0) {
+        ey = 0;
+        my = 0;
+    } else {
+        ey = eyr;
+        my = myr & 0x7FFFFF;
+    }
+
+    int sy;
+    if (ey == 0 && my == 0) {
+        sy = s1 && s2;
+    } else {
+        sy = ss;
+    }
+
+    // 結果を構成
+    uint32_t result_raw;
+    if (e1 == 0 && e2 == 0) {
+        result_raw = 0;
+    } else if (e1 == 0) {
+        result_raw = b_bits;
+    } else if (e2 == 0) {
+        result_raw = a_bits;
+    } else {
+        result_raw = (sy << 31) | ((ey & 0xFF) << 23) | (my & 0x7FFFFF);
+    }
+    
+    return result_raw;
+
+}
+
 int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint32_t func3, FILE* log_file, FILE* memory_file){
     uint32_t func7 = (instruction >> 27) & 0x1F;
     float a1 = get_float_register(rs1);
     float a2 = get_float_register(rs2);
     float result;
     if(func7 == 0){
-        result = fadd(a1,a2);
+        uint32_t value = fpu_fadd(a1,a2);
+        memcpy(&result, &value, sizeof(uint32_t));
         // fprintf(log_file, "fadd %.9f, %.9f = ", a1, a2);
         // print_float_as_32bit(log_file, result);
         // fprintf(log_file, "\n");
@@ -661,7 +890,8 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         total_stall += 4;
     }
     if(func7 == 1){
-        result = fsub(a1,a2);
+        uint32_t value = fpu_fadd(a1,-a2);
+        memcpy(&result, &value, sizeof(uint32_t));
         // fprintf(log_file, "fsub %.9f, %.9f = ", a1, a2);
         // print_float_as_32bit(log_file, result);
         // fprintf(log_file, "\n");
@@ -768,12 +998,12 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         }
     }
     if(func7 == 24){
-        printf("a1:%f\n",a1);
+        // printf("a1:%f\n",a1);
         int32_t int_result = fcvtws(a1); // int32_t 型で結果を受け取る
         result = (double)int_result;     // double 型にキャスト
         
         // fprintf(log_file, "fcvtws %.9f = %d\n", a1, int_result);
-        printf("result: %f\n", result);  // %f を使用して double を表示
+        // printf("result: %f\n", result);  // %f を使用して double を表示
         set_register(rd, result);
         // counter.f_type[12]++;
         total_stall += 1;
@@ -838,20 +1068,16 @@ int handle_c(uint32_t instruction, uint32_t rd, uint32_t func3, FILE* sld_file, 
     //csrw
     if(func3 == 1){ // x10の下位8bit値をファイルに書きこむ
         count++;
-        if(count >= 15549){
-            printf("\n%lld\n",count);
-            while(getchar() != '\n');
-        }
         if( 0 <= rd && rd < 32){
             uint32_t value = (uint32_t)get_register(rd);
             uint8_t lower8bits = (value & 0xFF);
             fprintf(sld_result_file, "%c", lower8bits);
-            printf("%c",lower8bits);
+            // printf("%c",lower8bits);
         } else {
             uint32_t value = (uint32_t)get_float_register(rd);
             uint8_t lower8bits = (value & 0xFF);
             fprintf(sld_result_file, "%c", lower8bits);
-            printf("%c",lower8bits);
+            // printf("%c",lower8bits);
         }
     }
     //csrr
@@ -895,10 +1121,6 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
         rs1 = (instruction >> 13) & 0x3F;
         rs2 = (instruction >> 19) & 0x3F;
         func3 = (instruction >> 10) & 0x7;
-        if(count >= 15549){
-            // while(getchar() != '\n');
-            printf("%d行\n",current_line+1);
-        }
         
         switch (opcode) {
             case 0x2:  // I-type

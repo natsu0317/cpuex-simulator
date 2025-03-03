@@ -3,8 +3,6 @@
 
 using namespace std;
 
-float fadd(float f1,float f2);
-float fsub(float f1,float f2);
 float fmul(float f1,float f2);
 float fdiv(float f1,float f2);
 float fsqrts(float f1);
