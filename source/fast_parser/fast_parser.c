@@ -7,7 +7,7 @@
 #include <time.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include "../float/fpu.hpp"
+#include "../float/fpu.h"
 #include "../asm_to_binary/asm_to_binary.h"
 
 #define NUM_REGISTERS 64
@@ -21,7 +21,7 @@
 #define CACHE_LINES 1024
 #define WAYS 4
 #define SETS (CACHE_LINES / WAYS)
-#define BLOCK_SIZE 4
+#define BLOCK_SIZE 128
 
 uint8_t memory[MEMORY_SIZE];
 //clock数
@@ -132,7 +132,8 @@ int find_plru_line(uint32_t set_index) {
     }
 }
 
-void cache_write(uint32_t address, uint8_t *data, int size) {
+// 単一ブロック内への書き込み処理
+void cache_write_block(uint32_t address, uint8_t *data, int size) {
     total_accesses++;
     
     uint32_t set_index = get_set_index(address);
@@ -144,17 +145,19 @@ void cache_write(uint32_t address, uint8_t *data, int size) {
         // キャッシュミス
         cache_misses++;
         
-        // LRUポリシーに基づいて置き換えるラインを決定
         line = find_plru_line(set_index);
 
-        // 追い出すラインが有効であれば、メモリに書き戻す
         if (cache[set_index][line].valid && cache[set_index][line].dirty) {
             uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
             memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
-            total_stall += 3;
+            total_stall += 4;
         } else {
-            total_stall += 2;
+            total_stall += 3;
         }
+        
+        // メモリから新しいブロックを読み込む
+        uint32_t block_start = address - offset;
+        memory_read(block_start, cache[set_index][line].data, BLOCK_SIZE);
     } else {
         // キャッシュヒット
         cache_hits++;
@@ -163,16 +166,39 @@ void cache_write(uint32_t address, uint8_t *data, int size) {
     // キャッシュにデータを書き込み
     cache[set_index][line].valid = 1;
     cache[set_index][line].tag = tag;
-    cache[set_index][line].dirty = 1;  // ダーティビットを設定
+    cache[set_index][line].dirty = 1;
     
-    for (int i = 0; i < size && (offset + i) < BLOCK_SIZE; i++) {
+    for (int i = 0; i < size; i++) {
         cache[set_index][line].data[offset + i] = data[i];
     }
 
     update_plru(set_index, line);
 }
 
-void cache_read(uint32_t address, uint8_t *data, int size) {
+void cache_write(uint32_t address, uint8_t *data, int size) {
+    // 複数のブロックにまたがる可能性がある場合、分割して処理
+    uint32_t remaining = size;
+    uint32_t curr_addr = address;
+    uint32_t data_offset = 0;
+    
+    while (remaining > 0) {
+        uint32_t offset = get_offset(curr_addr);
+        uint32_t bytes_this_block = BLOCK_SIZE - offset;
+        if (bytes_this_block > remaining) {
+            bytes_this_block = remaining;
+        }
+        
+        // 単一ブロックへの書き込み
+        cache_write_block(curr_addr, &data[data_offset], bytes_this_block);
+        
+        remaining -= bytes_this_block;
+        curr_addr += bytes_this_block;
+        data_offset += bytes_this_block;
+    }
+}
+
+// 単一ブロック内からの読み込み処理
+void cache_read_block(uint32_t address, uint8_t *data, int size) {
     total_accesses++;
     
     uint32_t set_index = get_set_index(address);
@@ -191,9 +217,9 @@ void cache_read(uint32_t address, uint8_t *data, int size) {
         if (cache[set_index][line].valid && cache[set_index][line].dirty) {
             uint32_t old_address = (cache[set_index][line].tag * SETS + set_index) * BLOCK_SIZE;
             memory_write(old_address, cache[set_index][line].data, BLOCK_SIZE);
-            total_stall += 3;
+            total_stall += 4;
         } else {
-            total_stall += 2;
+            total_stall += 3;
         }
 
         // メモリから新しいデータを読み込む
@@ -210,11 +236,33 @@ void cache_read(uint32_t address, uint8_t *data, int size) {
     }
 
     // キャッシュからデータを読み込む
-    for (int i = 0; i < size && (offset + i) < BLOCK_SIZE; i++) {
+    for (int i = 0; i < size; i++) {
         data[i] = cache[set_index][line].data[offset + i];
     }
     
     update_plru(set_index, line);
+}
+
+void cache_read(uint32_t address, uint8_t *data, int size) {
+    // 複数のブロックにまたがる可能性がある場合、分割して処理
+    uint32_t remaining = size;
+    uint32_t curr_addr = address;
+    uint32_t data_offset = 0;
+    
+    while (remaining > 0) {
+        uint32_t offset = get_offset(curr_addr);
+        uint32_t bytes_this_block = BLOCK_SIZE - offset;
+        if (bytes_this_block > remaining) {
+            bytes_this_block = remaining;
+        }
+        
+        // 単一ブロックからの読み込み
+        cache_read_block(curr_addr, &data[data_offset], bytes_this_block);
+        
+        remaining -= bytes_this_block;
+        curr_addr += bytes_this_block;
+        data_offset += bytes_this_block;
+    }
 }
 
 // キャッシュの統計情報を表示する関数
@@ -604,25 +652,25 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         result = fadd(a1,a2);
         set_register(rd, result);
         // counter.f_type[0]++;
-        total_stall += 4;
+        total_stall += 5;
     }
     if(func7 == 1){
         result = fsub(a1,a2);
         set_register(rd, result);
         // counter.f_type[1]++;
-        total_stall += 4;
+        total_stall += 5;
     }
     if(func7 == 2){
         result = fmul(a1,a2);
         set_register(rd, result);
         // counter.f_type[2]++;
-        total_stall += 2;
+        total_stall += 3;
     }
     if(func7 == 3){
         result = fdiv(a1,a2);
         set_register(rd, result);
         // counter.f_type[3]++;
-        total_stall += 11;
+        total_stall += 12;
     }
     if(func7 == 4){
         if(func3 == 1){// fsgnjn
@@ -650,7 +698,7 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         result = fsqrts(a1);
         set_register(rd, result);
         // counter.f_type[7]++;
-        total_stall += 8;
+        total_stall += 9;
     }
     if(func7 == 20){
         if(func3 == 1){//flt
@@ -673,14 +721,14 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         
         set_register(rd, result);
         // counter.f_type[12]++;
-        total_stall += 1;
+        total_stall += 2;
     }
     if(func7 == 26){
         float input_val = get_register(rs1);
         result = fcvtsw(input_val);
         set_register(rd, result);
         // counter.f_type[13]++;
-        total_stall += 1;
+        total_stall += 2;
     }
     if(func7 == 28){
         int a1_value = fcvtws(a1);
@@ -753,10 +801,12 @@ long long int total_instruction = 0;
 uint32_t previous_instruction = 0;
 int current_line = 0;
 // バイナリ命令をデコードして処理
-int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int instruction_length, FILE* sld_file, FILE* sld_result_file) {
+int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int instruction_length, FILE* transition_file, FILE* float_transition_file, FILE* sld_file, FILE* sld_result_file, FILE* memory_file) {
+    // fflush(memory_file);
     // オペコードを取得
     //下4桁
     int previous = 0;
+    // int two_previous = 0;
     uint32_t instruction, opcode, rd, rs1, rs2, func3;
 
     while(current_line < instruction_length){
@@ -785,7 +835,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 break;
             case 0x7:  // J-type
                 pc = handle_j(instruction, rd, current_line);
-                total_instruction--;//j/jalrの次のnop命令はコアでは考慮しない
+                total_stall++;
                 break;
             case 0x1:  // R-type
                 handle_r(instruction, rd, rs1, rs2, func3);
@@ -795,13 +845,13 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 break;
             case 0x5:  // LUI
                 handle_lui(instruction, rd);
-                total_instruction--; //luiの次のnop命令はコアでは考慮しない
                 break;
             case 0x6:  // AUIPC
                 handle_auipc(instruction, rd, current_line);
                 break;
             case 0x8:  // JALR
                 pc = handle_jalr(instruction, rd, rs1, current_line);
+                total_stall++;
                 break;
             case 0xb:  // CSR
                 handle_c(instruction, rd, func3, sld_file, sld_result_file);
@@ -811,11 +861,13 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
                 while(getchar() != '\n'); // Enterキーが押されるまで待機
                 break;
             case 0xf:  // Finish
-                printf("Finish instruction detected. Total instructions: %lld\n", total_stall);
+                printf("Finish instruction detected. Total instructions: %lld\n", total_instruction);
                 return 1;
             default:
                 break;
         }
+        // print_use_register_transition(transition_file,current_line+1,use_register);
+        // print_use_float_register_transition(float_transition_file,current_line+1,use_register);
         current_line += (pc == 0) ? 1 : pc;
     }
     return 0;
@@ -828,8 +880,8 @@ void print_execution_time_prediction() {
     // クロックサイクル時間（ナノ秒）
     double clock_cycle_time_ns = 1.0 / (cpu_frequency * 1.0e9) * 1.0e9;
     
-    // 総サイクル数 = 命令数 + ストール数 + キャッシュミス時のストール + キャッシュヒット時のストール
-    double total_cycles = total_instruction + total_stall + cache_misses * 60 + cache_hits;
+    // 総サイクル数
+    double total_cycles = total_instruction + total_stall + cache_hits + cache_misses * 60;
     
     // 実行時間（ナノ秒）
     double execution_time_ns = total_cycles * clock_cycle_time_ns;
@@ -843,7 +895,6 @@ void print_execution_time_prediction() {
     printf("総命令数: %lld\n",total_instruction);
     printf("CPU周波数: %.3f GHz\n", cpu_frequency);
     printf("平均CPI: %.2f\n", average_cpi);
-    printf("ストール数: %lld\n", total_stall);
     printf("総クロックサイクル数: %.0f\n", total_cycles);
     
     // 適切な単位で表示
@@ -856,6 +907,49 @@ void print_execution_time_prediction() {
     } else {
         printf("予測実行時間: %.6f ナノ秒\n", execution_time_ns);
     }
+}
+
+
+void print_register(FILE* output_file){
+    for(int i=0;i<32;i++){
+        fprintf(output_file, "x%d = %d\n", i, get_register(i));
+    }
+}
+
+void for_markdown(FILE *transition_file, FILE *float_transition_file, int use_regiser[64]){
+    // Markdownの表ヘッダーを出力
+    fprintf(transition_file, "| ");
+    fprintf(transition_file, "実行命令|");
+    fprintf(float_transition_file, "| ");
+    fprintf(float_transition_file, "実行命令|");
+    int int_count = 0;
+    int float_count = 0;
+    for (int i = 0; i < 32; i++) {
+        if(use_register[i] > 0){
+            int_count++;
+            fprintf(transition_file, "x%-2d | ", i);
+        }
+    }    
+    for (int i = 32; i < 64; i++) {
+        if(use_register[i] > 0){
+            float_count++;
+            fprintf(float_transition_file, "f%-2d | ", i-32);
+        }
+    }
+    fprintf(transition_file, "\n|");
+    fprintf(float_transition_file, "\n|");
+
+    // 区切り線を出力
+    for (int i = 0; i < int_count+1; i++) {
+        fprintf(transition_file, "---:|");
+    }    
+    for (int i = 0; i < float_count+1; i++) {
+        fprintf(float_transition_file, "---:|");
+    }
+    fprintf(transition_file, "\n");
+    fflush(transition_file);
+    fprintf(float_transition_file, "\n");
+    fflush(float_transition_file);
 }
 
 int instruction_count = 0;
@@ -911,14 +1005,46 @@ int main(){
     int assembly_count =  instruction_count - instruction_length;
     //printf("assembly_code:%20s",assembly_instructions[assembly_count]);
 
+    //register遷移
+    FILE *transition_file = fopen("./document/transition.md", "w");
+    if (transition_file == NULL) {
+        perror("Error opening transition file");
+        return 1;
+    }
+
+    // for_markdown(transition_file, use_register);
+
+    FILE *float_transition_file = fopen("./document/float_transition.md", "w");
+    if (float_transition_file == NULL) {
+        perror("Error opening float_transition file");
+        return 1;
+    }
+
+    for_markdown(transition_file, float_transition_file, use_register);
+
+    //pipeline
+    //binary codeを受け取ってpipelineにする
+    FILE *pipeline_file = fopen("./document/pipeline.txt","w");
+    if (pipeline_file == NULL) {
+        perror("Error opening transition file");
+        return 1;
+    }
+
     FILE *sld_file = fopen("./document/formatted_sld_data.txt","r");
     if (sld_file == NULL) {
         perror("Error opening sld file");
         return 1;
     }
 
+    //memoryの値の遷移を表示
+    FILE *memory_file = fopen("./document/memory_transition.txt","w");
+    if (memory_file == NULL) {
+        perror("Error opening memory file");
+        return 1;
+    }
+
     //x10の値が格納
-    FILE *sld_result_file = fopen("./document/sld_result.ppm","w");
+    FILE *sld_result_file = fopen("./document/fsqrt_sld_result.ppm","w");
     if (sld_result_file == NULL) {
         perror("Error opening sld_result file");
         return 1;
@@ -927,14 +1053,15 @@ int main(){
     clock_t start_time, end_time;
     start_time = clock();
 
-    fast_execute_binary_instruction(binary_instructions, instruction_length, sld_file, sld_result_file);
-
-    end_time = clock();
+    fast_execute_binary_instruction(binary_instructions, instruction_length, transition_file, float_transition_file, sld_file, sld_result_file, memory_file);
 
     print_cache_stats();
     print_execution_time_prediction();
 
+    fclose(transition_file);
     fclose(sld_file);
+
+    end_time = clock();
 
     printf("Execution Time = %lf [s]\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
 
