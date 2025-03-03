@@ -823,7 +823,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
     return 0;
 }
 
-double cpu_frequency = 0.075;  // 65MHzを0.065GHzとして設定      // CPUの周波数（GHz）
+double cpu_frequency = 0.075; // CPUの周波数（GHz）
 double average_cpi = 1.0;            // 平均CPI（初期値として1.0を設定）
 
 void print_execution_time_prediction() {
