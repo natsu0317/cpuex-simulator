@@ -8,31 +8,180 @@
 
 using namespace std;
 
-// FP32の構造体
 struct FP32 {
-    uint32_t raw; // 生データ
-    // 符号ビットを取得
+    uint32_t raw; 
     bool sign() const { return (raw >> 31) & 1; }
-    // 指数部を取得
-    uint8_t exponent() const { return (raw >> 23) & 0xFF; }
-    // 仮数部を取得
-    uint32_t mantissa() const { return raw & 0x7FFFFF; }
-    // 正規化された仮数部 (暗黙の1を含む)
-    uint32_t normalized_mantissa() const { return mantissa() | 0x800000; }
+    uint8_t exp() const { return (raw >> 23) & 0xFF; }
+    uint32_t man() const { return raw & 0x7FFFFF; }
+    uint32_t normalized_man() const { return man() | 0x800000; }
 };
+
+float fadd(float f1, float f2) {
+    FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
+    FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
+
+    int32_t m1a, m2a;
+    int16_t e1a, e2a;
+    m1a = (x1.exp() == 0) ? 0 : (1 << 23) | x1.man();
+    m2a = (x2.exp() == 0) ? 0 : (1 << 23) | x2.man();
+
+    e1a = x1.exp();
+    e2a = x2.exp();
+
+    bool ce;
+    int16_t tde;
+    ce = (e1a > e2a) ? 0 : 1;
+    tde = (e1a > e2a) ? e1a - e2a : e2a - e1a;
+
+    int32_t de;
+    bool sel;
+    de = (tde > 31) ? 31 : (tde & 0x1F);
+    sel = (de == 0) ? ((m1a > m2a) ? 0 : 1) : ce;
+
+    uint32_t ms;
+    uint64_t mi;
+    uint16_t es, ei;
+    bool ss;
+    if (sel == 0) {
+        ms = m1a;
+        mi = m2a;
+        es = e1a;
+        ei = e2a;
+        ss = x1.sign();
+    } else {
+        ms = m2a;
+        mi = m1a;
+        es = e2a;
+        ei = e1a;
+        ss = x2.sign();
+    }
+
+    uint64_t mia = mi << 31;
+    mia = mia >> de;
+
+    bool tstck = 0;
+    if ((mia & 0x1FFFFFFF) != 0) {
+        tstck = 1;
+    }
+
+    uint16_t esi = es + 1;
+
+    uint32_t mye;
+    mye = (x1.sign() == x2.sign()) ? ((ms << 2) + (mia >> 29)) : ((ms << 2) - (mia >> 29));
+
+    uint32_t myd, eyd;
+    bool stck;
+    
+    eyd = (((mye >> 26) & 0x1) == 1) ? ((esi == 0xFF) ? 0xFF : esi) : es;
+    myd = (((mye >> 26) & 0x1) == 1) ? ((esi == 0xFF) ? (1 << 25) : (mye >> 1)) : mye;
+    stck = (((mye >> 26) & 0x1) == 1) ? ((esi == 0xFF) ? 0 : tstck || (mye & 0x1)) : tstck;
+
+    uint16_t se;
+    if (((myd >> 25) & 0x1) == 1) {
+        se = 0;
+    } else if (((myd >> 24) & 0x1) == 1) {
+        se = 1;
+    } else if (((myd >> 23) & 0x1) == 1) {
+        se = 2;
+    } else if (((myd >> 22) & 0x1) == 1) {
+        se = 3;
+    } else if (((myd >> 21) & 0x1) == 1) {
+        se = 4;
+    } else if (((myd >> 20) & 0x1) == 1) {
+        se = 5;
+    } else if (((myd >> 19) & 0x1) == 1) {
+        se = 6;
+    } else if (((myd >> 18) & 0x1) == 1) {
+        se = 7;
+    } else if (((myd >> 17) & 0x1) == 1) {
+        se = 8;
+    } else if (((myd >> 16) & 0x1) == 1) {
+        se = 9;
+    } else if (((myd >> 15) & 0x1) == 1) {
+        se = 10;
+    } else if (((myd >> 14) & 0x1) == 1) {
+        se = 11;
+    } else if (((myd >> 13) & 0x1) == 1) {
+        se = 12;
+    } else if (((myd >> 12) & 0x1) == 1) {
+        se = 13;
+    } else if (((myd >> 11) & 0x1) == 1) {
+        se = 14;
+    } else if (((myd >> 10) & 0x1) == 1) {
+        se = 15;
+    } else if (((myd >> 9) & 0x1) == 1) {
+        se = 16;
+    } else if (((myd >> 8) & 0x1) == 1) {
+        se = 17;
+    } else if (((myd >> 7) & 0x1) == 1) {
+        se = 18;
+    } else if (((myd >> 6) & 0x1) == 1) {
+        se = 19;
+    } else if (((myd >> 5) & 0x1) == 1) {
+        se = 20;
+    } else if (((myd >> 4) & 0x1) == 1) {
+        se = 21;
+    } else if (((myd >> 3) & 0x1) == 1) {
+        se = 22;
+    } else if (((myd >> 2) & 0x1) == 1) {
+        se = 23;
+    } else if (((myd >> 1) & 0x1) == 1) {
+        se = 24;
+    } else if ((myd & 0x1) == 1) {
+        se = 25;
+    } else {
+        se = 26;
+    }
+
+    uint16_t eyf = eyd - se;
+    uint16_t eyr;
+    uint32_t myf;
+    eyr = (eyf > 0) ? (eyf & 0xFF) : 0;
+    myf = (eyf > 0) ? myd << se : myd << ((eyd & 0x1F) - 1);
+
+    uint32_t myr;
+    if (((myf & 0x2) != 0 && (myf & 0x1) == 0 && stck == 0 && (myf & 0x4) != 0) ||
+        ((myf & 0x2) != 0 && (myf & 0x1) == 0 && x1.sign() == x2.sign() && stck == 1) ||
+        ((myf & 0x2) != 0 && (myf & 0x1) != 0)) {
+        myr = (myf >> 2) + 1;
+    } else {
+        myr = myf >> 2;
+    }
+
+    uint16_t eyri, ey;
+    uint32_t my;
+    bool sy;
+    eyri = eyr + 1;
+    ey = (((myr >> 24) & 0x1) == 1) ? eyri : 
+               ((myr & 0xFFFFFF) == 0) ? 0 : eyr;
+    my = (((myr >> 24) & 0x1) == 1) ? 0 : 
+               ((myr & 0xFFFFFF) == 0) ? 0 : (myr & 0x7FFFFF);
+    sy = (ey == 0 && my == 0) ? (x1.sign() && x2.sign()) : ss; 
+
+
+    uint32_t result_raw;
+    result_raw = (sy << 31) | ((ey & 0xFF) << 23) | (my & 0x7FFFFF);
+    
+    float result = *reinterpret_cast<float*>(&result_raw);
+    return result;
+}
+
+float fsub(float f1, float f2) {
+    return fadd(f1, -f2);
+}
 
 float fmul(float f1, float f2) {
     FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
     FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
 
     // 例外処理
-    if (x1.exponent() == 0 || x2.exponent() == 0) return 0.0f;
+    if (x1.exp() == 0 || x2.exp() == 0) return 0.0f;
 
     // 符号計算
     bool sign = x1.sign() ^ x2.sign();
 
     // 指数計算
-    int32_t ey = x1.exponent() + x2.exponent() + 129;
+    int32_t ey = x1.exp() + x2.exp() + 129;
     int32_t eyr = ey + 1;
     int32_t ee, mm;
 
@@ -48,7 +197,7 @@ float fmul(float f1, float f2) {
 
     uint32_t m = hh + (hl >> 11) + (lh >> 11) + 2;
 
-    if((x1.exponent() == 0) || (x2.exponent() == 0) || (((ey >> 8) & 0x1) == 0)){
+    if((x1.exp() == 0) || (x2.exp() == 0) || (((ey >> 8) & 0x1) == 0)){
         ee = 0;
     } else if (((m >> 25) & 0x1)) {
         ee = eyr & 0xFF;
@@ -83,21 +232,21 @@ float fdiv(float f1, float f2) {
     FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
 
     // 例外処理
-    if (x1.exponent() == 0) return 0.0f;
+    if (x1.exp() == 0) return 0.0f;
 
-    uint64_t table_entry = lookup_inverse(x2.mantissa() >> 13);
+    uint64_t table_entry = lookup_inverse(x2.man() >> 13);
     uint32_t a = table_entry >> 32;
     uint32_t b = table_entry & 0xFFFFFFFF;
     float af = *reinterpret_cast<float*>(&a);
     float bf = *reinterpret_cast<float*>(&b);
 
-    uint32_t rx = (0x7F << 23) | x2.mantissa();
+    uint32_t rx = (0x7F << 23) | x2.man();
     float rxf = *reinterpret_cast<float*>(&rx);
 
     float axf = fmul(af, rxf);
     float fxf = fsub(bf, axf);
 
-    rx = (0x7F << 23) | x1.mantissa();
+    rx = (0x7F << 23) | x1.man();
     rxf = *reinterpret_cast<float*>(&rx);
 
     float fyf = fmul(rxf, fxf);
@@ -107,7 +256,7 @@ float fdiv(float f1, float f2) {
     bool sign = x1.sign() ^ x2.sign();
 
     // 指数計算
-    int32_t e = 256 + x1.exponent() - x2.exponent() + (fy >> 23 & 0xFF);
+    int32_t e = 256 + x1.exp() - x2.exp() + (fy >> 23 & 0xFF);
 
     // 結果を構成
     uint32_t result_raw;
@@ -132,13 +281,13 @@ float fsqrts(float f1) {
     FP32 x = { *reinterpret_cast<uint32_t*>(&f1) };
 
     // 例外処理
-    if (x.exponent() == 0) return 0.0f;
+    if (x.exp() == 0) return 0.0f;
 
     uint16_t idx;
-    if ((x.exponent() & 0x1) == 0) {
-        idx = 0x200 | (x.mantissa() >> 14);
+    if ((x.exp() & 0x1) == 0) {
+        idx = 0x200 | (x.man() >> 14);
     } else {
-        idx = x.mantissa() >> 14;
+        idx = x.man() >> 14;
     }
 
     // uint64_t table_entry = lookup_sqrt(idx);
@@ -148,10 +297,10 @@ float fsqrts(float f1) {
     float bf = *reinterpret_cast<float*>(&b);
 
     uint32_t rx;
-    if ((x.exponent() & 1) == 0) {
-        rx = (0x80 << 23) | x.mantissa();
+    if ((x.exp() & 1) == 0) {
+        rx = (0x80 << 23) | x.man();
     } else {
-        rx = (0x7F << 23) | x.mantissa();
+        rx = (0x7F << 23) | x.man();
     }
     float rxf = *reinterpret_cast<float*>(&rx);
 
@@ -161,7 +310,7 @@ float fsqrts(float f1) {
     uint32_t fx = *reinterpret_cast<uint32_t*>(&fxf);
 
     // 指数計算
-    int32_t e = x.exponent();
+    int32_t e = x.exp();
     if ((e & 0x80) != 0) {
         e = e - 127;
         e = 127 + (e >> 1);
@@ -246,8 +395,8 @@ int32_t fcvtws(float f1) {
 
     FP32 x = { *reinterpret_cast<uint32_t*>(&f1) };
 
-    uint16_t e = x.exponent();
-    uint32_t m = x.mantissa();
+    uint16_t e = x.exp();
+    uint32_t m = x.man();
 
     uint32_t z = 0;
     if (e > 157) {
@@ -282,10 +431,10 @@ bool fle(float f1, float f2) {
 
     bool s1 = x1.sign();
     bool s2 = x2.sign();
-    uint16_t e1 = x1.exponent();
-    uint16_t e2 = x2.exponent();
-    uint32_t m1 = x1.mantissa();
-    uint32_t m2 = x2.mantissa();
+    uint16_t e1 = x1.exp();
+    uint16_t e2 = x2.exp();
+    uint32_t m1 = x1.man();
+    uint32_t m2 = x2.man();
 
     bool f = 0;
     if (s1 == 0 && s2 == 0) {
@@ -319,10 +468,10 @@ bool flt(float f1, float f2) {
 
     bool s1 = x1.sign();
     bool s2 = x2.sign();
-    uint16_t e1 = x1.exponent();
-    uint16_t e2 = x2.exponent();
-    uint32_t m1 = x1.mantissa();
-    uint32_t m2 = x2.mantissa();
+    uint16_t e1 = x1.exp();
+    uint16_t e2 = x2.exp();
+    uint32_t m1 = x1.man();
+    uint32_t m2 = x2.man();
 
     bool f = 0;
     //両方+-0.0の時0をreturn
@@ -355,7 +504,7 @@ float fsgnj(float f1, float f2) {
     FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
     FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
 
-    uint32_t result_raw = (x2.sign() << 31) | ((x1.exponent() & 0xFF) << 23) | (x1.mantissa() & 0x7FFFFF);
+    uint32_t result_raw = (x2.sign() << 31) | ((x1.exp() & 0xFF) << 23) | (x1.man() & 0x7FFFFF);
     float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }
@@ -364,7 +513,7 @@ float fsgnjn(float f1, float f2) {
     FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
     FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
 
-    uint32_t result_raw = (!x2.sign() << 31) | ((x1.exponent() & 0xFF) << 23) | (x1.mantissa() & 0x7FFFFF);
+    uint32_t result_raw = (!x2.sign() << 31) | ((x1.exp() & 0xFF) << 23) | (x1.man() & 0x7FFFFF);
     float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }
@@ -373,7 +522,7 @@ float fsgnjx(float f1, float f2) {
     FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
     FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
 
-    uint32_t result_raw = ((x1.sign() ^ x2.sign()) << 31) | ((x1.exponent() & 0xFF) << 23) | (x1.mantissa() & 0x7FFFFF);
+    uint32_t result_raw = ((x1.sign() ^ x2.sign()) << 31) | ((x1.exp() & 0xFF) << 23) | (x1.man() & 0x7FFFFF);
     float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }
