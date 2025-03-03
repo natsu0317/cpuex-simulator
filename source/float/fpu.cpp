@@ -398,19 +398,21 @@ int32_t fcvtws(float f1) {
     uint16_t e = x.exp();
     uint32_t m = x.man();
 
-    uint32_t z = 0;
+    uint32_t mi = 0;
     if (e > 157) {
-        z = 0x7FFFFFFF;
+        mi = 0x7FFFFFFF;
     } else if (e == 157) {
-        z = (1 << 30) | (m << 7);
+        mi = (1 << 30) | (m << 7);
     } else if (e >= 126) {
-        uint32_t shift = 157 - e;
-        uint32_t tmp = (1 << 30) | (m << 7);
-        uint32_t round_bit = (tmp >> (shift - 1)) & 0x1;
-        z = (tmp >> shift) + round_bit;
+        uint32_t shift_cnt = 157 - e;
+        uint32_t m_tmp = (1 << 30) | (m << 7);
+        uint32_t m_shift_i = (m_tmp >> (shift_cnt - 1));
+        uint32_t m_shift = (m_tmp >> shift_cnt);
+        uint32_t rnd = m_shift_i & 0x1;
+        mi = m_shift + rnd;
     }
 
-    int32_t result = x.sign() ? -(int32_t)z : (int32_t)z;
+    int32_t result = x.sign() ? (x.sign()<< 30) | (~mi+1) : (x.sign() << 30) | mi;
     return result;
 }
 
