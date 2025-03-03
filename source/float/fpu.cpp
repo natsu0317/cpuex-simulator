@@ -26,21 +26,19 @@ float fadd(float f1, float f2) {
     FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
 
     int32_t m1a, m2a;
-    int16_t e1a, e2a;
     if (x1.exponent() == 0) {
         m1a = x1.mantissa();
-        e1a = 1;
     } else {
         m1a = x1.normalized_mantissa();
-        e1a = x1.exponent();
     }
     if (x2.exponent() == 0) {
         m2a = x2.mantissa();
-        e2a = 1;
     } else {
         m2a = x2.normalized_mantissa();
-        e2a = x2.exponent();
     }
+    uint32_t e1a, e2a;
+    e1a = x1.exponent();
+    e2a = x2.exponent();
 
     bool ce;
     int16_t tde;
@@ -71,21 +69,24 @@ float fadd(float f1, float f2) {
     uint32_t ms;
     uint64_t mi;
     uint16_t es;
+    uint16_t ei;
     bool ss;
     if (sel == 0) {
         ms = m1a;
         mi = m2a;
         es = e1a;
+        ei = e2a;
         ss = x1.sign();
     } else {
         ms = m2a;
         mi = m1a;
         es = e2a;
+        ei = e1a;
         ss = x2.sign();
     }
 
-    uint64_t mia = mi << 31;
-    mia = mia >> de;
+    uint64_t mie = mi << 31;
+    uint64_t mia = mie >> de;
 
     bool tstck = 0;
     if ((mia & 0x1FFFFFFF) != 0) {
@@ -104,20 +105,10 @@ float fadd(float f1, float f2) {
     uint32_t myd;
     uint16_t eyd;
     bool stck;
-    if (((mye >> 26) & 0x1) == 0) {
-        myd = mye;
-        eyd = es;
-        stck = tstck;
-    } else {
-        eyd = esi;
-        if (esi == 0xFF) {
-            myd = 1 << 25;
-            stck = 0;
-        } else {
-            myd = mye >> 1;
-            stck = tstck || (mye & 0x1);
-        }
-    }
+    
+    eyd = (((mye >> 26) & 0x1)) ? ((esi == 0xFF) ? 0xFF : esi) : es;
+    myd = (((mye >> 26) & 0x1)) ? ((esi == 0xFF) ? (1 << 25) : mye >> 1) : mye;
+    stck = (((mye >> 26) & 0x1)) ? ((esi == 0xFF5) ? 0 : tstck || (mye & 0x1)) : tstck;
 
     uint16_t se;
     if (((myd >> 25) & 0x1) != 0) {
@@ -180,25 +171,16 @@ float fadd(float f1, float f2) {
     myf_f = myd << se;
     myf_s = myd << ((eyd - 1) & 0x1F);
 
-    uint16_t eyf = eyd - se;
+    int16_t eyf = eyd - se;
     uint16_t eyr;
     uint32_t myf;
-    if (eyd > se) {
-        eyr = eyf & 0xFF;
-        myf = myf_f;
-    } else {
-        eyr = 0;
-        myf = myf_s;
-    }
+    eyr = (eyf > 0) ? (eyf & 0xFF) : 0;
+    myf = (eyf > 0) ? myd << se : myd << ((eyd & 0x1F) - 1);
 
     uint32_t myr;
-    if (((myf & 0x2) != 0 && (myf & 0x1) == 0 && stck == 0 && (myf & 0x4) != 0) ||
-        ((myf & 0x2) != 0 && (myf & 0x1) == 0 && x1.sign() == x2.sign() && stck == 1) ||
-        ((myf & 0x2) != 0 && (myf & 0x1) != 0)) {
-        myr = (myf >> 2) + 1;
-    } else {
-        myr = myf >> 2;
-    }
+    myr = (((myf & 0x7) == 0x6 && stck == 0) 
+           || ((myf & 0x3) == 0x2 && x1.sign() == x2.sign() && stck == 1) 
+           || ((myf & 0x3) == 0x3)) ? ((myf >>2) & 0x1FFFFFF) + 1 : ((myf >>2) & 0x1FFFFFF);  
 
     uint16_t eyri, ey;
     uint32_t my;
@@ -223,15 +205,7 @@ float fadd(float f1, float f2) {
 
     // 結果を構成
     uint32_t result_raw;
-    if (x1.exponent() == 0 && x2.exponent() == 0) {
-        result_raw = 0;
-    } else if (x1.exponent() == 0) {
-        result_raw = x2.raw;
-    } else if (x2.exponent() == 0) {
-        result_raw = x1.raw;
-    } else {
-        result_raw = (sy << 31) | ((ey & 0xFF) << 23) | (my & 0x7FFFFF);
-    }
+    result_raw = (sy << 31) | ((ey & 0xFF) << 23) | (my & 0x7FFFFF);
     
     float result = *reinterpret_cast<float*>(&result_raw);
     return result;
@@ -252,35 +226,15 @@ float fmul(float f1, float f2) {
     bool sign = x1.sign() ^ x2.sign();
 
     // 指数計算
-    int32_t e0 = x1.exponent() + x2.exponent() + 129;
-    int32_t e1 = e0 + 1;
-    int32_t exp0, exp1;
-
-    if ((e0 & 0x100) == 0) {
-        if ((e0 & 0x80) == 0) {
-            exp0 = 0x100;
-        } else {
-            exp0 = 0;
-        }
-    } else {
-        exp0 = e0 & 0xFF;
-    }
-
-    if ((e1 & 0x100) == 0) {
-        if ((e1 & 0x80) == 0) {
-            exp1 = 0x100;
-        } else {
-            exp1 = 0;
-        }
-    } else {
-        exp1 = e1 & 0xFF;
-    }
+    int32_t ey = x1.exponent() + x2.exponent() + 129;
+    int32_t eyr = ey + 1;
+    int32_t ee, mm;
 
     // 仮数計算
-    uint32_t mh1 = x1.normalized_mantissa() >> 11;
-    uint32_t mh2 = x2.normalized_mantissa() >> 11;
-    uint32_t ml1 = x1.normalized_mantissa() & 0x7FF;
-    uint32_t ml2 = x2.normalized_mantissa() & 0x7FF;
+    uint32_t mh1 = (1 << 12) | ((x1.raw >> 11) & 0xFFF);
+    uint32_t mh2 = (1 << 12) | ((x2.raw >> 11) & 0xFFF);
+    uint32_t ml1 = x1.raw & 0x7FF;
+    uint32_t ml2 = x2.raw & 0x7FF;
 
     uint32_t hh = mh1 * mh2;
     uint32_t hl = mh1 * ml2;
@@ -288,13 +242,25 @@ float fmul(float f1, float f2) {
 
     uint32_t m = hh + (hl >> 11) + (lh >> 11) + 2;
 
+    if((x1.exponent() == 0) || (x2.exponent() == 0) || (((ey >> 8) & 0x1) == 0)){
+        ee = 0;
+    } else if (((m >> 25) & 0x1)) {
+        ee = eyr & 0xFF;
+    } else {
+        ee = ey & 0xFF;
+    }
+
+    if((ee & 0xFF) == 0){
+        mm = 0;
+    } else if(((m >> 25) & 0x1)) {
+        mm = (m >> 2) & 0x7FFFFF;
+    } else {
+        mm = (m >> 1) & 0x7FFFFF;
+    }
+
     // 結果を構成
     uint32_t result_raw;
-    if ((m & 0x2000000) == 0) {
-        result_raw = (sign << 31) | ((exp0 & 0xFF) << 23) | ((m >> 1) & 0x7FFFFF);
-    } else {
-        result_raw = (sign << 31) | ((exp1 & 0xFF) << 23) | ((m >> 2) & 0x7FFFFF);
-    }
+    result_raw = (sign << 31) | ((ee & 0xFF) << 23) | (mm & 0x7FFFFF);
     float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }
@@ -349,8 +315,8 @@ float fdiv(float f1, float f2) {
 }
 
 
-uint64_t lookup_sqrt(uint16_t index) {
-    if (index < 1024) {
+uint32_t lookup_sqrt(uint16_t index) {
+    if (index < 2048) {
         return sqrt_table[index];
     }
     return 0;
@@ -369,9 +335,9 @@ float fsqrts(float f1) {
         idx = x.mantissa() >> 14;
     }
 
-    uint64_t table_entry = lookup_sqrt(idx);
-    uint32_t a = table_entry >> 32;
-    uint32_t b = table_entry & 0xFFFFFFFF;
+    // uint64_t table_entry = lookup_sqrt(idx);
+    uint32_t a = lookup_sqrt(2 * idx);
+    uint32_t b = lookup_sqrt(2 * idx + 1);
     float af = *reinterpret_cast<float*>(&a);
     float bf = *reinterpret_cast<float*>(&b);
 
@@ -414,38 +380,64 @@ float fcvtsw(int32_t x) {
     uint32_t s = (x < 0) ? 1 : 0; // 符号ビット
 
     // 絶対値を計算
-    uint32_t z = (x < 0) ? (~static_cast<uint32_t>(x) + 1) : static_cast<uint32_t>(x);
+    uint32_t x_uint = (x >> 31) ? (~static_cast<uint32_t>(x) + 1) : static_cast<uint32_t>(x);
 
     // 指数部と正規化
-    uint8_t se = 0;
-    uint32_t mask = 1 << 30;
-    for (int i = 30; i >= 0; --i) {
-        if ((z & mask) != 0) {
-            se = 127 + i;
-            break;
-        }
-        mask >>= 1;
-    }
+    uint8_t msb = 0; //msb
+    msb = ((x_uint >> 31) & 0x1) ? 1 : 
+        ((x_uint >> 30) & 0x1) ? 2 : 
+        ((x_uint >> 29) & 0x1) ? 3 :
+        ((x_uint >> 28) & 0x1) ? 4 :
+        ((x_uint >> 27) & 0x1) ? 5 :
+        ((x_uint >> 26) & 0x1) ? 6 :
+        ((x_uint >> 25) & 0x1) ? 7 :
+        ((x_uint >> 24) & 0x1) ? 8 :
+        ((x_uint >> 23) & 0x1) ? 9 :
+        ((x_uint >> 22) & 0x1) ? 10 :
+        ((x_uint >> 21) & 0x1) ? 11 :
+        ((x_uint >> 20) & 0x1) ? 12 :
+        ((x_uint >> 19) & 0x1) ? 13 :
+        ((x_uint >> 18) & 0x1) ? 14 :
+        ((x_uint >> 17) & 0x1) ? 15 :
+        ((x_uint >> 16) & 0x1) ? 16 :
+        ((x_uint >> 15) & 0x1) ? 17 :
+        ((x_uint >> 14) & 0x1) ? 18 :
+        ((x_uint >> 13) & 0x1) ? 19 :
+        ((x_uint >> 12) & 0x1) ? 20 :
+        ((x_uint >> 11) & 0x1) ? 21 :
+        ((x_uint >> 10) & 0x1) ? 22 :
+        ((x_uint >> 9) & 0x1) ? 23 :
+        ((x_uint >> 8) & 0x1) ? 24 :
+        ((x_uint >> 7) & 0x1) ? 25 :
+        ((x_uint >> 6) & 0x1) ? 26 :
+        ((x_uint >> 5) & 0x1) ? 27 :
+        ((x_uint >> 4) & 0x1) ? 28 :
+        ((x_uint >> 3) & 0x1) ? 29 :
+        ((x_uint >> 2) & 0x1) ? 30 :
+        ((x_uint >> 1) & 0x1) ? 31 :
+        (x_uint & 0x1) ? 32 : 0;
+    
+    uint32_t x_shift;
+    x_shift = x_uint << msb;
 
-    // 仮数部を生成
-    uint32_t n = 0;
-    if ((z & mask) != 0) {
-        n = z << (__builtin_clz(z) + 1);
-    }
+    uint32_t mf;
+    mf = (x_shift >> 9) & 0x7FFFFF;
 
-    uint16_t e = se;
-    if ((n >> 8) == 0xFFFFFF) {
-        e += 1;
-    }
-    uint32_t m = (n >> 9) + ((n >> 8) & 0x1);
+    uint32_t mf_i;
+    mf_i = mf + ((x_shift >> 8) & 0x1);
 
+    uint8_t ef;
+    ef = (msb == 0) ? 0 :
+                 (((mf & 0xFF) == 0xFF) && ((x_shift >> 8) & 0x1)) ? 160 - msb : 159 - msb;
+    
     // 結果を構成
-    uint32_t result_raw = (s << 31) | (e << 23) | (m & 0x7FFFFF);
+    uint32_t result_raw = (s << 31) | (ef << 23) | (mf_i & 0x7FFFFF);
     float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }
 
 int32_t fcvtws(float f1) {
+
     FP32 x = { *reinterpret_cast<uint32_t*>(&f1) };
 
     uint16_t e = x.exponent();
@@ -472,7 +464,7 @@ bool feq(float f1, float f2) {
     FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
 
     bool f = 0;
-    if (x1.raw == x2.raw || (x1.exponent() == 0 && x2.exponent() == 0)) {
+    if (x1.raw == x2.raw) {
         f = 1;
     }
     return f;
@@ -527,6 +519,10 @@ bool flt(float f1, float f2) {
     uint32_t m2 = x2.mantissa();
 
     bool f = 0;
+    //両方+-0.0の時0をreturn
+    if(((x1.raw & 0x7FFFFFFF) == 0) && ((x2.raw & 0x7FFFFFFF) == 0)) {
+        return 0;
+    }
     if (s1 == 0 && s2 == 0) {
         if (e1 < e2) {
             f = 1;
@@ -535,9 +531,9 @@ bool flt(float f1, float f2) {
                 f = 1;
             }
         }
-    } else if (s1 == 1 && s2 == 0) {
-        f = 1;
-    } else if (s1 == 1 && s2 == 1) {
+    } else if (s1 == 1 && s2 == 0) {//f1が負、x2が正
+        f = 1; //true
+    } else if (s1 == 1 && s2 == 1) {//両方負
         if (e1 > e2) {
             f = 1;
         } else if (e1 == e2) {
