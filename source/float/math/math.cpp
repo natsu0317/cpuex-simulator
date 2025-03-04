@@ -221,8 +221,6 @@ float fmul(float f1, float f2) {
     } else {
         mm = (m >> 1) & 0x7FFFFF;
     }
-
-    // 結果を構成
     uint32_t result_bit;
     result_bit = (sign << 31) | ((ee & 0xFF) << 23) | (mm & 0x7FFFFF);
     float result;
@@ -276,13 +274,8 @@ float fdiv(float f1, float f2) {
     uint32_t fy;
     memcpy(&fyf, &fy, sizeof(float));
 
-    // 符号計算
     bool sign = sign1 ^ sign2;
-
-    // 指数計算
     int32_t e = 256 + exp1 - exp2 + (fy >> 23 & 0xFF);
-
-    // 結果を構成
     uint32_t result_bit;
     if ((e & 0x100) == 0) {
         result_bit = (sign << 31) | (fy & 0x7FFFFF);
@@ -406,7 +399,6 @@ float fcvtsw(int32_t x) {
     ef = (msb == 0) ? 0 :
                  (((mf & 0xFF) == 0xFF) && ((x_shift >> 8) & 0x1)) ? 160 - msb : 159 - msb;
     
-    // 結果を構成
     uint32_t result_bit = (s << 31) | (ef << 23) | (mf_i & 0x7FFFFF);
     float result;
     memcpy(&result, &result_bit, sizeof(float));
