@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <float.h>
 
-#include "../float/fpu.hpp"
+#include "../float/math/fpu.hpp"
 #include "../asm_to_binary/asm_to_binary.h"
 
 #define NUM_REGISTERS 64
@@ -1184,11 +1184,10 @@ void print_execution_time_prediction() {
     
     // 総サイクル数
     //128 * 128(0.0675)
-    long long total_cycles;
     if(cpu_frequency == 0.0675){
-        total_cycles = total_instruction +  total_stall  + total_accesses + cache_misses * 3 * 60;
+        total_cycles = total_instruction +  total_stall*3  + total_accesses * 2 + cache_misses * 3 * 65;
     } else {
-        total_cycles = total_instruction +  total_stall*2  + total_accesses + cache_misses * 4 * 70;
+        total_cycles = total_instruction +  total_stall*3 + total_accesses * 2 + cache_misses * 5 * 70;
     }
     // 実行時間（ナノ秒）
     double execution_time_ns = total_cycles * clock_cycle_time_ns;
