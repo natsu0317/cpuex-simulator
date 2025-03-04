@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <float.h>
 
-#include "../float/math/fpu.hpp"
+#include "../float/math/math.hpp"
 #include "../asm_to_binary/asm_to_binary.h"
 
 #define NUM_REGISTERS 64
