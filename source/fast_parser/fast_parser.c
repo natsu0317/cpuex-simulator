@@ -1175,7 +1175,7 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
     return 0;
 }
 
-double cpu_frequency = 0.075; // CPUの周波数（GHz）
+double cpu_frequency = 0.0675; // CPUの周波数（GHz）
 double average_cpi = 1.0;            // 平均CPI（初期値として1.0を設定）
 
 void print_execution_time_prediction() {
@@ -1183,8 +1183,13 @@ void print_execution_time_prediction() {
     double clock_cycle_time_ns = 1.0 / (cpu_frequency * 1.0e9) * 1.0e9;
     
     // 総サイクル数
-    long long total_cycles = total_instruction +  total_stall  + total_accesses + cache_misses * 60;
-    
+    //128 * 128(0.0675)
+    long long total_cycles;
+    if(cpu_frequency == 0.0675){
+        total_cycles = total_instruction +  total_stall  + total_accesses + cache_misses * 3 * 60;
+    } else {
+        total_cycles = total_instruction +  total_stall*2  + total_accesses + cache_misses * 4 * 70;
+    }
     // 実行時間（ナノ秒）
     double execution_time_ns = total_cycles * clock_cycle_time_ns;
     
@@ -1198,6 +1203,7 @@ void print_execution_time_prediction() {
     printf("CPU周波数: %.3f GHz\n", cpu_frequency);
     printf("平均CPI: %.2f\n", average_cpi);
     printf("総クロックサイクル数: %lld\n", total_cycles);
+    printf("総ストール数:%lld",total_stall);
     
     // 適切な単位で表示
     if (execution_time_s >= 1.0) {
