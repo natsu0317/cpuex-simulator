@@ -1,4 +1,5 @@
-// binary から 実行結果を出力
+
+    // binary から 実行結果を出力
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +10,7 @@
 #include <stdbool.h>
 #include <float.h>
 
-#include "../float/math/math.hpp"
+#include "../float/fpu.hpp"
 #include "../asm_to_binary/asm_to_binary.h"
 
 #define NUM_REGISTERS 64
@@ -882,9 +883,9 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
     if(func7 == 0){
         uint32_t value = fpu_fadd(a1,a2);
         memcpy(&result, &value, sizeof(uint32_t));
-        // fprintf(log_file, "fadd %.9f, %.9f = ", a1, a2);
-        // print_float_as_32bit(log_file, result);
-        // fprintf(log_file, "\n");
+        fprintf(log_file, "fadd %.9f, %.9f = ", a1, a2);
+        print_float_as_32bit(log_file, result);
+        fprintf(log_file, "\n");
         set_register(rd, result);
         // counter.f_type[0]++;
         total_stall += 4;
@@ -892,27 +893,27 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
     if(func7 == 1){
         uint32_t value = fpu_fadd(a1,-a2);
         memcpy(&result, &value, sizeof(uint32_t));
-        // fprintf(log_file, "fsub %.9f, %.9f = ", a1, a2);
-        // print_float_as_32bit(log_file, result);
-        // fprintf(log_file, "\n");
+        fprintf(log_file, "fsub %.9f, %.9f = ", a1, a2);
+        print_float_as_32bit(log_file, result);
+        fprintf(log_file, "\n");
         set_register(rd, result);
         // counter.f_type[1]++;
         total_stall += 4;
     }
     if(func7 == 2){
         result = fmul(a1,a2);
-        // fprintf(log_file, "fmul %.9f, %.9f = ", a1, a2);
-        // print_float_as_32bit(log_file, result);
-        // fprintf(log_file, "\n");
+        fprintf(log_file, "fmul %.9f, %.9f = ", a1, a2);
+        print_float_as_32bit(log_file, result);
+        fprintf(log_file, "\n");
         set_register(rd, result);
         // counter.f_type[2]++;
         total_stall += 2;
     }
     if(func7 == 3){
         result = fdiv(a1,a2);
-        // fprintf(log_file, "fdiv %.9f, %.9f = %.9f", a1, a2,result);
-        // print_float_as_32bit(log_file, result);
-        // fprintf(log_file, "\n");
+        fprintf(log_file, "fdiv %.9f, %.9f = %.9f", a1, a2,result);
+        print_float_as_32bit(log_file, result);
+        fprintf(log_file, "\n");
         set_register(rd, result);
         // counter.f_type[3]++;
         total_stall += 11;
@@ -920,34 +921,34 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
     if(func7 == 4){
         if(func3 == 1){// fsgnjn
             result = fsgnjn(a1,a2);
-            // fprintf(log_file, "fsgnjn %.9f, %.9f = ", a1, a2);
-            // print_float_as_32bit(log_file, result);
-            // fprintf(log_file, "\n");
+            fprintf(log_file, "fsgnjn %.9f, %.9f = ", a1, a2);
+            print_float_as_32bit(log_file, result);
+            fprintf(log_file, "\n");
             set_register(rd, result);
             // counter.f_type[8]++;
         }
         if(func3 == 2){// fsgnjx
             result = fsgnjx(a1,a2);
-            // fprintf(log_file, "fsgnjx %.9f, %.9f = ", a1, a2);
-            // print_float_as_32bit(log_file, result);
-            // fprintf(log_file, "\n");
+            fprintf(log_file, "fsgnjx %.9f, %.9f = ", a1, a2);
+            print_float_as_32bit(log_file, result);
+            fprintf(log_file, "\n");
             set_register(rd, result);
             // counter.f_type[9]++;
         }
     }
     if(func7 == 12){
         result = fabsf(a1);
-        // fprintf(log_file, "fabsf %.9f = ", a1);
-        // print_float_as_32bit(log_file, result);
-        // fprintf(log_file, "\n");
+        fprintf(log_file, "fabsf %.9f = ", a1);
+        print_float_as_32bit(log_file, result);
+        fprintf(log_file, "\n");
         set_register(rd, result);
         // counter.f_type[4]++;
     }
     if(func7 == 13){
         result = fsgnjn(a1,a1);
-        // fprintf(log_file, "fneg %.9f = ", a1);
-        // print_float_as_32bit(log_file, result);
-        // fprintf(log_file, "\n");
+        fprintf(log_file, "fneg %.9f = ", a1);
+        print_float_as_32bit(log_file, result);
+        fprintf(log_file, "\n");
         set_register(rd, result);
         // counter.f_type[5]++;
     }
@@ -961,9 +962,9 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
     // }
     if(func7 == 11){
         result = fsqrts(a1);
-        // fprintf(log_file, "fsqrt %.9f = ", a1);
-        // print_float_as_32bit(log_file, result);
-        // fprintf(log_file, "\n");
+        fprintf(log_file, "fsqrt %.9f = ", a1);
+        print_float_as_32bit(log_file, result);
+        fprintf(log_file, "\n");
         // printf("%.2f\t%.6f\t%.6f\t%.2e\n", a1, result, sqrtf(a1), result-sqrtf(a1));
         // result = sqrtf(a1);
         set_register(rd, result);
@@ -975,11 +976,11 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
             //printf("flt x%d, x%d, x%d\n", rd, r1, r2);
             bool comparison_result = flt(a1, a2);
             result = (double)comparison_result; // boolをdoubleに変換
-            // fprintf(log_file, "flt %.9f, %.9f = ", a1, a2);
-            // // 比較結果をfloatとして扱い、32ビットで出力
-            // float float_result = (float)comparison_result;
-            // print_float_as_32bit(log_file, float_result);
-            // fprintf(log_file, "\n");
+            fprintf(log_file, "flt %.9f, %.9f = ", a1, a2);
+            // 比較結果をfloatとして扱い、32ビットで出力
+            float float_result = (float)comparison_result;
+            print_float_as_32bit(log_file, float_result);
+            fprintf(log_file, "\n");
             //printf("result: %f\n", result); // %fを使用してdoubleを表示
             set_register(rd, result);
             // counter.f_type[11]++;
@@ -987,11 +988,11 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         if(func3 == 2){//feq
             bool comparison_result = feq(a1, a2);
             result = (float)comparison_result;
-            // fprintf(log_file, "flt %.9f, %.9f = ", a1, a2);
-            // // 比較結果をfloatとして扱い、32ビットで出力
-            // float float_result = (float)comparison_result;
-            // print_float_as_32bit(log_file, float_result);
-            // fprintf(log_file, "\n");
+            fprintf(log_file, "flt %.9f, %.9f = ", a1, a2);
+            // 比較結果をfloatとして扱い、32ビットで出力
+            float float_result = (float)comparison_result;
+            print_float_as_32bit(log_file, float_result);
+            fprintf(log_file, "\n");
             //printf("result: %f\n", result); // %fを使用してdoubleを表示
             set_register(rd, result);
             // counter.f_type[10]++;
@@ -1002,7 +1003,7 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         int32_t int_result = fcvtws(a1); // int32_t 型で結果を受け取る
         result = (double)int_result;     // double 型にキャスト
         
-        // fprintf(log_file, "fcvtws %.9f = %d\n", a1, int_result);
+        fprintf(log_file, "fcvtws %.9f = %d\n", a1, int_result);
         // printf("result: %f\n", result);  // %f を使用して double を表示
         set_register(rd, result);
         // counter.f_type[12]++;
@@ -1011,9 +1012,9 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
     if(func7 == 26){
         float input_val = get_register(rs1);
         result = fcvtsw(input_val);
-        // fprintf(log_file, "fcvtsw %.0f = ", input_val);
-        // print_float_as_32bit(log_file, result);
-        // fprintf(log_file, "\n");
+        fprintf(log_file, "fcvtsw %.0f = ", input_val);
+        print_float_as_32bit(log_file, result);
+        fprintf(log_file, "\n");
         set_register(rd, result);
         // counter.f_type[13]++;
         total_stall += 1;
@@ -1026,16 +1027,16 @@ int handle_f(uint32_t instruction, uint32_t rd, uint32_t rs1, uint32_t rs2, uint
         } else {
             result = a1;
         }
-        // fprintf(log_file, "floor %.9f = ", a1);
-        // print_float_as_32bit(log_file, result);
-        // fprintf(log_file, "\n");
+        fprintf(log_file, "floor %.9f = ", a1);
+        print_float_as_32bit(log_file, result);
+        fprintf(log_file, "\n");
         set_register(rd, result);
         // counter.f_type[14]++;
     }
 
     
-    // print_float_as_32bit(memory_file, result);
-    // fprintf(memory_file,"\n");
+    print_float_as_32bit(memory_file, result);
+    fprintf(memory_file,"\n");
 
     // rdにresultを格納
     // set_register(rd, result);
@@ -1177,18 +1178,27 @@ int fast_execute_binary_instruction(BinaryInstruction binary_instruction[], int 
 
 double cpu_frequency = 0.0675; // CPUの周波数（GHz）
 double average_cpi = 1.0;            // 平均CPI（初期値として1.0を設定）
+long long total_cycles;
 
 void print_execution_time_prediction() {
+
+    long long total_instruction = 29621244993;
+    total_stall = 5172166209;
+    total_accesses = 11247101617;
+    cache_misses = 59296145; //3*75
+
     // クロックサイクル時間（ナノ秒）
     double clock_cycle_time_ns = 1.0 / (cpu_frequency * 1.0e9) * 1.0e9;
     
     // 総サイクル数
     //128 * 128(0.0675)
+    long long total_cycles;
     if(cpu_frequency == 0.0675){
-        total_cycles = total_instruction +  total_stall*3  + total_accesses * 2 + cache_misses * 3 * 65;
+        total_cycles = total_instruction +  total_stall  + total_accesses + cache_misses * 60;
     } else {
-        total_cycles = total_instruction +  total_stall*3 + total_accesses * 2 + cache_misses * 5 * 70;
+        total_cycles = total_instruction +  total_stall + total_accesses + cache_misses * 61;
     }
+
     // 実行時間（ナノ秒）
     double execution_time_ns = total_cycles * clock_cycle_time_ns;
     
@@ -1198,11 +1208,11 @@ void print_execution_time_prediction() {
     double execution_time_s = execution_time_ms / 1000.0;
     
     printf("\n===== 実行時間予測 =====\n");
-    printf("総命令数: %lld\n",total_instruction);
-    printf("CPU周波数: %.3f GHz\n", cpu_frequency);
-    printf("平均CPI: %.2f\n", average_cpi);
-    printf("総クロックサイクル数: %lld\n", total_cycles);
-    printf("総ストール数:%lld",total_stall);
+    // printf("総命令数: %lld\n",total_instruction);
+    // printf("CPU周波数: %.3f GHz\n", cpu_frequency);
+    // printf("平均CPI: %.2f\n", average_cpi);
+    // printf("総クロックサイクル数: %lld\n", total_cycles);
+    // printf("総ストール数:%lld",total_stall);
     
     // 適切な単位で表示
     if (execution_time_s >= 1.0) {

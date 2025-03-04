@@ -1,5 +1,5 @@
 // gcc -o compare compare.c
-// ./compare ./document/float_result.txt file2.txt
+// ./compare ./document/float_result.txt ./document/memory_transition.txt
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +21,7 @@ float binary32_to_float(const char *binary) {
 }
 
 // ファイルの比較関数
-void compare_binary_float_files(const char *file1_path, const char *file2_path) {
+void compare_binary_float_files(const char *file1_path, const char *file2_path, FILE* diff) {
     FILE *file1 = fopen(file1_path, "r");
     if (!file1) {
         fprintf(stderr, "Error opening file: %s\n", file1_path);
@@ -59,10 +59,10 @@ void compare_binary_float_files(const char *file1_path, const char *file2_path) 
         // ビット表現が異なる場合に出力
         if (strcmp(line1, line2) != 0) {
             mismatch_count++;
-            printf("Mismatch at line %d:\n", line_number);
-            printf("  File1: %s (%.9f)\n", line1, value1);
-            printf("  File2: %s (%.9f)\n", line2, value2);
-            printf("  Difference: %.9f\n\n", value1 - value2);
+            fprintf(diff,"Mismatch at line %d:\n", line_number);
+            fprintf(diff,"  File1: %s (%.9f)\n", line1, value1);
+            fprintf(diff,"  File2: %s (%.9f)\n", line2, value2);
+            fprintf(diff,"  Difference: %.9f\n\n", value1 - value2);
         }
     }
     
@@ -82,11 +82,12 @@ void compare_binary_float_files(const char *file1_path, const char *file2_path) 
 }
 
 int main(int argc, char *argv[]) {
+    FILE *diff = fopen("./diff.txt","w");
     if (argc != 3) {
         fprintf(stderr, "Usage: %s <file1> <file2>\n", argv[0]);
         return 1;
     }
     
-    compare_binary_float_files(argv[1], argv[2]);
+    compare_binary_float_files(argv[1], argv[2], diff);
     return 0;
 }
