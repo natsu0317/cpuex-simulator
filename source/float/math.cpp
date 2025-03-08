@@ -4,28 +4,29 @@
 #include <cstdint>
 #include <vector>
 #include <algorithm>
-#include "fpu.hpp"
+#include "math.hpp"
+
+using namespace std;
+
+struct FP32 {
+    uint32_t raw; 
+    bool sign() const { return (raw >> 31) & 1; }
+    uint8_t exp() const { return (raw >> 23) & 0xFF; }
+    uint32_t man() const { return raw & 0x7FFFFF; }
+    uint32_t normalized_man() const { return man() | 0x800000; }
+};
 
 float fadd(float f1, float f2) {
-    uint32_t x1_bits, x2_bits;
-    memcpy(&x1_bits, &f1, sizeof(float));
-    memcpy(&x2_bits, &f2, sizeof(float));
-    
-    // 符号、指数、仮数部を抽出
-    uint32_t sign1 = (x1_bits >> 31) & 0x1;
-    uint32_t exp1 = (x1_bits >> 23) & 0xFF;
-    uint32_t man1 = x1_bits & 0x7FFFFF;
-    
-    uint32_t sign2 = (x2_bits >> 31) & 0x1;
-    uint32_t exp2 = (x2_bits >> 23) & 0xFF;
-    uint32_t man2 = x2_bits & 0x7FFFFF;
+    FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
+    FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
+
     int32_t m1a, m2a;
     int16_t e1a, e2a;
-    m1a = (exp1 == 0) ? 0 : (1 << 23) | man1;
-    m2a = (exp2 == 0) ? 0 : (1 << 23) | man2;
+    m1a = (x1.exp() == 0) ? 0 : (1 << 23) | x1.man();
+    m2a = (x2.exp() == 0) ? 0 : (1 << 23) | x2.man();
 
-    e1a = exp1;
-    e2a = exp2;
+    e1a = x1.exp();
+    e2a = x2.exp();
 
     bool ce;
     int16_t tde;
@@ -46,13 +47,13 @@ float fadd(float f1, float f2) {
         mi = m2a;
         es = e1a;
         ei = e2a;
-        ss = sign1;
+        ss = x1.sign();
     } else {
         ms = m2a;
         mi = m1a;
         es = e2a;
         ei = e1a;
-        ss = sign2;
+        ss = x2.sign();
     }
 
     uint64_t mia = mi << 31;
@@ -66,7 +67,7 @@ float fadd(float f1, float f2) {
     uint16_t esi = es + 1;
 
     uint32_t mye;
-    mye = (sign1 == sign2) ? ((ms << 2) + (mia >> 29)) : ((ms << 2) - (mia >> 29));
+    mye = (x1.sign() == x2.sign()) ? ((ms << 2) + (mia >> 29)) : ((ms << 2) - (mia >> 29));
 
     uint32_t myd, eyd;
     bool stck;
@@ -140,7 +141,7 @@ float fadd(float f1, float f2) {
 
     uint32_t myr;
     if (((myf & 0x2) != 0 && (myf & 0x1) == 0 && stck == 0 && (myf & 0x4) != 0) ||
-        ((myf & 0x2) != 0 && (myf & 0x1) == 0 && sign1 == sign2 && stck == 1) ||
+        ((myf & 0x2) != 0 && (myf & 0x1) == 0 && x1.sign() == x2.sign() && stck == 1) ||
         ((myf & 0x2) != 0 && (myf & 0x1) != 0)) {
         myr = (myf >> 2) + 1;
     } else {
@@ -155,15 +156,13 @@ float fadd(float f1, float f2) {
                ((myr & 0xFFFFFF) == 0) ? 0 : eyr;
     my = (((myr >> 24) & 0x1) == 1) ? 0 : 
                ((myr & 0xFFFFFF) == 0) ? 0 : (myr & 0x7FFFFF);
-    sy = (ey == 0 && my == 0) ? (sign1 && sign2) : ss; 
+    sy = (ey == 0 && my == 0) ? (x1.sign() && x2.sign()) : ss; 
 
 
-    uint32_t result_bit;
-    result_bit = (sy << 31) | ((ey & 0xFF) << 23) | (my & 0x7FFFFF);
+    uint32_t result_raw;
+    result_raw = (sy << 31) | ((ey & 0xFF) << 23) | (my & 0x7FFFFF);
     
-    float result;
-    memcpy(&result, &result_bit, sizeof(float));
-
+    float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }
 
@@ -172,25 +171,17 @@ float fsub(float f1, float f2) {
 }
 
 float fmul(float f1, float f2) {
-    uint32_t x1_bits, x2_bits;
-    memcpy(&x1_bits, &f1, sizeof(float));
-    memcpy(&x2_bits, &f2, sizeof(float));
-    
-    // 符号、指数、仮数部を抽出
-    uint32_t sign1 = (x1_bits >> 31) & 0x1;
-    uint32_t exp1 = (x1_bits >> 23) & 0xFF;
-    uint32_t man1 = x1_bits & 0x7FFFFF;
-    
-    uint32_t sign2 = (x2_bits >> 31) & 0x1;
-    uint32_t exp2 = (x2_bits >> 23) & 0xFF;
-    uint32_t man2 = x2_bits & 0x7FFFFF;
-    if (exp1 == 0 || exp2 == 0) return 0.0f;
+    FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
+    FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
+
+    // 例外処理
+    if (x1.exp() == 0 || x2.exp() == 0) return 0.0f;
 
     // 符号計算
-    bool sign = sign1 ^ sign2;
+    bool sign = x1.sign() ^ x2.sign();
 
     // 指数計算
-    int32_t ey = exp1 + exp2 + 129;
+    int32_t ey = x1.exp() + x2.exp() + 129;
     int32_t eyr = ey + 1;
     int32_t ee, mm;
 
@@ -206,7 +197,7 @@ float fmul(float f1, float f2) {
 
     uint32_t m = hh + (hl >> 11) + (lh >> 11) + 2;
 
-    if((exp1 == 0) || (exp2 == 0) || (((ey >> 8) & 0x1) == 0)){
+    if((x1.exp() == 0) || (x2.exp() == 0) || (((ey >> 8) & 0x1) == 0)){
         ee = 0;
     } else if (((m >> 25) & 0x1)) {
         ee = eyr & 0xFF;
@@ -221,10 +212,11 @@ float fmul(float f1, float f2) {
     } else {
         mm = (m >> 1) & 0x7FFFFF;
     }
-    uint32_t result_bit;
-    result_bit = (sign << 31) | ((ee & 0xFF) << 23) | (mm & 0x7FFFFF);
-    float result;
-    memcpy(&result, &result_bit, sizeof(float));
+
+    // 結果を構成
+    uint32_t result_raw;
+    result_raw = (sign << 31) | ((ee & 0xFF) << 23) | (mm & 0x7FFFFF);
+    float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }
 
@@ -236,54 +228,44 @@ uint64_t lookup_inverse(uint16_t index) {
 }
 
 float fdiv(float f1, float f2) {
-    uint32_t x1_bits, x2_bits;
-    memcpy(&x1_bits, &f1, sizeof(float));
-    memcpy(&x2_bits, &f2, sizeof(float));
-    
-    // 符号、指数、仮数部を抽出
-    uint32_t sign1 = (x1_bits >> 31) & 0x1;
-    uint32_t exp1 = (x1_bits >> 23) & 0xFF;
-    uint32_t man1 = x1_bits & 0x7FFFFF;
-    
-    uint32_t sign2 = (x2_bits >> 31) & 0x1;
-    uint32_t exp2 = (x2_bits >> 23) & 0xFF;
-    uint32_t man2 = x2_bits & 0x7FFFFF;
-    // 例外処理
-    if (exp1 == 0) return 0.0f;
+    FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
+    FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
 
-    uint64_t table_entry = lookup_inverse(man2 >> 13);
+    // 例外処理
+    if (x1.exp() == 0) return 0.0f;
+
+    uint64_t table_entry = lookup_inverse(x2.man() >> 13);
     uint32_t a = table_entry >> 32;
     uint32_t b = table_entry & 0xFFFFFFFF;
-    float af;
-    memcpy(&af, &a, sizeof(float));
-    float bf;
-    memcpy(&bf, &b, sizeof(float));
+    float af = *reinterpret_cast<float*>(&a);
+    float bf = *reinterpret_cast<float*>(&b);
 
-    uint32_t rx = (0x7F << 23) | man2;
-    float rxf;
-    memcpy(&rxf, &rx, sizeof(float));
+    uint32_t rx = (0x7F << 23) | x2.man();
+    float rxf = *reinterpret_cast<float*>(&rx);
 
     float axf = fmul(af, rxf);
     float fxf = fsub(bf, axf);
 
-    rx = (0x7F << 23) | man1;
-    float rxf;
-    memcpy(&rxf, &rx, sizeof(float));
+    rx = (0x7F << 23) | x1.man();
+    rxf = *reinterpret_cast<float*>(&rx);
 
     float fyf = fmul(rxf, fxf);
-    uint32_t fy;
-    memcpy(&fyf, &fy, sizeof(float));
+    uint32_t fy = *reinterpret_cast<uint32_t*>(&fyf);
 
-    bool sign = sign1 ^ sign2;
-    int32_t e = 256 + exp1 - exp2 + (fy >> 23 & 0xFF);
-    uint32_t result_bit;
+    // 符号計算
+    bool sign = x1.sign() ^ x2.sign();
+
+    // 指数計算
+    int32_t e = 256 + x1.exp() - x2.exp() + (fy >> 23 & 0xFF);
+
+    // 結果を構成
+    uint32_t result_raw;
     if ((e & 0x100) == 0) {
-        result_bit = (sign << 31) | (fy & 0x7FFFFF);
+        result_raw = (sign << 31) | (fy & 0x7FFFFF);
     } else {
-        result_bit = (sign << 31) | ((e & 0xFF) << 23) | (fy & 0x7FFFFF);
+        result_raw = (sign << 31) | ((e & 0xFF) << 23) | (fy & 0x7FFFFF);
     }
-    float result;
-    memcpy(&result, &result_bit, sizeof(float));
+    float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }
 
@@ -295,39 +277,40 @@ uint32_t lookup_sqrt(uint16_t index) {
     return 0;
 }
 
-float fsqrts(float f1) {    
-    uint32_t x_bits;
-    memcpy(&x_bits, &f1, sizeof(float));
-    
-    // 符号、指数、仮数部を抽出
-    uint32_t sign1 = (x_bits >> 31) & 0x1;
-    uint32_t exp1 = (x_bits >> 23) & 0xFF;
-    uint32_t man1 = x_bits & 0x7FFFFF;
-    if (sign1 == 0) return 0.0f;
+float fsqrts(float f1) {
+    FP32 x = { *reinterpret_cast<uint32_t*>(&f1) };
 
-    uint16_t key = ((~sign1 & 0x1) << 9) | ((man1 >> 14) & 0x1FF);
+    // 例外処理
+    if (x.exp() == 0) return 0.0f;
 
-    uint32_t a_val  = lookup_sqrt(2 * key);
-    uint32_t b_val  = lookup_sqrt(2 * key + 1);
-    float af;
-    memcpy(&af, &a_val, sizeof(float));
-    float bf;
-    memcpy(&bf, &b_val, sizeof(float));
+    uint16_t idx;
+    if ((x.exp() & 0x1) == 0) {
+        idx = 0x200 | (x.man() >> 14);
+    } else {
+        idx = x.man() >> 14;
+    }
 
-    uint32_t x_normalized = ((sign1 & 0x1) == 0) ? 
-                           ((0x80 << 23) | man1) : 
-                           ((0x7F << 23) | man1);
-    float x_normalizedf;
-    memcpy(&x_normalizedf, &x_normalized, sizeof(float));
+    // uint64_t table_entry = lookup_sqrt(idx);
+    uint32_t a = lookup_sqrt(2 * idx);
+    uint32_t b = lookup_sqrt(2 * idx + 1);
+    float af = *reinterpret_cast<float*>(&a);
+    float bf = *reinterpret_cast<float*>(&b);
 
-    float ax = fmul(a, x_normalizedf);
-    float myf = fadd(b, ax);
+    uint32_t rx;
+    if ((x.exp() & 1) == 0) {
+        rx = (0x80 << 23) | x.man();
+    } else {
+        rx = (0x7F << 23) | x.man();
+    }
+    float rxf = *reinterpret_cast<float*>(&rx);
 
-    uint32_t my;
-    memcpy(&my, &myf, sizeof(float));
+    float axf = fmul(af, rxf);
+    float fxf = fadd(bf, axf);
 
-    int32_t e = sign1;
-    //over flow
+    uint32_t fx = *reinterpret_cast<uint32_t*>(&fxf);
+
+    // 指数計算
+    int32_t e = x.exp();
     if ((e & 0x80) != 0) {
         e = e - 127;
         e = 127 + (e >> 1);
@@ -335,23 +318,26 @@ float fsqrts(float f1) {
         e = 128 - e;
         e = 127 - (e >> 1);
     }
-    e = e + ((my >> 23) & 0xFF) + 129;
 
-    uint32_t result_bit;
+    e = e + ((fx >> 23) & 0xFF) + 129;
+
+    // 結果を構成
+    uint32_t result_raw;
     if ((e & 0x100) == 0) {
-        result_bit = my & 0x7FFFFF;
+        result_raw = fx & 0x7FFFFF;
     } else {
-        result_bit = ((e & 0xFF) << 23) | (my & 0x7FFFFF);
+        result_raw = ((e & 0xFF) << 23) | (fx & 0x7FFFFF);
     }
-    float result;
-    memcpy(&result, &result_bit, sizeof(float));
+    float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }
 float fcvtsw(int32_t x) {
-    uint32_t s = (x < 0) ? 1 : 0;
-    uint32_t xbit;
-    memcpy(&xbit, &x, sizeof(float));
-    uint32_t x_uint = (x >> 31) ? (~xbit + 1) : xbit;
+    uint32_t s = (x < 0) ? 1 : 0; // 符号ビット
+
+    // 絶対値を計算
+    uint32_t x_uint = (x >> 31) ? (~static_cast<uint32_t>(x) + 1) : static_cast<uint32_t>(x);
+
+    // 指数部と正規化
     uint8_t msb = 0; //msb
     msb = ((x_uint >> 31) & 0x1) ? 1 : 
         ((x_uint >> 30) & 0x1) ? 2 : 
@@ -399,23 +385,18 @@ float fcvtsw(int32_t x) {
     ef = (msb == 0) ? 0 :
                  (((mf & 0xFF) == 0xFF) && ((x_shift >> 8) & 0x1)) ? 160 - msb : 159 - msb;
     
-    uint32_t result_bit = (s << 31) | (ef << 23) | (mf_i & 0x7FFFFF);
-    float result;
-    memcpy(&result, &result_bit, sizeof(float));
+    // 結果を構成
+    uint32_t result_raw = (s << 31) | (ef << 23) | (mf_i & 0x7FFFFF);
+    float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }
 
 int32_t fcvtws(float f1) {
-    uint32_t x_bits;
-    memcpy(&x_bits, &f1, sizeof(float));
-    
-    // 符号、指数、仮数部を抽出
-    uint32_t sign1 = (x_bits >> 31) & 0x1;
-    uint32_t exp1 = (x_bits >> 23) & 0xFF;
-    uint32_t man1 = x_bits & 0x7FFFFF;
 
-    uint16_t e = sign1;
-    uint32_t m = man1;
+    FP32 x = { *reinterpret_cast<uint32_t*>(&f1) };
+
+    uint16_t e = x.exp();
+    uint32_t m = x.man();
 
     uint32_t mi = 0;
     if (e > 157) {
@@ -436,18 +417,9 @@ int32_t fcvtws(float f1) {
 }
 
 bool feq(float f1, float f2) {
-    uint32_t x1_bits, x2_bits;
-    memcpy(&x1_bits, &f1, sizeof(float));
-    memcpy(&x2_bits, &f2, sizeof(float));
-    
-    // 符号、指数、仮数部を抽出
-    uint32_t sign1 = (x1_bits >> 31) & 0x1;
-    uint32_t exp1 = (x1_bits >> 23) & 0xFF;
-    uint32_t man1 = x1_bits & 0x7FFFFF;
-    
-    uint32_t sign2 = (x2_bits >> 31) & 0x1;
-    uint32_t exp2 = (x2_bits >> 23) & 0xFF;
-    uint32_t man2 = x2_bits & 0x7FFFFF;
+    FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
+    FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
+
     bool f = 0;
     if (x1.raw == x2.raw) {
         f = 1;
@@ -456,24 +428,15 @@ bool feq(float f1, float f2) {
 }
 
 bool fle(float f1, float f2) {
-    uint32_t x1_bits, x2_bits;
-    memcpy(&x1_bits, &f1, sizeof(float));
-    memcpy(&x2_bits, &f2, sizeof(float));
-    
-    // 符号、指数、仮数部を抽出
-    uint32_t sign1 = (x1_bits >> 31) & 0x1;
-    uint32_t exp1 = (x1_bits >> 23) & 0xFF;
-    uint32_t man1 = x1_bits & 0x7FFFFF;
-    
-    uint32_t sign2 = (x2_bits >> 31) & 0x1;
-    uint32_t exp2 = (x2_bits >> 23) & 0xFF;
-    uint32_t man2 = x2_bits & 0x7FFFFF;
-    bool s1 = sign1;
-    bool s2 = sign2;
-    uint16_t e1 = exp1;
-    uint16_t e2 = exp2;
-    uint32_t m1 = man1;
-    uint32_t m2 = man2;
+    FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
+    FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
+
+    bool s1 = x1.sign();
+    bool s2 = x2.sign();
+    uint16_t e1 = x1.exp();
+    uint16_t e2 = x2.exp();
+    uint32_t m1 = x1.man();
+    uint32_t m2 = x2.man();
 
     bool f = 0;
     if (s1 == 0 && s2 == 0) {
@@ -502,24 +465,15 @@ bool fle(float f1, float f2) {
 }
 
 bool flt(float f1, float f2) {
-    uint32_t x1_bits, x2_bits;
-    memcpy(&x1_bits, &f1, sizeof(float));
-    memcpy(&x2_bits, &f2, sizeof(float));
-    
-    // 符号、指数、仮数部を抽出
-    uint32_t sign1 = (x1_bits >> 31) & 0x1;
-    uint32_t exp1 = (x1_bits >> 23) & 0xFF;
-    uint32_t man1 = x1_bits & 0x7FFFFF;
-    
-    uint32_t sign2 = (x2_bits >> 31) & 0x1;
-    uint32_t exp2 = (x2_bits >> 23) & 0xFF;
-    uint32_t man2 = x2_bits & 0x7FFFFF;
-    bool s1 = sign1;
-    bool s2 = sign2;
-    uint16_t e1 = exp1;
-    uint16_t e2 = exp2;
-    uint32_t m1 = man1;
-    uint32_t m2 = man2;
+    FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
+    FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
+
+    bool s1 = x1.sign();
+    bool s2 = x2.sign();
+    uint16_t e1 = x1.exp();
+    uint16_t e2 = x2.exp();
+    uint32_t m1 = x1.man();
+    uint32_t m2 = x2.man();
 
     bool f = 0;
     //両方+-0.0の時0をreturn
@@ -549,58 +503,28 @@ bool flt(float f1, float f2) {
 }
 
 float fsgnj(float f1, float f2) {
-    uint32_t x1_bits, x2_bits;
-    memcpy(&x1_bits, &f1, sizeof(float));
-    memcpy(&x2_bits, &f2, sizeof(float));
-    
-    // 符号、指数、仮数部を抽出
-    uint32_t sign1 = (x1_bits >> 31) & 0x1;
-    uint32_t exp1 = (x1_bits >> 23) & 0xFF;
-    uint32_t man1 = x1_bits & 0x7FFFFF;
-    
-    uint32_t sign2 = (x2_bits >> 31) & 0x1;
-    uint32_t exp2 = (x2_bits >> 23) & 0xFF;
-    uint32_t man2 = x2_bits & 0x7FFFFF;
-    uint32_t result_bit = (sign2 << 31) | ((exp1 & 0xFF) << 23) | (man1 & 0x7FFFFF);
-    float result;
-    memcpy(&result, &result_bit, sizeof(float));
+    FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
+    FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
+
+    uint32_t result_raw = (x2.sign() << 31) | ((x1.exp() & 0xFF) << 23) | (x1.man() & 0x7FFFFF);
+    float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }
 
 float fsgnjn(float f1, float f2) {
-    uint32_t x1_bits, x2_bits;
-    memcpy(&x1_bits, &f1, sizeof(float));
-    memcpy(&x2_bits, &f2, sizeof(float));
-    
-    // 符号、指数、仮数部を抽出
-    uint32_t sign1 = (x1_bits >> 31) & 0x1;
-    uint32_t exp1 = (x1_bits >> 23) & 0xFF;
-    uint32_t man1 = x1_bits & 0x7FFFFF;
-    
-    uint32_t sign2 = (x2_bits >> 31) & 0x1;
-    uint32_t exp2 = (x2_bits >> 23) & 0xFF;
-    uint32_t man2 = x2_bits & 0x7FFFFF;
-    uint32_t result_bit = (!sign2 << 31) | ((exp1 & 0xFF) << 23) | (man1 & 0x7FFFFF);
-    float result;
-    memcpy(&result, &result_bit, sizeof(float));
+    FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
+    FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
+
+    uint32_t result_raw = (!x2.sign() << 31) | ((x1.exp() & 0xFF) << 23) | (x1.man() & 0x7FFFFF);
+    float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }
 
 float fsgnjx(float f1, float f2) {
-    uint32_t x1_bits, x2_bits;
-    memcpy(&x1_bits, &f1, sizeof(float));
-    memcpy(&x2_bits, &f2, sizeof(float));
-    
-    // 符号、指数、仮数部を抽出
-    uint32_t sign1 = (x1_bits >> 31) & 0x1;
-    uint32_t exp1 = (x1_bits >> 23) & 0xFF;
-    uint32_t man1 = x1_bits & 0x7FFFFF;
-    
-    uint32_t sign2 = (x2_bits >> 31) & 0x1;
-    uint32_t exp2 = (x2_bits >> 23) & 0xFF;
-    uint32_t man2 = x2_bits & 0x7FFFFF;
-    uint32_t result_bit = ((sign1 ^ sign2) << 31) | ((exp1 & 0xFF) << 23) | (man1 & 0x7FFFFF);
-    float result;
-    memcpy(&result, &result_bit, sizeof(float));
+    FP32 x1 = { *reinterpret_cast<uint32_t*>(&f1) };
+    FP32 x2 = { *reinterpret_cast<uint32_t*>(&f2) };
+
+    uint32_t result_raw = ((x1.sign() ^ x2.sign()) << 31) | ((x1.exp() & 0xFF) << 23) | (x1.man() & 0x7FFFFF);
+    float result = *reinterpret_cast<float*>(&result_raw);
     return result;
 }

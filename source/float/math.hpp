@@ -1,8 +1,10 @@
-#ifndef MATH
-#define MATH
+#ifndef FPU
+#define FPU
 
 using namespace std;
 
+float fadd(float f1,float f2);
+float fmul(float f1,float f2);
 float fmul(float f1,float f2);
 float fdiv(float f1,float f2);
 float fsqrts(float f1);
