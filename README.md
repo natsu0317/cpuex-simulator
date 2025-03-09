@@ -4,19 +4,19 @@
 
 ## Usage
 
-### Pipeline Simulation
+### Simulation
 
 1. **Prepare Assembly Code**:
-   - Place your assembly code in `source/pipeline/document/assembly.txt`.
+   - Place your assembly code in `source/fast_parser/document/assembly.txt`.
 
 2. **Prepare sld file**:
-   - Place sld file in `source/pipeline/document/formatted_sld_data.txt`.
+   - Place sld file in `source/fast_parser/document/formatted_sld_data.txt`.
 
 3. **Compile and Run**:
    ```bash
-   cd source/pipeline
+   cd source/fast_parser
    make
-   ./pipeline
+   ./fast_parser
    ```
 
 4. **Output**:
@@ -33,14 +33,6 @@
 - **Memory Transition**:
   - The modifications to memory during execution will be logged in `./document/memory_transition.md`.
 
-- **Pipeline Simulation**:
-  - The simulation of the pipeline, including stages and stalls, will be detailed in `./document/pipeline.txt`.
-
-- **Instruction Statistics**:
-  - Statistics for each instruction, such as execution count and cycles, will be available in `./document/instruction_statics.txt`.
-
-
-
 ### SLD File Simulation
 
 1. **Configure Reader**:
@@ -54,33 +46,6 @@
 3. **Output**:
 
     Formatted SLD data will be displayed in cpuex-v1.6/server/old/formatted_sld_data.
-
-### PPM Conversion and Error Checking
-1. **Convert to PPM**:
-    Navigate to the source/to_ppm directory and run the following commands to convert data into a PPM file:
-    ```bash
-    cd source/to_ppm
-    make
-    ./ppm
-    ```
-    The output will be saved as output.ppm.
-
-2. **Integer Sequence Preparation**:
-
-    The program also generates an int_file with integers listed on a single line. This file is used for error checking against a correct sequence.
-
-3. **Prepare Correct Sequence**:
-
-    Place the correct sequence of integers in correct.txt.
-
-4. **Check for Mistakes**:
-
-    Run the following command to compare the sequence in int_file with correct.txt:
-    ```bash
-    ./search_mistake
-    ```
-
-    The terminal will display the positions and values of any discrepancies found.
 
 ## Functions
 
